@@ -37,14 +37,14 @@ FreeEQ8 is a professional-grade, free, cross-platform 8-band parametric EQ plugi
 
 ### macOS
 ```bash
-git clone --recursive https://github.com/TheRustySpoon/FreeEQ8.git
+git clone --recursive https://github.com/GareBear99/FreeEQ8.git
 cd FreeEQ8
 ./build_macos.sh
 ```
 
 ### Windows
 ```powershell
-git clone --recursive https://github.com/TheRustySpoon/FreeEQ8.git
+git clone --recursive https://github.com/GareBear99/FreeEQ8.git
 cd FreeEQ8
 .\build_windows.ps1
 ```
@@ -68,7 +68,7 @@ Plugins will be automatically installed to your system plugin directories.
 #### 1. Clone with JUCE Submodule
 
 ```bash
-git clone --recursive https://github.com/TheRustySpoon/FreeEQ8.git
+git clone --recursive https://github.com/GareBear99/FreeEQ8.git
 cd FreeEQ8
 ```
 
@@ -306,7 +306,7 @@ FreeEQ8 is an **original implementation** of a parametric EQ plugin. It is:
 - No preset management yet
 - No spectrum analyzer yet
 
-Report issues at: https://github.com/TheRustySpoon/FreeEQ8/issues
+Report issues at: https://github.com/GareBear99/FreeEQ8/issues
 
 ## 💡 Tips & Tricks
 
@@ -335,8 +335,8 @@ Report issues at: https://github.com/TheRustySpoon/FreeEQ8/issues
 
 ## 📧 Support
 
-- **Issues**: [GitHub Issues](https://github.com/TheRustySpoon/FreeEQ8/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/TheRustySpoon/FreeEQ8/discussions)
+- **Issues**: [GitHub Issues](https://github.com/GareBear99/FreeEQ8/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/GareBear99/FreeEQ8/discussions)
 - **Email**: therustyspoon@users.noreply.github.com
 
 ## 🌟 Star History

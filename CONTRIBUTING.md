@@ -35,7 +35,7 @@ We welcome feature suggestions! Please:
 
 1. **Fork the repository**
    ```bash
-   git clone https://github.com/TheRustySpoon/FreeEQ8.git
+   git clone https://github.com/GareBear99/FreeEQ8.git
    cd FreeEQ8
    git checkout -b feature/your-feature-name
    ```
@@ -79,7 +79,7 @@ We welcome feature suggestions! Please:
 
 ```bash
 # Clone with submodules
-git clone --recursive https://github.com/TheRustySpoon/FreeEQ8.git
+git clone --recursive https://github.com/GareBear99/FreeEQ8.git
 cd FreeEQ8
 
 # macOS
@@ -181,8 +181,8 @@ When adding features:
 
 ## Questions?
 
-- Open a [Discussion](https://github.com/TheRustySpoon/FreeEQ8/discussions)
-- Check existing [Issues](https://github.com/TheRustySpoon/FreeEQ8/issues)
+- Open a [Discussion](https://github.com/GareBear99/FreeEQ8/discussions)
+- Check existing [Issues](https://github.com/GareBear99/FreeEQ8/issues)
 - Email: therustyspoon@users.noreply.github.com
 
 ## License
