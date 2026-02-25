@@ -1,0 +1,112 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install CMake
+        run: brew install cmake
+
+      - name: Build
+        run: |
+          mkdir -p build
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release
+
+      - name: Package DMG
+        run: ./package_macos.sh build
+
+      - name: Upload macOS DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: build/FreeEQ8-v*-macOS.dmg
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Package zip
+        shell: pwsh
+        run: |
+          $version = (Select-String -Path CMakeLists.txt -Pattern 'project\(FreeEQ8 VERSION ([0-9.]+)').Matches.Groups[1].Value
+          $zipName = "FreeEQ8-v${version}-Windows"
+          $staging = "build\$zipName"
+          New-Item -ItemType Directory -Path $staging -Force | Out-Null
+
+          # Copy VST3
+          $vst3 = "build\FreeEQ8_artefacts\Release\VST3\FreeEQ8.vst3"
+          if (Test-Path $vst3) {
+            Copy-Item -Recurse $vst3 "$staging\"
+          }
+
+          # Create install instructions
+          @"
+          FreeEQ8 v${version} — Windows Installation
+          =============================================
+
+          1. Copy the FreeEQ8.vst3 folder to:
+             C:\Program Files\Common Files\VST3\
+
+          2. Rescan plugins in your DAW:
+             - Ableton Live: Preferences > Plug-ins > Rescan
+             - FL Studio: Options > Manage plugins > Find plugins
+             - Reaper: Options > Preferences > VST > Re-scan
+
+          https://github.com/GareBear99/FreeEQ8
+          License: GPL-3.0
+          "@ | Out-File -FilePath "$staging\README.txt" -Encoding utf8
+
+          Compress-Archive -Path "$staging\*" -DestinationPath "build\${zipName}.zip" -Force
+
+      - name: Upload Windows zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-zip
+          path: build/FreeEQ8-v*-Windows.zip
+
+  release:
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-dmg
+          path: artifacts
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-zip
+          path: artifacts
+
+      - name: Upload assets to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/*.dmg
+            artifacts/*.zip
