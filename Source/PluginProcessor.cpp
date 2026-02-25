@@ -11,12 +11,13 @@ FreeEQ8AudioProcessor::FreeEQ8AudioProcessor()
                                   .withOutput("Output", juce::AudioChannelSet::stereo(), true))
 , apvts(*this, nullptr, "STATE", createParams())
 {
+    presetManager = std::make_unique<PresetManager>(apvts);
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout FreeEQ8AudioProcessor::createParams()
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
-    params.reserve(8 * 5 + 3); // +3 for output gain, scale, adaptive Q
+    params.reserve(8 * 6 + 3); // 6 per band (on, type, freq, q, gain, solo) + 3 globals
 
     // Global parameters
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -37,6 +38,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout FreeEQ8AudioProcessor::creat
     for (int i = 1; i <= 8; ++i)
     {
         params.push_back(std::make_unique<juce::AudioParameterBool>(bandId(i,"on"), "Band " + juce::String(i) + " On", true));
+        params.push_back(std::make_unique<juce::AudioParameterBool>(bandId(i,"solo"), "Band " + juce::String(i) + " Solo", false));
         params.push_back(std::make_unique<juce::AudioParameterChoice>(bandId(i,"type"), "Band " + juce::String(i) + " Type", typeChoices, 0));
 
         params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -126,18 +128,50 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     const float scale = apvts.getRawParameterValue("scale")->load();
     const float outputGainDb = apvts.getRawParameterValue("output_gain")->load();
     const float outputGain = std::pow(10.0f, outputGainDb / 20.0f);
+    const bool adaptiveQ = apvts.getRawParameterValue("adaptive_q")->load() > 0.5f;
+
+    // Check if any band is soloed
+    int soloedBand = -1;
+    for (int i = 1; i <= 8; ++i)
+    {
+        if (apvts.getRawParameterValue(bandId(i, "solo"))->load() > 0.5f)
+        {
+            soloedBand = i - 1;
+            break;
+        }
+    }
 
     // Apply per-band beginBlock (smoothing setup + initial coeff update)
-    for (auto& b : bands)
+    for (int i = 0; i < 8; ++i)
     {
+        auto& b = bands[(size_t)i];
+
+        // If a band is soloed, mute all others
+        bool effectiveEnabled = b.enabled;
+        if (soloedBand >= 0 && i != soloedBand)
+            effectiveEnabled = false;
+
         // Apply scale to gain
         float scaledGain = b.targetGainDb * scale;
-        b.beginBlock(sr, b.enabled, b.type, b.targetFreqHz, b.targetQ, scaledGain);
+
+        // Adaptive Q: widen Q based on gain magnitude
+        float effectiveQ = b.targetQ;
+        if (adaptiveQ)
+        {
+            const float adaptiveFactor = 0.12f;
+            effectiveQ = b.targetQ * (1.0f + std::abs(scaledGain) * adaptiveFactor);
+            effectiveQ = std::clamp(effectiveQ, 0.1f, 24.0f);
+        }
+
+        b.beginBlock(sr, effectiveEnabled, b.type, b.targetFreqHz, effectiveQ, scaledGain);
     }
 
     auto* L = buffer.getWritePointer(0);
     auto* R = buffer.getWritePointer(1);
     const int n = buffer.getNumSamples();
+
+    // Push pre-EQ samples to spectrum FIFO
+    preSpectrumFifo.pushBlock(L, R, n);
 
     for (int i = 0; i < n; ++i)
     {
@@ -157,6 +191,9 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
         L[i] = l;
         R[i] = r;
     }
+
+    // Push post-EQ samples to spectrum FIFO
+    spectrumFifo.pushBlock(L, R, n);
 }
 
 

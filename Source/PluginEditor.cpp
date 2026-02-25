@@ -6,18 +6,37 @@ static juce::String bandId(int idx, const char* suffix)
 }
 
 FreeEQ8AudioProcessorEditor::FreeEQ8AudioProcessorEditor(FreeEQ8AudioProcessor& p)
-: juce::AudioProcessorEditor(&p), proc(p)
+: juce::AudioProcessorEditor(&p), proc(p), responseCurve(p)
 {
-    setSize(900, 420);
+    setSize(900, 620);
+
+    // Response curve
+    addAndMakeVisible(responseCurve);
 
     auto typeChoices = juce::StringArray { "Bell", "LowShelf", "HighShelf", "HighPass", "LowPass" };
+
+    auto initLabel = [&](juce::Label& label, const juce::String& text)
+    {
+        label.setText(text, juce::dontSendNotification);
+        label.setJustificationType(juce::Justification::centred);
+        label.setFont(juce::Font(10.0f));
+        label.setColour(juce::Label::textColourId, juce::Colours::white.withAlpha(0.5f));
+        addAndMakeVisible(label);
+    };
 
     for (int i = 1; i <= 8; ++i)
     {
         auto& b = ui[(size_t)i - 1];
 
-        b.on.setButtonText("On");
+        // On button with band color
+        b.on.setButtonText(juce::String(i));
+        b.on.setColour(juce::ToggleButton::tickColourId, ResponseCurveComponent::getBandColour(i - 1));
         addAndMakeVisible(b.on);
+
+        // Solo button
+        b.solo.setButtonText("S");
+        b.solo.setColour(juce::ToggleButton::tickColourId, juce::Colour(0xFFFFD54F));
+        addAndMakeVisible(b.solo);
 
         b.type.addItemList(typeChoices, 1);
         addAndMakeVisible(b.type);
@@ -26,7 +45,8 @@ FreeEQ8AudioProcessorEditor::FreeEQ8AudioProcessorEditor(FreeEQ8AudioProcessor& 
         {
             s.setName(name);
             s.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-            s.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 70, 18);
+            s.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 60, 16);
+            s.setColour(juce::Slider::rotarySliderFillColourId, ResponseCurveComponent::getBandColour(i - 1));
             addAndMakeVisible(s);
         };
 
@@ -34,7 +54,12 @@ FreeEQ8AudioProcessorEditor::FreeEQ8AudioProcessorEditor(FreeEQ8AudioProcessor& 
         initSlider(b.q, "Q");
         initSlider(b.gain, "Gain");
 
+        initLabel(b.freqLabel, "Freq");
+        initLabel(b.qLabel, "Q");
+        initLabel(b.gainLabel, "Gain");
+
         b.onAtt   = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(proc.apvts, bandId(i,"on"), b.on);
+        b.soloAtt = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(proc.apvts, bandId(i,"solo"), b.solo);
         b.typeAtt = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(proc.apvts, bandId(i,"type"), b.type);
         b.freqAtt = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(proc.apvts, bandId(i,"freq"), b.freq);
         b.qAtt    = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(proc.apvts, bandId(i,"q"), b.q);
@@ -42,15 +67,20 @@ FreeEQ8AudioProcessorEditor::FreeEQ8AudioProcessorEditor(FreeEQ8AudioProcessor& 
     }
     
     // Global controls
-    outputGainSlider.setName("Output");
-    outputGainSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-    outputGainSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 70, 18);
-    addAndMakeVisible(outputGainSlider);
-    
-    scaleSlider.setName("Scale");
-    scaleSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-    scaleSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 70, 18);
-    addAndMakeVisible(scaleSlider);
+    auto initGlobalSlider = [&](juce::Slider& s, const juce::String& name)
+    {
+        s.setName(name);
+        s.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+        s.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 60, 16);
+        s.setColour(juce::Slider::rotarySliderFillColourId, juce::Colour(0xFF90CAF9));
+        addAndMakeVisible(s);
+    };
+
+    initGlobalSlider(outputGainSlider, "Output");
+    initGlobalSlider(scaleSlider, "Scale");
+
+    initLabel(outputGainLabel, "Output");
+    initLabel(scaleLabel, "Scale");
     
     adaptiveQButton.setButtonText("Adaptive Q");
     addAndMakeVisible(adaptiveQButton);
@@ -58,25 +88,98 @@ FreeEQ8AudioProcessorEditor::FreeEQ8AudioProcessorEditor(FreeEQ8AudioProcessor& 
     outputGainAtt = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(proc.apvts, "output_gain", outputGainSlider);
     scaleAtt = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(proc.apvts, "scale", scaleSlider);
     adaptiveQAtt = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(proc.apvts, "adaptive_q", adaptiveQButton);
+
+    // Preset controls
+    addAndMakeVisible(presetSelector);
+    presetSelector.setTextWhenNothingSelected("-- Presets --");
+    presetSelector.onChange = [this] { onPresetSelected(); };
+
+    saveButton.onClick = [this] { onSaveClicked(); };
+    addAndMakeVisible(saveButton);
+
+    deleteButton.onClick = [this] { onDeleteClicked(); };
+    addAndMakeVisible(deleteButton);
+
+    refreshPresetList();
+
+    // Spectrum pre/post toggle
+    spectrumPostToggle.setButtonText("Post EQ");
+    spectrumPostToggle.setToggleState(true, juce::dontSendNotification);
+    spectrumPostToggle.onClick = [this] { showPostSpectrum = spectrumPostToggle.getToggleState(); };
+    addAndMakeVisible(spectrumPostToggle);
+
+    // Timer for spectrum updates
+    startTimerHz(30);
+}
+
+void FreeEQ8AudioProcessorEditor::timerCallback()
+{
+    // Process FFT and push to response curve
+    auto& fifo = showPostSpectrum ? proc.spectrumFifo : proc.preSpectrumFifo;
+    if (fifo.processIfReady())
+    {
+        responseCurve.pushSpectrumData(
+            fifo.getMagnitudes(),
+            fifo.getNumBins(),
+            proc.getSampleRate() > 0 ? proc.getSampleRate() : 44100.0);
+    }
 }
 
 void FreeEQ8AudioProcessorEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colours::black.withAlpha(0.92f));
-    g.setColour(juce::Colours::white);
-    g.setFont(18.0f);
-    g.drawText("FreeEQ8 (EQ8-inspired base)", 12, 10, getWidth() - 24, 24, juce::Justification::left);
+    g.fillAll(juce::Colour(0xFF0D0D1A));
 
-    g.setFont(12.0f);
-    g.setColour(juce::Colours::white.withAlpha(0.7f));
-    g.drawText("Original code • 8-band parametric EQ • VST3/AU", 12, 34, getWidth() - 24, 18, juce::Justification::left);
+    // Title bar background
+    g.setColour(juce::Colour(0xFF16213E));
+    g.fillRect(0, 0, getWidth(), 36);
+
+    g.setColour(juce::Colours::white.withAlpha(0.9f));
+    g.setFont(16.0f);
+    g.drawText("FreeEQ8", 12, 8, 120, 20, juce::Justification::left);
+
+    g.setFont(11.0f);
+    g.setColour(juce::Colours::white.withAlpha(0.4f));
+    g.drawText("8-Band Parametric EQ", 90, 8, 200, 20, juce::Justification::left);
+
+    // Band control section separator
+    const int controlsTop = 36 + 220 + 4;
+    g.setColour(juce::Colours::white.withAlpha(0.1f));
+    g.drawHorizontalLine(controlsTop - 1, 0.0f, (float)getWidth());
+
+    // Band number labels at top of each column
+    g.setFont(11.0f);
+    const int colW = (getWidth() - 130) / 8;
+    for (int i = 0; i < 8; ++i)
+    {
+        g.setColour(ResponseCurveComponent::getBandColour(i).withAlpha(0.7f));
+        const int x = i * colW + 6;
+        g.drawText("Band " + juce::String(i + 1), x, controlsTop + 2, colW - 12, 14, juce::Justification::centred);
+    }
 }
 
 void FreeEQ8AudioProcessorEditor::resized()
 {
-    const int top = 60;
-    const int colW = (getWidth() - 140) / 8; // Reserve space for global controls
-    const int pad = 8;
+    auto bounds = getLocalBounds();
+
+    // Title bar: 36px
+    const int titleH = 36;
+
+    // Response curve: 220px
+    const int curveH = 220;
+    responseCurve.setBounds(0, titleH, bounds.getWidth(), curveH);
+
+    // Spectrum toggle in title bar
+    spectrumPostToggle.setBounds(bounds.getWidth() - 100, 8, 90, 20);
+
+    // Preset controls in title bar
+    presetSelector.setBounds(bounds.getWidth() - 400, 6, 170, 24);
+    saveButton.setBounds(bounds.getWidth() - 220, 6, 50, 24);
+    deleteButton.setBounds(bounds.getWidth() - 165, 6, 40, 24);
+
+    // Band controls section
+    const int controlsTop = titleH + curveH + 18;
+    const int colW = (bounds.getWidth() - 130) / 8;
+    const int pad = 4;
 
     for (int i = 0; i < 8; ++i)
     {
@@ -85,22 +188,109 @@ void FreeEQ8AudioProcessorEditor::resized()
         const int x = i * colW + pad;
         const int w = colW - pad * 2;
 
-        b.on.setBounds(x, top, w, 22);
-        b.type.setBounds(x, top + 26, w, 22);
+        int y = controlsTop;
 
-        const int knobY = top + 56;
-        const int knobH = 90;
+        // On + Solo buttons side by side
+        const int btnW = (w - 2) / 2;
+        b.on.setBounds(x, y, btnW, 22);
+        b.solo.setBounds(x + btnW + 2, y, btnW, 22);
+        y += 24;
 
-        b.freq.setBounds(x, knobY, w, knobH);
-        b.q.setBounds   (x, knobY + knobH, w, knobH);
-        b.gain.setBounds(x, knobY + knobH * 2, w, knobH);
+        // Filter type
+        b.type.setBounds(x, y, w, 22);
+        y += 28;
+
+        // Knobs with labels
+        const int knobH = 70;
+
+        b.freqLabel.setBounds(x, y, w, 12);
+        b.freq.setBounds(x, y + 10, w, knobH);
+        y += knobH + 12;
+
+        b.qLabel.setBounds(x, y, w, 12);
+        b.q.setBounds(x, y + 10, w, knobH);
+        y += knobH + 12;
+
+        b.gainLabel.setBounds(x, y, w, 12);
+        b.gain.setBounds(x, y + 10, w, knobH);
     }
-    
-    // Global controls on the right side
+
+    // Global controls on right side
     const int globalX = 8 * colW + pad * 2;
-    const int globalW = 100;
-    
-    outputGainSlider.setBounds(globalX, top + 56, globalW, 90);
-    scaleSlider.setBounds(globalX, top + 146, globalW, 90);
-    adaptiveQButton.setBounds(globalX, top + 246, globalW, 22);
+    const int globalW = 110;
+    int gy = controlsTop;
+
+    outputGainLabel.setBounds(globalX, gy, globalW, 14);
+    outputGainSlider.setBounds(globalX, gy + 12, globalW, 70);
+    gy += 86;
+
+    scaleLabel.setBounds(globalX, gy, globalW, 14);
+    scaleSlider.setBounds(globalX, gy + 12, globalW, 70);
+    gy += 86;
+
+    adaptiveQButton.setBounds(globalX, gy, globalW, 22);
+}
+
+// ── Preset management ──────────────────────────────────────────────
+void FreeEQ8AudioProcessorEditor::refreshPresetList()
+{
+    presetSelector.clear(juce::dontSendNotification);
+
+    if (proc.presetManager)
+    {
+        auto presets = proc.presetManager->getPresetList();
+        for (int i = 0; i < presets.size(); ++i)
+            presetSelector.addItem(presets[i], i + 1);
+
+        // Select current preset if any
+        auto current = proc.presetManager->getCurrentPreset();
+        if (current.isNotEmpty())
+        {
+            int idx = presets.indexOf(current);
+            if (idx >= 0)
+                presetSelector.setSelectedId(idx + 1, juce::dontSendNotification);
+        }
+    }
+}
+
+void FreeEQ8AudioProcessorEditor::onPresetSelected()
+{
+    const auto name = presetSelector.getText();
+    if (name.isNotEmpty() && proc.presetManager)
+        proc.presetManager->loadPreset(name);
+}
+
+void FreeEQ8AudioProcessorEditor::onSaveClicked()
+{
+    auto name = proc.presetManager ? proc.presetManager->getCurrentPreset() : juce::String();
+
+    auto* editor = new juce::AlertWindow("Save Preset", "Enter preset name:", juce::AlertWindow::NoIcon);
+    editor->addTextEditor("name", name, "Preset Name:");
+    editor->addButton("Save", 1);
+    editor->addButton("Cancel", 0);
+
+    editor->enterModalState(true, juce::ModalCallbackFunction::create(
+        [this, editor](int result)
+        {
+            if (result == 1)
+            {
+                auto presetName = editor->getTextEditorContents("name");
+                if (presetName.isNotEmpty() && proc.presetManager)
+                {
+                    proc.presetManager->savePreset(presetName);
+                    refreshPresetList();
+                }
+            }
+            delete editor;
+        }), true);
+}
+
+void FreeEQ8AudioProcessorEditor::onDeleteClicked()
+{
+    const auto name = presetSelector.getText();
+    if (name.isNotEmpty() && proc.presetManager)
+    {
+        proc.presetManager->deletePreset(name);
+        refreshPresetList();
+    }
 }

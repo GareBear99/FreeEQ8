@@ -2,6 +2,8 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_dsp/juce_dsp.h>
 #include "DSP/EQBand.h"
+#include "DSP/SpectrumFIFO.h"
+#include "Presets/PresetManager.h"
 
 class FreeEQ8AudioProcessor : public juce::AudioProcessor
 {
@@ -33,6 +35,13 @@ public:
     void setStateInformation(const void* data, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState apvts;
+
+    // Spectrum analyzer FIFO (post-EQ by default)
+    SpectrumFIFO spectrumFifo;
+    SpectrumFIFO preSpectrumFifo;  // Pre-EQ spectrum
+
+    // Preset manager
+    std::unique_ptr<PresetManager> presetManager;
 
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createParams();

@@ -183,7 +183,7 @@ When adding features:
 
 - Open a [Discussion](https://github.com/GareBear99/FreeEQ8/discussions)
 - Check existing [Issues](https://github.com/GareBear99/FreeEQ8/issues)
-- Email: therustyspoon@users.noreply.github.com
+- Email: GareBear99@users.noreply.github.com
 
 ## License
 

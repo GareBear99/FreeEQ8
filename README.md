@@ -196,13 +196,16 @@ Q: 0.7 (standard)
 ```
 FreeEQ8/
 ├── Source/
-│   ├── PluginProcessor.h          # Main audio processor
-│   ├── PluginProcessor.cpp        # Audio processing logic
-│   ├── PluginEditor.h             # UI header
-│   ├── PluginEditor.cpp           # UI implementation
-│   └── DSP/
-│       ├── Biquad.h               # Biquad filter implementation
-│       └── EQBand.h               # EQ band with smoothing
+│   ├── PluginProcessor.h/.cpp     # Main audio processor
+│   ├── PluginEditor.h/.cpp        # UI editor & layout
+│   ├── DSP/
+│   │   ├── Biquad.h               # Biquad filter implementation
+│   │   ├── EQBand.h               # EQ band with smoothing
+│   │   └── SpectrumFIFO.h         # Lock-free FFT FIFO
+│   ├── UI/
+│   │   ├── ResponseCurveComponent.h/.cpp  # EQ curve + spectrum + nodes
+│   └── Presets/
+│       ├── PresetManager.h/.cpp   # Preset save/load system
 ├── JUCE/                          # JUCE framework (submodule)
 ├── build/                         # Build output (ignored)
 ├── CMakeLists.txt                 # CMake configuration
@@ -214,13 +217,13 @@ FreeEQ8/
 
 ## 🛣️ Roadmap
 
-### v0.4.0 (Next Release)
-- [ ] Real-time spectrum analyzer
-- [ ] Interactive frequency response curve display
-- [ ] Draggable band nodes on curve
-- [ ] Adaptive Q implementation (currently UI-only)
-- [ ] Band solo/audition mode
-- [ ] Preset management system
+### v0.4.0 (Current Release)
+- [x] Real-time spectrum analyzer
+- [x] Interactive frequency response curve display
+- [x] Draggable band nodes on curve
+- [x] Adaptive Q implementation
+- [x] Band solo/audition mode
+- [x] Preset management system
 
 ### v0.5.0 (Future)
 - [ ] Multiple filter slopes (12/24/48 dB/oct)
@@ -264,6 +267,18 @@ Contributions are welcome! Here's how you can help:
 
 ## 📝 Changelog
 
+### v0.4.0 (2026-02-25)
+- ✅ Real-time spectrum analyzer (4096-point FFT, pre/post EQ toggle)
+- ✅ Interactive frequency response curve display with grid
+- ✅ Draggable band nodes (click-drag for freq/gain, shift+drag for Q)
+- ✅ Per-band colored curves with composite response overlay
+- ✅ Adaptive Q DSP implementation (auto-scales Q with gain)
+- ✅ Band solo/audition mode ("S" button per band)
+- ✅ Preset management (save/load/delete, 8 factory presets)
+- ✅ Complete UI overhaul (900×620, dark theme, response curve on top)
+- ✅ Right-click context menu on band nodes (type change, enable/disable)
+- ✅ Attribution updated to Gary Doman (GareBear99)
+
 ### v0.3.0 (2026-01-28)
 - ✅ Added output gain control (-24dB to +24dB)
 - ✅ Added global scale parameter (0.1x to 2x)
@@ -300,11 +315,9 @@ FreeEQ8 is an **original implementation** of a parametric EQ plugin. It is:
 
 ## 🐛 Known Issues
 
-- Adaptive Q toggle is non-functional (implementation pending)
-- No visual frequency response display
 - UI is not resizable
-- No preset management yet
-- No spectrum analyzer yet
+- No output metering yet
+- No multiple filter slopes yet
 
 Report issues at: https://github.com/GareBear99/FreeEQ8/issues
 
@@ -337,7 +350,7 @@ Report issues at: https://github.com/GareBear99/FreeEQ8/issues
 
 - **Issues**: [GitHub Issues](https://github.com/GareBear99/FreeEQ8/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/GareBear99/FreeEQ8/discussions)
-- **Email**: therustyspoon@users.noreply.github.com
+- **Email**: GareBear99@users.noreply.github.com
 
 ## 🌟 Star History
 
@@ -345,6 +358,6 @@ If you find FreeEQ8 useful, please star the repository to show your support!
 
 ---
 
-**Built with ❤️ by TheRustySpoon**
+**Built with ❤️ by Gary Doman (GareBear99)**
 
 *"Great sound shouldn't cost anything"*

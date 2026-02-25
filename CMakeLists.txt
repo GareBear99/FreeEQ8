@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(FreeEQ8 VERSION 0.2.0)
+project(FreeEQ8 VERSION 0.4.0)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -37,6 +37,11 @@ target_sources(FreeEQ8 PRIVATE
     Source/PluginEditor.h
     Source/DSP/Biquad.h
     Source/DSP/EQBand.h
+    Source/DSP/SpectrumFIFO.h
+    Source/UI/ResponseCurveComponent.h
+    Source/UI/ResponseCurveComponent.cpp
+    Source/Presets/PresetManager.h
+    Source/Presets/PresetManager.cpp
 )
 
 target_compile_definitions(FreeEQ8 PRIVATE
