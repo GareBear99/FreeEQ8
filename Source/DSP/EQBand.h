@@ -23,6 +23,18 @@ struct EQBand
     float targetQ = 1.0f;
     float targetGainDb = 0.0f;
 
+    // Drive / saturation (0 = off, 1 = full)
+    float driveAmount = 0.0f;
+
+    // Dynamic EQ state
+    bool dynEnabled = false;
+    float dynThreshDb = -20.0f;
+    float dynRatio = 4.0f;
+    float dynAttackMs = 10.0f;
+    float dynReleaseMs = 100.0f;
+    float envLevel = 0.0f;       // current envelope level (linear)
+    float dynGainMod = 0.0f;     // current dynamic gain modulation in dB
+
     // Cascaded biquad stages: 1 = 12 dB/oct, 2 = 24 dB/oct, 4 = 48 dB/oct
     int numStages = 1;
     static constexpr int maxStages = 4;
@@ -41,6 +53,7 @@ struct EQBand
     {
         for (auto& bq : biquads)
             bq.reset();
+        scBiquad.reset();
 
         freqSm.reset(sampleRate, 0.02);   // 20ms
         qSm.reset(sampleRate, 0.02);
@@ -54,6 +67,8 @@ struct EQBand
         targetQ = Q;
         targetGainDb = gainDb;
 
+        envLevel = 0.0f;
+        dynGainMod = 0.0f;
         intervalCounter = 0;
     }
 
@@ -112,9 +127,49 @@ struct EQBand
         }
     }
 
+    // Update dynamic EQ envelope from the input signal (call per sample, before process).
+    inline void updateDynamicEnvelope(float l, float r, double sampleRate)
+    {
+        if (!dynEnabled || !enabled) { dynGainMod = 0.0f; return; }
+
+        // Sidechain: bandpass-filter the input at the band frequency
+        const float scMono = (l + r) * 0.5f;
+        const float scFiltered = scBiquad.processL(scMono);
+        const float rectified = std::abs(scFiltered);
+
+        // One-pole envelope follower
+        const float attackCoeff  = 1.0f - std::exp(-1.0f / (float)(sampleRate * dynAttackMs * 0.001f));
+        const float releaseCoeff = 1.0f - std::exp(-1.0f / (float)(sampleRate * dynReleaseMs * 0.001f));
+
+        if (rectified > envLevel)
+            envLevel += attackCoeff * (rectified - envLevel);
+        else
+            envLevel += releaseCoeff * (rectified - envLevel);
+
+        // Compute gain reduction
+        const float envDb = 20.0f * std::log10(std::max(envLevel, 1e-7f));
+        if (envDb > dynThreshDb)
+        {
+            const float overDb = envDb - dynThreshDb;
+            dynGainMod = -overDb * (1.0f - 1.0f / dynRatio);
+        }
+        else
+        {
+            dynGainMod = 0.0f;
+        }
+    }
+
     inline void process(float& l, float& r)
     {
         if (!enabled) return;
+
+        // Apply dynamic gain modulation
+        if (dynEnabled && dynGainMod != 0.0f)
+        {
+            const float dynGainLin = std::pow(10.0f, dynGainMod / 20.0f);
+            l *= dynGainLin;
+            r *= dynGainLin;
+        }
 
         switch (channelRoute)
         {
@@ -136,12 +191,26 @@ struct EQBand
                     r = biquads[(size_t)s].processR(r);
                 break;
         }
+
+        // Apply saturation/drive
+        if (driveAmount > 0.001f)
+        {
+            const float d = 1.0f + driveAmount * 9.0f; // 1x to 10x
+            l = std::tanh(l * d) / std::tanh(d);       // gain-compensated tanh
+            r = std::tanh(r * d) / std::tanh(d);
+        }
     }
 
 private:
+    // Sidechain bandpass for dynamic EQ envelope
+    Biquad scBiquad;
+
     void setAllStages(double sampleRate)
     {
         for (int s = 0; s < numStages; ++s)
             biquads[(size_t)s].set(type, sampleRate, freqHz, Q, gainDb);
+
+        // Update sidechain bandpass to track band frequency
+        scBiquad.set(Biquad::Type::Bell, sampleRate, freqHz, 2.0, 0.0);
     }
 };

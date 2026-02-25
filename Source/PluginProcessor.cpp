@@ -9,15 +9,124 @@ static juce::String bandId(int idx, const char* suffix)
 FreeEQ8AudioProcessor::FreeEQ8AudioProcessor()
 : AudioProcessor(BusesProperties().withInput ("Input",  juce::AudioChannelSet::stereo(), true)
                                   .withOutput("Output", juce::AudioChannelSet::stereo(), true))
-, apvts(*this, nullptr, "STATE", createParams())
+, apvts(*this, &undoManager, "STATE", createParams())
 {
     presetManager = std::make_unique<PresetManager>(apvts);
+
+    // Register for parameter changes to support band linking
+    for (int i = 1; i <= 8; ++i)
+    {
+        apvts.addParameterListener(bandId(i, "freq"), this);
+        apvts.addParameterListener(bandId(i, "gain"), this);
+        apvts.addParameterListener(bandId(i, "q"),    this);
+    }
+
+    initLinkTracking();
+}
+
+FreeEQ8AudioProcessor::~FreeEQ8AudioProcessor()
+{
+    for (int i = 1; i <= 8; ++i)
+    {
+        apvts.removeParameterListener(bandId(i, "freq"), this);
+        apvts.removeParameterListener(bandId(i, "gain"), this);
+        apvts.removeParameterListener(bandId(i, "q"),    this);
+    }
+}
+
+void FreeEQ8AudioProcessor::initLinkTracking()
+{
+    for (int i = 1; i <= 8; ++i)
+    {
+        lastLinkedFreq[i - 1] = apvts.getRawParameterValue(bandId(i, "freq"))->load();
+        lastLinkedGain[i - 1] = apvts.getRawParameterValue(bandId(i, "gain"))->load();
+        lastLinkedQ[i - 1]    = apvts.getRawParameterValue(bandId(i, "q"))->load();
+    }
+}
+
+void FreeEQ8AudioProcessor::parameterChanged(const juce::String& parameterID, float newValue)
+{
+    if (propagatingLink) return;
+    if (!parameterID.startsWith("b")) return;
+
+    const int underscoreIdx = parameterID.indexOf("_");
+    if (underscoreIdx < 0) return;
+
+    const int bandIdx = parameterID.substring(1, underscoreIdx).getIntValue();
+    const auto suffix = parameterID.substring(underscoreIdx + 1);
+    if (bandIdx < 1 || bandIdx > 8) return;
+
+    // Check this band's link group (0 = none, 1 = A, 2 = B)
+    const int linkGroup = (int)apvts.getRawParameterValue(bandId(bandIdx, "link"))->load();
+    if (linkGroup == 0) return;
+
+    const int ai = bandIdx - 1;
+
+    if (suffix == "freq")
+    {
+        const float oldVal = lastLinkedFreq[ai];
+        lastLinkedFreq[ai] = newValue;
+        if (oldVal < 1.0f) return;
+        const float ratio = newValue / oldVal;
+
+        propagatingLink = true;
+        for (int i = 1; i <= 8; ++i)
+        {
+            if (i == bandIdx) continue;
+            if ((int)apvts.getRawParameterValue(bandId(i, "link"))->load() != linkGroup) continue;
+
+            const float other = apvts.getRawParameterValue(bandId(i, "freq"))->load();
+            const float updated = std::clamp(other * ratio, 20.0f, 20000.0f);
+            lastLinkedFreq[i - 1] = updated;
+            if (auto* p = apvts.getParameter(bandId(i, "freq")))
+                p->setValueNotifyingHost(p->convertTo0to1(updated));
+        }
+        propagatingLink = false;
+    }
+    else if (suffix == "gain")
+    {
+        const float delta = newValue - lastLinkedGain[ai];
+        lastLinkedGain[ai] = newValue;
+
+        propagatingLink = true;
+        for (int i = 1; i <= 8; ++i)
+        {
+            if (i == bandIdx) continue;
+            if ((int)apvts.getRawParameterValue(bandId(i, "link"))->load() != linkGroup) continue;
+
+            const float other = apvts.getRawParameterValue(bandId(i, "gain"))->load();
+            const float updated = std::clamp(other + delta, -24.0f, 24.0f);
+            lastLinkedGain[i - 1] = updated;
+            if (auto* p = apvts.getParameter(bandId(i, "gain")))
+                p->setValueNotifyingHost(p->convertTo0to1(updated));
+        }
+        propagatingLink = false;
+    }
+    else if (suffix == "q")
+    {
+        const float delta = newValue - lastLinkedQ[ai];
+        lastLinkedQ[ai] = newValue;
+
+        propagatingLink = true;
+        for (int i = 1; i <= 8; ++i)
+        {
+            if (i == bandIdx) continue;
+            if ((int)apvts.getRawParameterValue(bandId(i, "link"))->load() != linkGroup) continue;
+
+            const float other = apvts.getRawParameterValue(bandId(i, "q"))->load();
+            const float updated = std::clamp(other + delta, 0.1f, 24.0f);
+            lastLinkedQ[i - 1] = updated;
+            if (auto* p = apvts.getParameter(bandId(i, "q")))
+                p->setValueNotifyingHost(p->convertTo0to1(updated));
+        }
+        propagatingLink = false;
+    }
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout FreeEQ8AudioProcessor::createParams()
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
-    params.reserve(8 * 8 + 6);  // 8 per band + 6 globals
+    params.reserve(8 * 14 + 8);  // 14 per band + 8 globals
 
     // Global parameters
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -43,9 +152,14 @@ juce::AudioProcessorValueTreeState::ParameterLayout FreeEQ8AudioProcessor::creat
         "proc_mode", "Processing Mode",
         juce::StringArray { "Stereo", "Mid-Side" }, 0));
 
+    // Linear phase mode
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        "linear_phase", "Linear Phase", false));
+
     auto typeChoices    = juce::StringArray { "Bell", "LowShelf", "HighShelf", "HighPass", "LowPass" };
     auto slopeChoices   = juce::StringArray { "12 dB", "24 dB", "48 dB" };
     auto channelChoices = juce::StringArray { "Both", "L / Mid", "R / Side" };
+    auto linkChoices    = juce::StringArray { "--", "A", "B" };
 
     for (int i = 1; i <= 8; ++i)
     {
@@ -54,6 +168,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout FreeEQ8AudioProcessor::creat
         params.push_back(std::make_unique<juce::AudioParameterChoice>(bandId(i,"type"), "Band " + juce::String(i) + " Type", typeChoices, 0));
         params.push_back(std::make_unique<juce::AudioParameterChoice>(bandId(i,"slope"), "Band " + juce::String(i) + " Slope", slopeChoices, 0));
         params.push_back(std::make_unique<juce::AudioParameterChoice>(bandId(i,"ch"), "Band " + juce::String(i) + " Channel", channelChoices, 0));
+        params.push_back(std::make_unique<juce::AudioParameterChoice>(bandId(i,"link"), "Band " + juce::String(i) + " Link", linkChoices, 0));
 
         params.push_back(std::make_unique<juce::AudioParameterFloat>(
             bandId(i,"freq"), "Band " + juce::String(i) + " Freq",
@@ -69,6 +184,31 @@ juce::AudioProcessorValueTreeState::ParameterLayout FreeEQ8AudioProcessor::creat
             bandId(i,"gain"), "Band " + juce::String(i) + " Gain",
             juce::NormalisableRange<float>(-24.0f, 24.0f, 0.01f, 1.0f),
             0.0f));
+
+        // Drive / saturation per band
+        params.push_back(std::make_unique<juce::AudioParameterFloat>(
+            bandId(i,"drive"), "Band " + juce::String(i) + " Drive",
+            juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f, 1.0f),
+            0.0f));
+
+        // Dynamic EQ per band
+        params.push_back(std::make_unique<juce::AudioParameterBool>(bandId(i,"dyn_on"), "Band " + juce::String(i) + " Dyn On", false));
+        params.push_back(std::make_unique<juce::AudioParameterFloat>(
+            bandId(i,"dyn_thresh"), "Band " + juce::String(i) + " Threshold",
+            juce::NormalisableRange<float>(-60.0f, 0.0f, 0.1f, 1.0f),
+            -20.0f));
+        params.push_back(std::make_unique<juce::AudioParameterFloat>(
+            bandId(i,"dyn_ratio"), "Band " + juce::String(i) + " Ratio",
+            juce::NormalisableRange<float>(1.0f, 20.0f, 0.1f, 0.5f),
+            4.0f));
+        params.push_back(std::make_unique<juce::AudioParameterFloat>(
+            bandId(i,"dyn_attack"), "Band " + juce::String(i) + " Attack",
+            juce::NormalisableRange<float>(0.1f, 100.0f, 0.1f, 0.5f),
+            10.0f));
+        params.push_back(std::make_unique<juce::AudioParameterFloat>(
+            bandId(i,"dyn_release"), "Band " + juce::String(i) + " Release",
+            juce::NormalisableRange<float>(1.0f, 1000.0f, 1.0f, 0.5f),
+            100.0f));
     }
 
     return { params.begin(), params.end() };
@@ -86,6 +226,7 @@ bool FreeEQ8AudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) c
 void FreeEQ8AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     sr = sampleRate;
+    maxBlockSize = samplesPerBlock;
 
     for (auto& b : bands)
         b.reset(sr);
@@ -94,8 +235,21 @@ void FreeEQ8AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
     const int osOrder = (int) apvts.getRawParameterValue("oversampling")->load();
     rebuildOversampler(osOrder, sampleRate, samplesPerBlock);
 
+    // Linear phase engine
+    linearPhaseEngine.prepare(sampleRate, samplesPerBlock);
+
+    // Update latency
+    const bool linPhase = apvts.getRawParameterValue("linear_phase")->load() > 0.5f;
+    setLatencySamples(linPhase ? LinearPhaseEngine::latency : 0);
+
     // Prime coefficients from current params
     syncBandsFromParams();
+}
+
+int FreeEQ8AudioProcessor::getLatencySamples() const
+{
+    const bool linPhase = apvts.getRawParameterValue("linear_phase")->load() > 0.5f;
+    return linPhase ? LinearPhaseEngine::latency : 0;
 }
 
 void FreeEQ8AudioProcessor::rebuildOversampler(int order, double sampleRate, int samplesPerBlock)
@@ -212,6 +366,23 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
         const int chIdx = (int) apvts.getRawParameterValue(bandId(i + 1, "ch"))->load();
         const ChannelRoute route = static_cast<ChannelRoute>(std::clamp(chIdx, 0, 2));
 
+        // Drive
+        const float drive = apvts.getRawParameterValue(bandId(i + 1, "drive"))->load() / 100.0f;
+
+        // Dynamic EQ params
+        const bool dynOn     = apvts.getRawParameterValue(bandId(i + 1, "dyn_on"))->load() > 0.5f;
+        const float dynThr   = apvts.getRawParameterValue(bandId(i + 1, "dyn_thresh"))->load();
+        const float dynRat   = apvts.getRawParameterValue(bandId(i + 1, "dyn_ratio"))->load();
+        const float dynAtk   = apvts.getRawParameterValue(bandId(i + 1, "dyn_attack"))->load();
+        const float dynRel   = apvts.getRawParameterValue(bandId(i + 1, "dyn_release"))->load();
+
+        b.driveAmount   = drive;
+        b.dynEnabled    = dynOn;
+        b.dynThreshDb   = dynThr;
+        b.dynRatio      = dynRat;
+        b.dynAttackMs   = dynAtk;
+        b.dynReleaseMs  = dynRel;
+
         b.beginBlock(effectiveSR, effectiveEnabled, b.type, b.targetFreqHz, effectiveQ, scaledGain,
                      numStages, route);
     }
@@ -223,7 +394,11 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     // Push pre-EQ samples to spectrum FIFO
     preSpectrumFifo.pushBlock(L, R, n);
 
-    // --- Oversampled EQ processing ---
+    // Linear phase mode
+    const bool linearPhase = apvts.getRawParameterValue("linear_phase")->load() > 0.5f;
+    setLatencySamples(linearPhase ? LinearPhaseEngine::latency : 0);
+
+    // --- Oversampled EQ processing (minimum-phase biquad path) ---
     auto processEQ = [&](float* left, float* right, int numSamples, double processSR)
     {
         // Mid/Side encode
@@ -233,8 +408,8 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
             {
                 const float l = left[i];
                 const float r = right[i];
-                left[i]  = (l + r) * 0.5f;  // Mid
-                right[i] = (l - r) * 0.5f;  // Side
+                left[i]  = (l + r) * 0.5f;
+                right[i] = (l - r) * 0.5f;
             }
         }
 
@@ -245,6 +420,7 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 
             for (auto& b : bands)
             {
+                b.updateDynamicEnvelope(l, r, processSR);
                 b.maybeUpdateCoeffs(processSR);
                 b.process(l, r);
             }
@@ -263,15 +439,30 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
             {
                 const float m = left[i];
                 const float s = right[i];
-                left[i]  = m + s;  // L
-                right[i] = m - s;  // R
+                left[i]  = m + s;
+                right[i] = m - s;
             }
         }
     };
 
-    if (oversampler != nullptr)
+    if (linearPhase)
     {
-        // Create a dsp::AudioBlock from the buffer
+        // Linear phase path: build magnitude response, convolve via FIR
+        buildLinearPhaseMagnitude();
+
+        // Apply output gain to the buffer before linear phase processing
+        // (output gain is baked into the magnitude response)
+        linearPhaseEngine.processBlock(L, R, n);
+
+        // Apply output gain separately
+        for (int i = 0; i < n; ++i)
+        {
+            L[i] *= outputGain;
+            R[i] *= outputGain;
+        }
+    }
+    else if (oversampler != nullptr)
+    {
         juce::dsp::AudioBlock<float> block(buffer);
         auto osBlock = oversampler->processSamplesUp(block);
 
@@ -283,7 +474,6 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 
         oversampler->processSamplesDown(block);
 
-        // Re-fetch pointers after downsample
         L = buffer.getWritePointer(0);
         R = buffer.getWritePointer(1);
     }
@@ -291,6 +481,11 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     {
         processEQ(L, R, n, sr);
     }
+
+    // Match EQ: capture reference if active, apply correction if matching
+    matchEQ.pushSamples(L, R, n);
+    if (matchEQ.isMatchActive())
+        matchEQ.applyCorrection(L, R, n, sr);
 
     // Push post-EQ samples to spectrum FIFO
     spectrumFifo.pushBlock(L, R, n);
@@ -333,6 +528,71 @@ void FreeEQ8AudioProcessor::setStateInformation(const void* data, int sizeInByte
 juce::AudioProcessorEditor* FreeEQ8AudioProcessor::createEditor()
 {
     return new FreeEQ8AudioProcessorEditor(*this);
+}
+
+void FreeEQ8AudioProcessor::buildLinearPhaseMagnitude()
+{
+    // Build composite magnitude response for the linear phase FIR.
+    // Use the same logic as ResponseCurveComponent but at FFT resolution.
+    const int numBins = LinearPhaseEngine::firLength / 2 + 1;
+    std::vector<float> magDb(numBins, 0.0f);
+    const float scale = apvts.getRawParameterValue("scale")->load();
+
+    for (int b = 0; b < 8; ++b)
+    {
+        const int idx = b + 1;
+        const bool on = apvts.getRawParameterValue(bandId(idx, "on"))->load() > 0.5f;
+        if (!on) continue;
+
+        const int t = (int)apvts.getRawParameterValue(bandId(idx, "type"))->load();
+        Biquad::Type tp = Biquad::Type::Bell;
+        switch (t)
+        {
+            case 0: tp = Biquad::Type::Bell; break;
+            case 1: tp = Biquad::Type::LowShelf; break;
+            case 2: tp = Biquad::Type::HighShelf; break;
+            case 3: tp = Biquad::Type::HighPass; break;
+            case 4: tp = Biquad::Type::LowPass; break;
+        }
+
+        const float freq = apvts.getRawParameterValue(bandId(idx, "freq"))->load();
+        const float q    = apvts.getRawParameterValue(bandId(idx, "q"))->load();
+        const float gain = apvts.getRawParameterValue(bandId(idx, "gain"))->load() * scale;
+
+        const int slopeIdx = (int)apvts.getRawParameterValue(bandId(idx, "slope"))->load();
+        static const int slopeToStages[] = { 1, 2, 4 };
+        const int numStages = slopeToStages[std::clamp(slopeIdx, 0, 2)];
+
+        Biquad tempBq;
+        tempBq.set(tp, sr, freq, q, gain);
+
+        for (int i = 0; i < numBins; ++i)
+        {
+            const double f = (double)i / (double)(numBins - 1) * sr * 0.5;
+            if (f < 1.0) continue;
+
+            const double omega = 2.0 * M_PI * f / sr;
+            const double cosw  = std::cos(omega);
+            const double cos2w = std::cos(2.0 * omega);
+            const double sinw  = std::sin(omega);
+            const double sin2w = std::sin(2.0 * omega);
+
+            const double numReal = tempBq.b0 + tempBq.b1 * cosw + tempBq.b2 * cos2w;
+            const double numImag = -(tempBq.b1 * sinw + tempBq.b2 * sin2w);
+            const double denReal = 1.0 + tempBq.a1 * cosw + tempBq.a2 * cos2w;
+            const double denImag = -(tempBq.a1 * sinw + tempBq.a2 * sin2w);
+
+            const double numMagSq = numReal * numReal + numImag * numImag;
+            const double denMagSq = denReal * denReal + denImag * denImag;
+
+            if (denMagSq < 1e-30) continue;
+
+            const float singleDb = (float)(10.0 * std::log10(std::max(numMagSq / denMagSq, 1e-30)));
+            magDb[(size_t)i] += singleDb * (float)numStages;
+        }
+    }
+
+    linearPhaseEngine.rebuildFromMagnitude(magDb.data(), numBins);
 }
 
 // This creates new instances of the plugin.

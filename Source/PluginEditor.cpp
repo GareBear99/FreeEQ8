@@ -64,19 +64,38 @@ FreeEQ8AudioProcessorEditor::FreeEQ8AudioProcessorEditor(FreeEQ8AudioProcessor& 
         initSlider(b.freq, "Freq");
         initSlider(b.q, "Q");
         initSlider(b.gain, "Gain");
+        initSlider(b.drive, "Drive");
 
         initLabel(b.freqLabel, "Freq");
         initLabel(b.qLabel, "Q");
         initLabel(b.gainLabel, "Gain");
 
-        b.onAtt      = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(proc.apvts, bandId(i,"on"), b.on);
-        b.soloAtt    = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(proc.apvts, bandId(i,"solo"), b.solo);
-        b.typeAtt    = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(proc.apvts, bandId(i,"type"), b.type);
-        b.slopeAtt   = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(proc.apvts, bandId(i,"slope"), b.slope);
-        b.channelAtt = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(proc.apvts, bandId(i,"ch"), b.channel);
-        b.freqAtt    = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(proc.apvts, bandId(i,"freq"), b.freq);
-        b.qAtt       = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(proc.apvts, bandId(i,"q"), b.q);
-        b.gainAtt    = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(proc.apvts, bandId(i,"gain"), b.gain);
+        // Link group
+        b.link.addItemList({ "--", "A", "B" }, 1);
+        addAndMakeVisible(b.link);
+
+        // Dynamic EQ toggle + threshold
+        b.dynOn.setButtonText("D");
+        b.dynOn.setColour(juce::ToggleButton::tickColourId, juce::Colour(0xFFFF5722));
+        addAndMakeVisible(b.dynOn);
+
+        b.dynThresh.setSliderStyle(juce::Slider::LinearBar);
+        b.dynThresh.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+        b.dynThresh.setColour(juce::Slider::trackColourId, juce::Colour(0xFFFF5722).withAlpha(0.4f));
+        addAndMakeVisible(b.dynThresh);
+
+        b.onAtt        = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(proc.apvts, bandId(i,"on"), b.on);
+        b.soloAtt      = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(proc.apvts, bandId(i,"solo"), b.solo);
+        b.typeAtt      = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(proc.apvts, bandId(i,"type"), b.type);
+        b.slopeAtt     = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(proc.apvts, bandId(i,"slope"), b.slope);
+        b.channelAtt   = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(proc.apvts, bandId(i,"ch"), b.channel);
+        b.linkAtt      = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(proc.apvts, bandId(i,"link"), b.link);
+        b.freqAtt      = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(proc.apvts, bandId(i,"freq"), b.freq);
+        b.qAtt         = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(proc.apvts, bandId(i,"q"), b.q);
+        b.gainAtt      = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(proc.apvts, bandId(i,"gain"), b.gain);
+        b.driveAtt     = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(proc.apvts, bandId(i,"drive"), b.drive);
+        b.dynOnAtt     = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(proc.apvts, bandId(i,"dyn_on"), b.dynOn);
+        b.dynThreshAtt = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(proc.apvts, bandId(i,"dyn_thresh"), b.dynThresh);
     }
     
     // Global controls
@@ -111,6 +130,34 @@ FreeEQ8AudioProcessorEditor::FreeEQ8AudioProcessorEditor(FreeEQ8AudioProcessor& 
     procModeSelector.addItemList({ "Stereo", "Mid-Side" }, 1);
     addAndMakeVisible(procModeSelector);
     procModeAtt = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(proc.apvts, "proc_mode", procModeSelector);
+
+    // Linear phase toggle
+    linearPhaseButton.setButtonText("Lin Phase");
+    addAndMakeVisible(linearPhaseButton);
+    linearPhaseAtt = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(proc.apvts, "linear_phase", linearPhaseButton);
+
+    // Undo/Redo buttons
+    undoButton.onClick = [this] { proc.undoManager.undo(); };
+    redoButton.onClick = [this] { proc.undoManager.redo(); };
+    addAndMakeVisible(undoButton);
+    addAndMakeVisible(redoButton);
+
+    // Match EQ buttons
+    matchCaptureButton.onClick = [this]
+    {
+        if (proc.matchEQ.isCapturing())
+            proc.matchEQ.stopCapture();
+        else
+            proc.matchEQ.startCapture();
+    };
+    matchApplyButton.onClick = [this]
+    {
+        proc.matchEQ.setMatchActive(!proc.matchEQ.isMatchActive());
+    };
+    matchClearButton.onClick = [this] { proc.matchEQ.clear(); };
+    addAndMakeVisible(matchCaptureButton);
+    addAndMakeVisible(matchApplyButton);
+    addAndMakeVisible(matchClearButton);
 
     // Level meter
     addAndMakeVisible(levelMeter);
@@ -237,46 +284,74 @@ void FreeEQ8AudioProcessorEditor::resized()
         y += 22;
 
         // Slope + Channel side by side
-        const int halfW = (cw - 2) / 2;
-        b.slope.setBounds(x, y, halfW, 20);
-        b.channel.setBounds(x + halfW + 2, y, halfW, 20);
-        y += 24;
+        const int thirdW = (cw - 4) / 3;
+        b.slope.setBounds(x, y, thirdW, 18);
+        b.channel.setBounds(x + thirdW + 2, y, thirdW, 18);
+        b.link.setBounds(x + (thirdW + 2) * 2, y, thirdW, 18);
+        y += 20;
 
-        // Distribute knobs in remaining space
+        // Dynamic EQ row: D toggle + threshold bar
+        const int dynBtnW = 22;
+        b.dynOn.setBounds(x, y, dynBtnW, 18);
+        b.dynThresh.setBounds(x + dynBtnW + 2, y, cw - dynBtnW - 2, 18);
+        y += 20;
+
+        // Distribute knobs in remaining space (freq, q, gain, drive)
         const int remainH = h - y - 4;
-        const int knobH = std::max(50, remainH / 3 - 12);
+        const int knobH = std::max(40, remainH / 4 - 10);
 
-        b.freqLabel.setBounds(x, y, cw, 12);
-        b.freq.setBounds(x, y + 10, cw, knobH);
-        y += knobH + 12;
+        b.freqLabel.setBounds(x, y, cw, 10);
+        b.freq.setBounds(x, y + 8, cw, knobH);
+        y += knobH + 10;
 
-        b.qLabel.setBounds(x, y, cw, 12);
-        b.q.setBounds(x, y + 10, cw, knobH);
-        y += knobH + 12;
+        b.qLabel.setBounds(x, y, cw, 10);
+        b.q.setBounds(x, y + 8, cw, knobH);
+        y += knobH + 10;
 
-        b.gainLabel.setBounds(x, y, cw, 12);
-        b.gain.setBounds(x, y + 10, cw, knobH);
+        b.gainLabel.setBounds(x, y, cw, 10);
+        b.gain.setBounds(x, y + 8, cw, knobH);
+        y += knobH + 10;
+
+        b.drive.setBounds(x, y, cw, std::max(30, knobH - 10));
     }
 
     // Global controls on right side
     const int globalX = 8 * colW + pad * 2;
+    const int gw = globalW - meterW;
     int gy = controlsTop;
 
-    outputGainLabel.setBounds(globalX, gy, globalW - meterW, 14);
-    outputGainSlider.setBounds(globalX, gy + 12, globalW - meterW, 64);
+    outputGainLabel.setBounds(globalX, gy, gw, 14);
+    outputGainSlider.setBounds(globalX, gy + 12, gw, 64);
     gy += 78;
 
-    scaleLabel.setBounds(globalX, gy, globalW - meterW, 14);
-    scaleSlider.setBounds(globalX, gy + 12, globalW - meterW, 64);
+    scaleLabel.setBounds(globalX, gy, gw, 14);
+    scaleSlider.setBounds(globalX, gy + 12, gw, 64);
     gy += 78;
 
-    adaptiveQButton.setBounds(globalX, gy, globalW - meterW, 20);
-    gy += 24;
+    adaptiveQButton.setBounds(globalX, gy, gw, 20);
+    gy += 22;
 
-    oversamplingSelector.setBounds(globalX, gy, globalW - meterW, 20);
-    gy += 24;
+    oversamplingSelector.setBounds(globalX, gy, gw, 20);
+    gy += 22;
 
-    procModeSelector.setBounds(globalX, gy, globalW - meterW, 20);
+    procModeSelector.setBounds(globalX, gy, gw, 20);
+    gy += 22;
+
+    linearPhaseButton.setBounds(globalX, gy, gw, 20);
+    gy += 26;
+
+    // Match EQ controls
+    matchCaptureButton.setBounds(globalX, gy, gw, 20);
+    gy += 22;
+    matchApplyButton.setBounds(globalX, gy, gw, 20);
+    gy += 22;
+    matchClearButton.setBounds(globalX, gy, gw, 20);
+    gy += 26;
+
+    // Undo / Redo
+    const int undoW = (gw - 4) / 2;
+    undoButton.setBounds(globalX, gy, undoW, 20);
+    redoButton.setBounds(globalX + undoW + 4, gy, undoW, 20);
 
     // Level meter on far right
     levelMeter.setBounds(w - meterW, controlsTop, meterW - 4, controlsH - 8);

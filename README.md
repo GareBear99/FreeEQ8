@@ -200,12 +200,15 @@ FreeEQ8/
 │   ├── PluginEditor.h/.cpp        # UI editor & layout
 │   ├── DSP/
 │   │   ├── Biquad.h               # Biquad filter implementation
-│   │   ├── EQBand.h               # EQ band with smoothing
-│   │   └── SpectrumFIFO.h         # Lock-free FFT FIFO
+│   │   ├── EQBand.h               # EQ band with smoothing, drive & dynamic EQ
+│   │   ├── SpectrumFIFO.h         # Lock-free FFT FIFO
+│   │   ├── LinearPhaseEngine.h    # FIR-based linear-phase EQ engine
+│   │   └── MatchEQ.h              # Reference capture & correction curve
 │   ├── UI/
 │   │   ├── ResponseCurveComponent.h/.cpp  # EQ curve + spectrum + nodes
+│   │   └── LevelMeter.h           # Stereo peak/RMS level meter
 │   └── Presets/
-│       ├── PresetManager.h/.cpp   # Preset save/load system
+│       └── PresetManager.h/.cpp   # Preset save/load system
 ├── JUCE/                          # JUCE framework (submodule)
 ├── build/                         # Build output (ignored)
 ├── CMakeLists.txt                 # CMake configuration
@@ -233,13 +236,13 @@ FreeEQ8/
 - [x] Band solo/audition mode
 - [x] Preset management system
 
-### v1.0.0 (Long-term)
-- [ ] Linear phase mode
-- [ ] Dynamic EQ capabilities
-- [ ] Band linking
-- [ ] Per-band saturation/drive
-- [ ] Undo/Redo system
-- [ ] Match EQ functionality
+### v1.0.0 (Current Release)
+- [x] Linear phase mode (FIR convolution via overlap-add FFT)
+- [x] Dynamic EQ capabilities (per-band envelope follower with threshold/ratio/attack/release)
+- [x] Band linking (link groups A/B with delta-based freq/gain/Q propagation)
+- [x] Per-band saturation/drive (gain-compensated tanh waveshaper)
+- [x] Undo/Redo system (integrated with APVTS UndoManager)
+- [x] Match EQ functionality (capture reference spectrum, compute & apply correction)
 
 ## 🤝 Contributing
 
@@ -266,6 +269,16 @@ Contributions are welcome! Here's how you can help:
 - 🧪 Unit tests
 
 ## 📝 Changelog
+
+### v1.0.0 (2026-02-25)
+- ✅ Linear phase mode: symmetric FIR from combined biquad magnitude, overlap-add FFT convolution (2048-sample latency)
+- ✅ Dynamic EQ: per-band envelope follower with sidechain bandpass, threshold, ratio, attack & release
+- ✅ Band linking: link groups A/B propagate freq (ratio-based), gain & Q (delta-based) changes
+- ✅ Per-band saturation/drive: gain-compensated tanh waveshaper (0–100%)
+- ✅ Undo/Redo system via juce::UndoManager integrated with APVTS
+- ✅ Match EQ: capture reference spectrum, compute per-bin correction, FFT-based application
+- ✅ New parameters: drive, dynamic EQ (threshold/ratio/attack/release), link group per band
+- ✅ Updated UI: undo/redo buttons, dynamic EQ toggle + threshold, link group selector, drive knob
 
 ### v0.5.0 (2026-02-25)
 - ✅ Multiple filter slopes: 12/24/48 dB/oct per band via cascaded biquad stages
@@ -326,7 +339,9 @@ FreeEQ8 is an **original implementation** of a parametric EQ plugin. It is:
 ## 🐛 Known Issues
 
 - Changing oversampling mid-playback may cause a brief click
-- Factory presets don't include slope/channel settings (defaults used)
+- Factory presets don't include slope/channel/drive/dynamic settings (defaults used)
+- Linear phase mode adds 2048 samples of latency
+- Match EQ capture is mono-summed; correction is per-channel
 
 Report issues at: https://github.com/GareBear99/FreeEQ8/issues
 
