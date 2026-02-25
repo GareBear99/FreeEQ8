@@ -18,16 +18,20 @@ else()
 endif()
 
 juce_add_plugin(FreeEQ8
-    COMPANY_NAME "FreeEQ"
+    COMPANY_NAME "TizWildinEntertainment"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE FrEQ
+    PLUGIN_MANUFACTURER_CODE TzWd
     PLUGIN_CODE FEQ8
     FORMATS VST3 AU
     PRODUCT_NAME "FreeEQ8"
+    BUNDLE_ID "com.tizwildinentertainment.freeeq8"
+    COMPANY_URL "https://github.com/GareBear99/FreeEQ8"
+    COMPANY_EMAIL "GareBear99@users.noreply.github.com"
+    DESCRIPTION "Professional 8-Band Parametric EQ"
 )
 
 target_sources(FreeEQ8 PRIVATE

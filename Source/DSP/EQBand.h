@@ -108,7 +108,8 @@ struct EQBand
     {
         if (!enabled) return;
 
-        if (freqSm.isSmoothing() || qSm.isSmoothing() || gainSm.isSmoothing())
+        // Force periodic coefficient updates when dynamic EQ is active (dynGainMod changes per-sample)
+        if (dynEnabled || freqSm.isSmoothing() || qSm.isSmoothing() || gainSm.isSmoothing())
         {
             if (intervalCounter++ >= coeffUpdateInterval)
             {
@@ -163,13 +164,8 @@ struct EQBand
     {
         if (!enabled) return;
 
-        // Apply dynamic gain modulation
-        if (dynEnabled && dynGainMod != 0.0f)
-        {
-            const float dynGainLin = std::pow(10.0f, dynGainMod / 20.0f);
-            l *= dynGainLin;
-            r *= dynGainLin;
-        }
+        // Dynamic gain modulation is baked into biquad coefficients via setAllStages(),
+        // so no separate pre-filter volume adjustment is needed here.
 
         switch (channelRoute)
         {
@@ -207,10 +203,13 @@ private:
 
     void setAllStages(double sampleRate)
     {
-        for (int s = 0; s < numStages; ++s)
-            biquads[(size_t)s].set(type, sampleRate, freqHz, Q, gainDb);
+        // Incorporate dynamic gain modulation into the filter coefficients
+        const float effectiveGainDb = gainDb + dynGainMod;
 
-        // Update sidechain bandpass to track band frequency
-        scBiquad.set(Biquad::Type::Bell, sampleRate, freqHz, 2.0, 0.0);
+        for (int s = 0; s < numStages; ++s)
+            biquads[(size_t)s].set(type, sampleRate, freqHz, Q, effectiveGainDb);
+
+        // Sidechain bandpass tracks band center frequency for envelope detection
+        scBiquad.set(Biquad::Type::Bandpass, sampleRate, freqHz, 2.0, 0.0);
     }
 };

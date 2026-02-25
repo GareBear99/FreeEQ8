@@ -6,13 +6,18 @@
 #include <algorithm>
 
 // Match EQ: captures a reference spectrum and computes a correction curve.
-// The correction is applied as per-bin gain in the frequency domain.
+// Flow:
+//   1. startCapture() → pushSamples() accumulates reference spectrum → stopCapture()
+//   2. setMatchActive(true) → enters analysis phase, accumulates current spectrum
+//   3. After enough analysis frames, correction = reference - current is computed
+//   4. applyCorrection() applies per-bin gain via FFT with overlap-add
 class MatchEQ
 {
 public:
-    static constexpr int fftOrder = 12;             // 4096-point FFT
-    static constexpr int fftSize  = 1 << fftOrder;  // 4096
-    static constexpr int numBins  = fftSize / 2;    // 2048
+    static constexpr int fftOrder = 12;              // 4096-point FFT
+    static constexpr int fftSize  = 1 << fftOrder;   // 4096
+    static constexpr int numBins  = fftSize / 2;     // 2048
+    static constexpr int analysisFramesNeeded = 8;
 
     MatchEQ()
         : fft(fftOrder),
@@ -24,40 +29,49 @@ public:
     // Start capturing reference spectrum.
     void startCapture()
     {
-        capturing = true;
+        // Reset state before enabling capture (release ordering ensures visibility)
         captureFrames = 0;
+        fifoIndex = 0;
         std::fill(capturedSpectrum.begin(), capturedSpectrum.end(), 0.0f);
+        capturing.store(true, std::memory_order_release);
     }
 
     // Stop capturing and finalize the reference spectrum.
     void stopCapture()
     {
-        capturing = false;
+        capturing.store(false, std::memory_order_release);
         if (captureFrames > 0)
         {
             const float inv = 1.0f / (float)captureFrames;
             for (int i = 0; i < numBins; ++i)
                 capturedSpectrum[(size_t)i] *= inv;
-            hasCapturedData = true;
+            hasCapturedData.store(true, std::memory_order_release);
         }
     }
 
-    // Clear captured data.
+    // Clear all captured data and correction state.
     void clear()
     {
-        capturing = false;
-        hasCapturedData = false;
-        matchActive = false;
+        capturing.store(false, std::memory_order_release);
+        hasCapturedData.store(false, std::memory_order_release);
+        matchActive.store(false, std::memory_order_release);
+        analyzing.store(false, std::memory_order_release);
         captureFrames = 0;
-        std::fill(capturedSpectrum.begin(), capturedSpectrum.end(), 0.0f);
-        std::fill(correctionDb.begin(), correctionDb.end(), 0.0f);
+        analyzeFrames = 0;
         fifoIndex = 0;
+        std::fill(capturedSpectrum.begin(), capturedSpectrum.end(), 0.0f);
+        std::fill(currentSpectrum.begin(), currentSpectrum.end(), 0.0f);
+        std::fill(correctionDb.begin(), correctionDb.end(), 0.0f);
+        std::fill(overlapL.begin(), overlapL.end(), 0.0f);
+        std::fill(overlapR.begin(), overlapR.end(), 0.0f);
     }
 
-    // Push audio samples for capture (call from audio thread).
+    // Push audio samples for capture or analysis (call from audio thread).
     void pushSamples(const float* L, const float* R, int numSamples)
     {
-        if (!capturing) return;
+        const bool cap = capturing.load(std::memory_order_acquire);
+        const bool ana = analyzing.load(std::memory_order_acquire);
+        if (!cap && !ana) return;
 
         for (int i = 0; i < numSamples; ++i)
         {
@@ -67,79 +81,96 @@ public:
             if (fifoIndex >= fftSize)
             {
                 fifoIndex = 0;
-                processFrame();
+                if (cap)
+                    processReferenceFrame();
+                else if (ana)
+                    processAnalysisFrame();
             }
         }
     }
 
-    // Set match active (applies correction).
-    void setMatchActive(bool active) { matchActive = active; }
-    bool isMatchActive() const { return matchActive; }
-    bool hasCapture() const { return hasCapturedData; }
-    bool isCapturing() const { return capturing; }
-
-    // Compute correction: call when match is activated.
-    // currentSpectrum: the current input spectrum in dB (numBins values).
-    void computeCorrection(const float* currentSpectrumDb)
+    // Activate or deactivate match correction.
+    // When activated: begins an analysis phase to measure the current signal,
+    // then automatically computes correction and starts applying it.
+    void setMatchActive(bool active)
     {
-        if (!hasCapturedData) return;
-
-        for (int i = 0; i < numBins; ++i)
+        if (active)
         {
-            // Correction = reference - current (clamped to ±24 dB)
-            const float ref = capturedSpectrum[(size_t)i];
-            const float cur = currentSpectrumDb[i];
-            correctionDb[(size_t)i] = std::clamp(ref - cur, -24.0f, 24.0f);
+            // If already analyzing, cancel
+            if (analyzing.load(std::memory_order_acquire))
+            {
+                analyzing.store(false, std::memory_order_release);
+                return;
+            }
+            // No-op if already matching
+            if (matchActive.load(std::memory_order_acquire)) return;
+            // Need captured reference data
+            if (!hasCapturedData.load(std::memory_order_acquire)) return;
+
+            // Start analyzing current signal
+            analyzeFrames = 0;
+            std::fill(currentSpectrum.begin(), currentSpectrum.end(), 0.0f);
+            fifoIndex = 0;
+            analyzing.store(true, std::memory_order_release);
+        }
+        else
+        {
+            matchActive.store(false, std::memory_order_release);
+            analyzing.store(false, std::memory_order_release);
         }
     }
 
-    // Get the correction curve in dB.
+    bool isMatchActive() const { return matchActive.load(std::memory_order_acquire); }
+    bool hasCapture() const { return hasCapturedData.load(std::memory_order_acquire); }
+    bool isCapturing() const { return capturing.load(std::memory_order_acquire); }
+    bool isAnalyzing() const { return analyzing.load(std::memory_order_acquire); }
+
     const float* getCorrectionDb() const { return correctionDb.data(); }
     const float* getCapturedSpectrum() const { return capturedSpectrum.data(); }
     int getNumBins() const { return numBins; }
 
-    // Apply match EQ correction to a buffer (frequency-domain approach).
-    // Simple approach: per-sample gain interpolation from the correction curve.
-    void applyCorrection(float* L, float* R, int numSamples, double sampleRate)
+    // Apply match EQ correction via FFT with overlap-add (call from audio thread).
+    void applyCorrection(float* L, float* R, int numSamples, double /*sampleRate*/)
     {
-        if (!matchActive || !hasCapturedData) return;
+        if (!matchActive.load(std::memory_order_acquire)) return;
+        if (numSamples > fftSize) return;
 
-        // Apply smoothed per-sample correction as a gain curve.
-        // Map each sample's position to a frequency bin and apply gain.
-        // Actually, for simplicity, apply a block-based approach:
-        // Divide the spectrum into bands and apply gains.
-        // This is a simplified approach - for production, FFT-based would be ideal.
-
-        // Apply the correction as a gentle EQ curve using per-bin gain.
-        // We'll process using FFT: forward FFT, multiply by correction, inverse FFT.
-        if (numSamples > fftSize) return; // Safety
-
-        applyToChannel(L, numSamples);
-        applyToChannel(R, numSamples);
+        applyToChannel(L, numSamples, overlapL);
+        applyToChannel(R, numSamples, overlapR);
     }
 
 private:
     juce::dsp::FFT fft;
     juce::dsp::WindowingFunction<float> window;
 
-    bool capturing = false;
-    bool hasCapturedData = false;
-    bool matchActive = false;
+    std::atomic<bool> capturing { false };
+    std::atomic<bool> hasCapturedData { false };
+    std::atomic<bool> matchActive { false };
+    std::atomic<bool> analyzing { false };
+
     int captureFrames = 0;
+    int analyzeFrames = 0;
 
     std::array<float, fftSize> fifoBuffer {};
     int fifoIndex = 0;
 
-    // Captured reference spectrum in dB
+    // Captured reference spectrum in dB (averaged over capture frames)
     std::array<float, numBins> capturedSpectrum {};
 
-    // Correction curve in dB (reference - current)
+    // Current signal spectrum in dB (accumulated during analysis phase)
+    std::array<float, numBins> currentSpectrum {};
+
+    // Correction curve in dB (reference - current, clamped ±24 dB)
     std::array<float, numBins> correctionDb {};
 
-    // Pre-computed correction gains (linear)
-    std::array<float, numBins> correctionLinear {};
+    // Overlap-add buffers for artifact-free correction
+    std::array<float, fftSize> overlapL {};
+    std::array<float, fftSize> overlapR {};
 
-    void processFrame()
+    // Scratch buffer for FFT processing (avoids large stack allocations on the audio thread)
+    std::array<float, fftSize> processBuf {};
+
+    void processReferenceFrame()
     {
         std::array<float, fftSize * 2> fftData {};
         std::copy(fifoBuffer.begin(), fifoBuffer.end(), fftData.begin());
@@ -157,34 +188,80 @@ private:
         captureFrames++;
     }
 
-    void applyToChannel(float* data, int numSamples)
+    void processAnalysisFrame()
     {
-        // Forward FFT
-        std::array<float, fftSize> buf {};
-        for (int i = 0; i < numSamples; ++i)
-            buf[(size_t)i] = data[i];
+        std::array<float, fftSize * 2> fftData {};
+        std::copy(fifoBuffer.begin(), fifoBuffer.end(), fftData.begin());
 
-        fft.performRealOnlyForwardTransform(buf.data());
+        window.multiplyWithWindowingTable(fftData.data(), (size_t)fftSize);
+        fft.performFrequencyOnlyForwardTransform(fftData.data());
+
+        for (int i = 0; i < numBins; ++i)
+        {
+            float mag = fftData[(size_t)i] / (float)fftSize;
+            float db = 20.0f * std::log10(std::max(mag, 1e-7f));
+            currentSpectrum[(size_t)i] += db;
+        }
+
+        analyzeFrames++;
+        if (analyzeFrames >= analysisFramesNeeded)
+        {
+            // Average the current spectrum
+            const float inv = 1.0f / (float)analyzeFrames;
+            for (int i = 0; i < numBins; ++i)
+                currentSpectrum[(size_t)i] *= inv;
+
+            // Compute correction = reference - current (clamped to ±24 dB)
+            for (int i = 0; i < numBins; ++i)
+                correctionDb[(size_t)i] = std::clamp(
+                    capturedSpectrum[(size_t)i] - currentSpectrum[(size_t)i],
+                    -24.0f, 24.0f);
+
+            // Reset overlap buffers for a clean start
+            std::fill(overlapL.begin(), overlapL.end(), 0.0f);
+            std::fill(overlapR.begin(), overlapR.end(), 0.0f);
+
+            analyzing.store(false, std::memory_order_release);
+            matchActive.store(true, std::memory_order_release);
+        }
+    }
+
+    void applyToChannel(float* data, int n, std::array<float, fftSize>& overlap)
+    {
+        // Zero-pad input into scratch buffer
+        std::fill(processBuf.begin(), processBuf.end(), 0.0f);
+        for (int i = 0; i < n; ++i)
+            processBuf[(size_t)i] = data[i];
+
+        // Forward FFT
+        fft.performRealOnlyForwardTransform(processBuf.data());
 
         // Apply correction gains in frequency domain
-        // Bin 0 (DC)
-        buf[0] *= std::pow(10.0f, correctionDb[0] / 20.0f);
-        // Nyquist
-        buf[1] *= std::pow(10.0f, correctionDb[numBins - 1] / 20.0f);
-        // Other bins
+        // DC (JUCE packs DC in index 0)
+        processBuf[0] *= std::pow(10.0f, correctionDb[0] / 20.0f);
+        // Nyquist (JUCE packs Nyquist in index 1)
+        processBuf[1] *= std::pow(10.0f, correctionDb[numBins - 1] / 20.0f);
+        // Complex bins 1..N/2-1
         for (int i = 1; i < fftSize / 2; ++i)
         {
             const int binIdx = std::min(i, numBins - 1);
             const float gain = std::pow(10.0f, correctionDb[(size_t)binIdx] / 20.0f);
-            buf[(size_t)(i * 2)]     *= gain;
-            buf[(size_t)(i * 2 + 1)] *= gain;
+            processBuf[(size_t)(i * 2)]     *= gain;
+            processBuf[(size_t)(i * 2 + 1)] *= gain;
         }
 
         // Inverse FFT
-        fft.performRealOnlyInverseTransform(buf.data());
+        fft.performRealOnlyInverseTransform(processBuf.data());
 
-        // Copy back
-        for (int i = 0; i < numSamples; ++i)
-            data[i] = buf[(size_t)i];
+        // Overlap-add: combine with previous tail, output current block
+        for (int i = 0; i < n; ++i)
+        {
+            data[i] = processBuf[(size_t)i] + overlap[(size_t)i];
+            overlap[(size_t)i] = 0.0f;
+        }
+
+        // Save the convolution tail as overlap for the next block
+        for (int i = n; i < fftSize; ++i)
+            overlap[(size_t)(i - n)] += processBuf[(size_t)i];
     }
 };

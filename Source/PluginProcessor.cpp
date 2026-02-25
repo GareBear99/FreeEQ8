@@ -13,19 +13,21 @@ FreeEQ8AudioProcessor::FreeEQ8AudioProcessor()
 {
     presetManager = std::make_unique<PresetManager>(apvts);
 
-    // Register for parameter changes to support band linking
+    // Register for parameter changes to support band linking + latency updates
     for (int i = 1; i <= 8; ++i)
     {
         apvts.addParameterListener(bandId(i, "freq"), this);
         apvts.addParameterListener(bandId(i, "gain"), this);
         apvts.addParameterListener(bandId(i, "q"),    this);
     }
+    apvts.addParameterListener("linear_phase", this);
 
     initLinkTracking();
 }
 
 FreeEQ8AudioProcessor::~FreeEQ8AudioProcessor()
 {
+    apvts.removeParameterListener("linear_phase", this);
     for (int i = 1; i <= 8; ++i)
     {
         apvts.removeParameterListener(bandId(i, "freq"), this);
@@ -46,6 +48,13 @@ void FreeEQ8AudioProcessor::initLinkTracking()
 
 void FreeEQ8AudioProcessor::parameterChanged(const juce::String& parameterID, float newValue)
 {
+    // Handle linear phase latency update (safe: parameterChanged is called on message thread)
+    if (parameterID == "linear_phase")
+    {
+        setLatencySamples(newValue > 0.5f ? LinearPhaseEngine::latency : 0);
+        return;
+    }
+
     if (propagatingLink) return;
     if (!parameterID.startsWith("b")) return;
 
@@ -238,18 +247,12 @@ void FreeEQ8AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
     // Linear phase engine
     linearPhaseEngine.prepare(sampleRate, samplesPerBlock);
 
-    // Update latency
+    // Update latency based on current linear-phase setting
     const bool linPhase = apvts.getRawParameterValue("linear_phase")->load() > 0.5f;
     setLatencySamples(linPhase ? LinearPhaseEngine::latency : 0);
 
     // Prime coefficients from current params
     syncBandsFromParams();
-}
-
-int FreeEQ8AudioProcessor::getLatencySamples() const
-{
-    const bool linPhase = apvts.getRawParameterValue("linear_phase")->load() > 0.5f;
-    return linPhase ? LinearPhaseEngine::latency : 0;
 }
 
 void FreeEQ8AudioProcessor::rebuildOversampler(int order, double sampleRate, int samplesPerBlock)
@@ -396,7 +399,6 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 
     // Linear phase mode
     const bool linearPhase = apvts.getRawParameterValue("linear_phase")->load() > 0.5f;
-    setLatencySamples(linearPhase ? LinearPhaseEngine::latency : 0);
 
     // --- Oversampled EQ processing (minimum-phase biquad path) ---
     auto processEQ = [&](float* left, float* right, int numSamples, double processSR)

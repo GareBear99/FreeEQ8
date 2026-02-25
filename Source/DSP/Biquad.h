@@ -8,7 +8,7 @@
 
 struct Biquad
 {
-    // Direct Form I
+    // Transposed Direct Form II
     double b0=1, b1=0, b2=0, a1=0, a2=0;
     double z1L=0, z2L=0, z1R=0, z2R=0;
 
@@ -33,7 +33,7 @@ struct Biquad
         return (float)y;
     }
 
-    enum class Type { Bell, LowShelf, HighShelf, HighPass, LowPass };
+    enum class Type { Bell, LowShelf, HighShelf, HighPass, LowPass, Bandpass };
 
     // RBJ cookbook coefficients
     void set(Type type, double sampleRate, double freqHz, double Q, double gainDb)
@@ -106,6 +106,17 @@ struct Biquad
                 a0_ =        (A+1) - (A-1)*cosw0 + 2*std::sqrt(A)*alphaS;
                 a1_ =    2*((A-1) - (A+1)*cosw0);
                 a2_ =        (A+1) - (A-1)*cosw0 - 2*std::sqrt(A)*alphaS;
+            } break;
+
+            case Type::Bandpass:
+            {
+                // RBJ constant 0 dB peak gain BPF (gainDb ignored)
+                b0_ = alpha;
+                b1_ = 0.0;
+                b2_ = -alpha;
+                a0_ = 1.0 + alpha;
+                a1_ = -2.0 * cosw0;
+                a2_ = 1.0 - alpha;
             } break;
         }
 

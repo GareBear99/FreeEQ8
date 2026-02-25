@@ -5,6 +5,9 @@
 
 // Lock-free single-producer / single-consumer FIFO for spectrum analysis.
 // The audio thread pushes samples; the UI thread pulls and runs FFT.
+// NOTE: There is an accepted race between the audio thread writing to fifoBuffer
+// and the UI thread copying it in processIfReady(). This is standard practice for
+// JUCE audio visualizations — the worst case is a slightly corrupted display frame.
 class SpectrumFIFO
 {
 public:
