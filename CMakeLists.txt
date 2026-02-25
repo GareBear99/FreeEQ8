@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(FreeEQ8 VERSION 0.4.0)
+project(FreeEQ8 VERSION 0.5.0)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -40,6 +40,7 @@ target_sources(FreeEQ8 PRIVATE
     Source/DSP/SpectrumFIFO.h
     Source/UI/ResponseCurveComponent.h
     Source/UI/ResponseCurveComponent.cpp
+    Source/UI/LevelMeter.h
     Source/Presets/PresetManager.h
     Source/Presets/PresetManager.cpp
 )

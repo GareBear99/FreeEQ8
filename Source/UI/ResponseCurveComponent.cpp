@@ -121,6 +121,11 @@ void ResponseCurveComponent::updateResponseCurve()
             case 4: tp = Biquad::Type::LowPass; break;
         }
 
+        // Slope: number of cascaded stages
+        const int slopeIdx = (int)proc.apvts.getRawParameterValue(bandId(idx, "slope"))->load();
+        static const int slopeToStages[] = { 1, 2, 4 };
+        const int numStages = slopeToStages[std::clamp(slopeIdx, 0, 2)];
+
         // Build a temporary biquad with current coefficients
         Biquad tempBq;
         tempBq.set(tp, sr, freq, q, gain);
@@ -131,7 +136,8 @@ void ResponseCurveComponent::updateResponseCurve()
             const float logMax = std::log10(maxFreq);
             const float f = std::pow(10.0f, logMin + (float)i / (float)(numPoints - 1) * (logMax - logMin));
 
-            const float mag = computeMagnitudeDb(tempBq, f, sr);
+            // Cascaded stages multiply the magnitude (add in dB)
+            const float mag = computeMagnitudeDb(tempBq, f, sr) * (float)numStages;
             perBandMagnitudes[b][i] = mag;
             magnitudes[i] += mag;
         }
@@ -392,6 +398,21 @@ void ResponseCurveComponent::paintNodes(juce::Graphics& g)
         g.setFont(10.0f);
         g.drawText(juce::String(idx), (int)(x - r), (int)(y - r), (int)(r * 2.0f), (int)(r * 2.0f),
                    juce::Justification::centred);
+
+        // Channel routing indicator (small letter below node)
+        const int chIdx = (int) proc.apvts.getRawParameterValue(bandId(idx, "ch"))->load();
+        if (chIdx > 0)
+        {
+            const int modeIdx = (int) proc.apvts.getRawParameterValue("proc_mode")->load();
+            const char* labels[] = { "", "L", "R" };
+            const char* msLabels[] = { "", "M", "S" };
+            const char* label = (modeIdx == 1) ? msLabels[chIdx] : labels[chIdx];
+
+            g.setColour(colour.withAlpha(0.9f));
+            g.setFont(8.0f);
+            g.drawText(label, (int)(x - r), (int)(y + r + 1), (int)(r * 2.0f), 10,
+                       juce::Justification::centred);
+        }
     }
 }
 

@@ -217,21 +217,21 @@ FreeEQ8/
 
 ## 🛣️ Roadmap
 
-### v0.4.0 (Current Release)
+### v0.5.0 (Current Release)
+- [x] Multiple filter slopes (12/24/48 dB/oct) via cascaded biquads
+- [x] Mid/Side processing mode with M/S encode/decode
+- [x] Per-band channel routing (Both / L-Mid / R-Side)
+- [x] Oversampling options (1x, 2x, 4x, 8x)
+- [x] Output metering with peak hold and RMS
+- [x] Resizable UI (700×500 to 1400×900)
+
+### v0.4.0
 - [x] Real-time spectrum analyzer
 - [x] Interactive frequency response curve display
 - [x] Draggable band nodes on curve
 - [x] Adaptive Q implementation
 - [x] Band solo/audition mode
 - [x] Preset management system
-
-### v0.5.0 (Future)
-- [ ] Multiple filter slopes (12/24/48 dB/oct)
-- [ ] Mid/Side processing mode
-- [ ] L/R independent processing
-- [ ] Oversampling options (2x, 4x, 8x)
-- [ ] Output metering with peak hold
-- [ ] Resizable UI
 
 ### v1.0.0 (Long-term)
 - [ ] Linear phase mode
@@ -266,6 +266,16 @@ Contributions are welcome! Here's how you can help:
 - 🧪 Unit tests
 
 ## 📝 Changelog
+
+### v0.5.0 (2026-02-25)
+- ✅ Multiple filter slopes: 12/24/48 dB/oct per band via cascaded biquad stages
+- ✅ Mid/Side processing mode with stereo encode/decode
+- ✅ Per-band channel routing: Both / Left(Mid) / Right(Side)
+- ✅ Oversampling: 1x / 2x / 4x / 8x using JUCE polyphase IIR
+- ✅ Output level metering with peak hold and RMS display
+- ✅ Resizable UI with proportional layout (700×500 to 1400×900)
+- ✅ New global controls: Oversampling selector, Processing Mode selector
+- ✅ Per-band controls: Slope selector, Channel routing selector
 
 ### v0.4.0 (2026-02-25)
 - ✅ Real-time spectrum analyzer (4096-point FFT, pre/post EQ toggle)
@@ -315,9 +325,8 @@ FreeEQ8 is an **original implementation** of a parametric EQ plugin. It is:
 
 ## 🐛 Known Issues
 
-- UI is not resizable
-- No output metering yet
-- No multiple filter slopes yet
+- Changing oversampling mid-playback may cause a brief click
+- Factory presets don't include slope/channel settings (defaults used)
 
 Report issues at: https://github.com/GareBear99/FreeEQ8/issues
 

@@ -17,7 +17,7 @@ FreeEQ8AudioProcessor::FreeEQ8AudioProcessor()
 juce::AudioProcessorValueTreeState::ParameterLayout FreeEQ8AudioProcessor::createParams()
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
-    params.reserve(8 * 6 + 3); // 6 per band (on, type, freq, q, gain, solo) + 3 globals
+    params.reserve(8 * 8 + 6);  // 8 per band + 6 globals
 
     // Global parameters
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -33,13 +33,27 @@ juce::AudioProcessorValueTreeState::ParameterLayout FreeEQ8AudioProcessor::creat
     params.push_back(std::make_unique<juce::AudioParameterBool>(
         "adaptive_q", "Adaptive Q", false));
 
-    auto typeChoices = juce::StringArray { "Bell", "LowShelf", "HighShelf", "HighPass", "LowPass" };
+    // Oversampling: 1x / 2x / 4x / 8x
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        "oversampling", "Oversampling",
+        juce::StringArray { "1x", "2x", "4x", "8x" }, 0));
+
+    // Processing mode: Stereo / Mid-Side
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        "proc_mode", "Processing Mode",
+        juce::StringArray { "Stereo", "Mid-Side" }, 0));
+
+    auto typeChoices    = juce::StringArray { "Bell", "LowShelf", "HighShelf", "HighPass", "LowPass" };
+    auto slopeChoices   = juce::StringArray { "12 dB", "24 dB", "48 dB" };
+    auto channelChoices = juce::StringArray { "Both", "L / Mid", "R / Side" };
 
     for (int i = 1; i <= 8; ++i)
     {
         params.push_back(std::make_unique<juce::AudioParameterBool>(bandId(i,"on"), "Band " + juce::String(i) + " On", true));
         params.push_back(std::make_unique<juce::AudioParameterBool>(bandId(i,"solo"), "Band " + juce::String(i) + " Solo", false));
         params.push_back(std::make_unique<juce::AudioParameterChoice>(bandId(i,"type"), "Band " + juce::String(i) + " Type", typeChoices, 0));
+        params.push_back(std::make_unique<juce::AudioParameterChoice>(bandId(i,"slope"), "Band " + juce::String(i) + " Slope", slopeChoices, 0));
+        params.push_back(std::make_unique<juce::AudioParameterChoice>(bandId(i,"ch"), "Band " + juce::String(i) + " Channel", channelChoices, 0));
 
         params.push_back(std::make_unique<juce::AudioParameterFloat>(
             bandId(i,"freq"), "Band " + juce::String(i) + " Freq",
@@ -76,13 +90,32 @@ void FreeEQ8AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
     for (auto& b : bands)
         b.reset(sr);
 
+    // Initialise oversampler
+    const int osOrder = (int) apvts.getRawParameterValue("oversampling")->load();
+    rebuildOversampler(osOrder, sampleRate, samplesPerBlock);
+
     // Prime coefficients from current params
     syncBandsFromParams();
 }
 
+void FreeEQ8AudioProcessor::rebuildOversampler(int order, double sampleRate, int samplesPerBlock)
+{
+    currentOversamplingOrder = order;
+    if (order == 0)
+    {
+        oversampler.reset();
+        return;
+    }
+
+    oversampler = std::make_unique<juce::dsp::Oversampling<float>>(
+        2, order,
+        juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR,
+        true);
+    oversampler->initProcessing((size_t) samplesPerBlock);
+}
+
 void FreeEQ8AudioProcessor::syncBandsFromParams()
 {
-    // Cache targets from APVTS. Coeff update/smoothing happens in beginBlock().
     for (int i = 1; i <= 8; ++i)
     {
         auto& b = bands[(size_t)i - 1];
@@ -105,7 +138,6 @@ void FreeEQ8AudioProcessor::syncBandsFromParams()
         const float q    = apvts.getRawParameterValue(bandId(i,"q"))->load();
         const float gain = apvts.getRawParameterValue(bandId(i,"gain"))->load();
 
-        // Store targets into band; beginBlock will apply smoothing + coeff refresh.
         b.enabled = on;
         b.type = tp;
         b.targetFreqHz = freq;
@@ -129,6 +161,13 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     const float outputGainDb = apvts.getRawParameterValue("output_gain")->load();
     const float outputGain = std::pow(10.0f, outputGainDb / 20.0f);
     const bool adaptiveQ = apvts.getRawParameterValue("adaptive_q")->load() > 0.5f;
+    const int procMode = (int) apvts.getRawParameterValue("proc_mode")->load();
+    const bool midSideMode = (procMode == 1);
+
+    // Check oversampling parameter — rebuild if changed
+    const int osOrder = (int) apvts.getRawParameterValue("oversampling")->load();
+    if (osOrder != currentOversamplingOrder)
+        rebuildOversampler(osOrder, sr, buffer.getNumSamples());
 
     // Check if any band is soloed
     int soloedBand = -1;
@@ -141,20 +180,21 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
         }
     }
 
-    // Apply per-band beginBlock (smoothing setup + initial coeff update)
+    // Read per-band slope and channel route, then set up beginBlock
+    const double effectiveSR = (oversampler != nullptr)
+        ? sr * std::pow(2.0, currentOversamplingOrder)
+        : sr;
+
     for (int i = 0; i < 8; ++i)
     {
         auto& b = bands[(size_t)i];
 
-        // If a band is soloed, mute all others
         bool effectiveEnabled = b.enabled;
         if (soloedBand >= 0 && i != soloedBand)
             effectiveEnabled = false;
 
-        // Apply scale to gain
         float scaledGain = b.targetGainDb * scale;
 
-        // Adaptive Q: widen Q based on gain magnitude
         float effectiveQ = b.targetQ;
         if (adaptiveQ)
         {
@@ -163,7 +203,17 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
             effectiveQ = std::clamp(effectiveQ, 0.1f, 24.0f);
         }
 
-        b.beginBlock(sr, effectiveEnabled, b.type, b.targetFreqHz, effectiveQ, scaledGain);
+        // Slope: 0 = 12 dB (1 stage), 1 = 24 dB (2 stages), 2 = 48 dB (4 stages)
+        const int slopeIdx = (int) apvts.getRawParameterValue(bandId(i + 1, "slope"))->load();
+        static const int slopeToStages[] = { 1, 2, 4 };
+        const int numStages = slopeToStages[std::clamp(slopeIdx, 0, 2)];
+
+        // Channel routing
+        const int chIdx = (int) apvts.getRawParameterValue(bandId(i + 1, "ch"))->load();
+        const ChannelRoute route = static_cast<ChannelRoute>(std::clamp(chIdx, 0, 2));
+
+        b.beginBlock(effectiveSR, effectiveEnabled, b.type, b.targetFreqHz, effectiveQ, scaledGain,
+                     numStages, route);
     }
 
     auto* L = buffer.getWritePointer(0);
@@ -173,27 +223,96 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     // Push pre-EQ samples to spectrum FIFO
     preSpectrumFifo.pushBlock(L, R, n);
 
-    for (int i = 0; i < n; ++i)
+    // --- Oversampled EQ processing ---
+    auto processEQ = [&](float* left, float* right, int numSamples, double processSR)
     {
-        float l = L[i];
-        float r = R[i];
-
-        for (auto& b : bands)
+        // Mid/Side encode
+        if (midSideMode)
         {
-            b.maybeUpdateCoeffs(sr);
-            b.process(l, r);
+            for (int i = 0; i < numSamples; ++i)
+            {
+                const float l = left[i];
+                const float r = right[i];
+                left[i]  = (l + r) * 0.5f;  // Mid
+                right[i] = (l - r) * 0.5f;  // Side
+            }
         }
 
-        // Apply output gain
-        l *= outputGain;
-        r *= outputGain;
+        for (int i = 0; i < numSamples; ++i)
+        {
+            float l = left[i];
+            float r = right[i];
 
-        L[i] = l;
-        R[i] = r;
+            for (auto& b : bands)
+            {
+                b.maybeUpdateCoeffs(processSR);
+                b.process(l, r);
+            }
+
+            l *= outputGain;
+            r *= outputGain;
+
+            left[i]  = l;
+            right[i] = r;
+        }
+
+        // Mid/Side decode
+        if (midSideMode)
+        {
+            for (int i = 0; i < numSamples; ++i)
+            {
+                const float m = left[i];
+                const float s = right[i];
+                left[i]  = m + s;  // L
+                right[i] = m - s;  // R
+            }
+        }
+    };
+
+    if (oversampler != nullptr)
+    {
+        // Create a dsp::AudioBlock from the buffer
+        juce::dsp::AudioBlock<float> block(buffer);
+        auto osBlock = oversampler->processSamplesUp(block);
+
+        auto* osL = osBlock.getChannelPointer(0);
+        auto* osR = osBlock.getChannelPointer(1);
+        const int osN = (int) osBlock.getNumSamples();
+
+        processEQ(osL, osR, osN, effectiveSR);
+
+        oversampler->processSamplesDown(block);
+
+        // Re-fetch pointers after downsample
+        L = buffer.getWritePointer(0);
+        R = buffer.getWritePointer(1);
+    }
+    else
+    {
+        processEQ(L, R, n, sr);
     }
 
     // Push post-EQ samples to spectrum FIFO
     spectrumFifo.pushBlock(L, R, n);
+
+    // --- Output metering ---
+    {
+        float peakL = 0.0f, peakR = 0.0f;
+        float sumSqL = 0.0f, sumSqR = 0.0f;
+        for (int i = 0; i < n; ++i)
+        {
+            const float al = std::abs(L[i]);
+            const float ar = std::abs(R[i]);
+            if (al > peakL) peakL = al;
+            if (ar > peakR) peakR = ar;
+            sumSqL += L[i] * L[i];
+            sumSqR += R[i] * R[i];
+        }
+        meterPeakL.store(peakL, std::memory_order_relaxed);
+        meterPeakR.store(peakR, std::memory_order_relaxed);
+        meterRmsL.store(std::sqrt(sumSqL / (float) n), std::memory_order_relaxed);
+        meterRmsR.store(std::sqrt(sumSqR / (float) n), std::memory_order_relaxed);
+    }
 }
 
 

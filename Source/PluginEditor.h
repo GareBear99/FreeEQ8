@@ -3,6 +3,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "PluginProcessor.h"
 #include "UI/ResponseCurveComponent.h"
+#include "UI/LevelMeter.h"
 
 class FreeEQ8AudioProcessorEditor : public juce::AudioProcessorEditor,
                                     public juce::Timer
@@ -26,12 +27,16 @@ private:
         juce::ToggleButton on;
         juce::ToggleButton solo;
         juce::ComboBox type;
+        juce::ComboBox slope;
+        juce::ComboBox channel;
         juce::Slider freq, q, gain;
         juce::Label freqLabel, qLabel, gainLabel;
 
         std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> onAtt;
         std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> soloAtt;
         std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> typeAtt;
+        std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> slopeAtt;
+        std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> channelAtt;
         std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> freqAtt, qAtt, gainAtt;
     };
 
@@ -46,6 +51,15 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> outputGainAtt;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> scaleAtt;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> adaptiveQAtt;
+
+    // Oversampling + Processing mode
+    juce::ComboBox oversamplingSelector;
+    juce::ComboBox procModeSelector;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> oversamplingAtt;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> procModeAtt;
+
+    // Level meter
+    LevelMeter levelMeter;
 
     // Preset controls
     juce::ComboBox presetSelector;
