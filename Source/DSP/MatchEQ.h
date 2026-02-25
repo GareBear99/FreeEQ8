@@ -168,7 +168,8 @@ private:
     std::array<float, fftSize> overlapR {};
 
     // Scratch buffer for FFT processing (avoids large stack allocations on the audio thread)
-    std::array<float, fftSize> processBuf {};
+    // JUCE real-only FFT requires 2*fftSize floats
+    std::array<float, fftSize * 2> processBuf {};
 
     void processReferenceFrame()
     {

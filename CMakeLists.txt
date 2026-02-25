@@ -3,6 +3,12 @@ project(FreeEQ8 VERSION 1.0.0)
 
 set(CMAKE_CXX_STANDARD 17)
 
+# Universal binary for macOS (Intel + Apple Silicon)
+if(APPLE)
+    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Build universal binary")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum macOS version")
+endif()
+
 # ---- JUCE ----
 # Option A: JUCE as submodule in ./JUCE (recommended)
 #   git submodule add https://github.com/juce-framework/JUCE.git JUCE
