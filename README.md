@@ -2,10 +2,12 @@
 
 > **📥 [Download the latest release (macOS DMG & Windows ZIP)](https://github.com/GareBear99/FreeEQ8/releases/latest)**
 
+[![Build](https://img.shields.io/github/actions/workflow/status/GareBear99/FreeEQ8/release.yml?label=build&logo=github)](https://github.com/GareBear99/FreeEQ8/actions)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey.svg)]()
 [![macOS](https://img.shields.io/badge/macOS-10.15%20Catalina%2B-blue.svg)]()
 [![Tested](https://img.shields.io/badge/tested-Ableton%20Live%2010+-green.svg)]()
+[![Stars](https://img.shields.io/github/stars/GareBear99/FreeEQ8?style=social)](https://github.com/GareBear99/FreeEQ8)
 [![JUCE](https://img.shields.io/badge/JUCE-7.0.12-orange.svg)](https://juce.com/)
 [![Release](https://img.shields.io/github/v/release/GareBear99/FreeEQ8?label=Download&style=for-the-badge&color=brightgreen)](https://github.com/GareBear99/FreeEQ8/releases/latest)
 
