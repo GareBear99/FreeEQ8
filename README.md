@@ -11,9 +11,33 @@
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/garebear99)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/luciferai)
 
-FreeEQ8 is a professional-grade, free, cross-platform 8-band parametric EQ plugin inspired by Ableton's EQ Eight. Built with JUCE for VST3 and AU formats.
+FreeEQ8 is a professional-grade, free and open-source 8-band parametric EQ plugin for macOS and Windows. Linear phase, dynamic EQ, match EQ, per-band drive, band linking, M/S processing, oversampling, and a real-time spectrum analyzer — all in a single, zero-cost plugin. Built with JUCE for VST3 and AU.
 
 ![FreeEQ8 in Ableton Live](docs/screenshot.jpg)
+
+## 🆚 How FreeEQ8 Compares
+
+| Feature | **FreeEQ8** | FabFilter Pro-Q 4 | ZL Equalizer 2 | TDR Nova |
+|---------|:-----------:|:------------------:|:--------------:|:--------:|
+| **Price** | **Free** | $199 | Free | Free |
+| **Open Source** | **GPL-3.0** | — | AGPL-3.0 | — |
+| Bands | 8 | 24 | 24 | 4 + HP/LP |
+| Dynamic EQ | **✓** (thresh / ratio / atk / rel) | ✓ | ✓ | ✓ |
+| Linear Phase | **✓** | ✓ | ✓ | — |
+| Match EQ | **✓** | ✓ | ✓ (WIP) | — |
+| Mid/Side | **✓** (per-band) | ✓ | ✓ | — (free) |
+| Per-Band Drive | **✓** (tanh saturation) | — | — | — |
+| Band Linking | **✓** (groups A/B) | — | — | — |
+| Oversampling | **✓** (1×–8×) | internal | — | — |
+| Adaptive Q | **✓** | — | — | — |
+| Spectrum Analyzer | **✓** (4096-pt FFT) | ✓ | ✓ | ✓ |
+| Level Meter | **✓** (peak + RMS) | — | — | — |
+| Undo / Redo | **✓** | ✓ | ✓ | — |
+| Collision Detection | — | ✓ | ✓ | — |
+| Surround / Atmos | — | ✓ | — | — |
+| Formats | VST3, AU | VST3, AU, AAX, CLAP | VST3, AU, LV2 | VST3, AU, AAX |
+
+> **FreeEQ8 is the only free EQ that combines linear phase + dynamic EQ + match EQ + per-band saturation + band linking in one plugin.**
 
 ## ✨ Features
 
