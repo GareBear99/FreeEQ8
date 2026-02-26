@@ -17,30 +17,45 @@ FreeEQ8 is a professional-grade, free, cross-platform 8-band parametric EQ plugi
 
 ## ✨ Features
 
-### Core EQ Functionality
-- **8 Independent Bands** with full parametric control
-- **5 Filter Types** per band:
-  - Bell (Peaking)
-  - Low Shelf
-  - High Shelf
-  - High Pass
-  - Low Pass
-- **RBJ Biquad Filters** for pristine audio quality
-- **Parameter Smoothing** (20ms) to prevent clicks and zipper noise
-- **Per-Band Enable/Disable** for A/B comparison
+### Core EQ
+- **8 Independent Bands** — full parametric control (frequency, Q, gain)
+- **6 Filter Types** per band: Bell, Low Shelf, High Shelf, High Pass, Low Pass, Bandpass
+- **Multiple Slopes** — 12 / 24 / 48 dB/oct via cascaded biquad stages
+- **Per-Band Enable/Disable & Solo** for A/B comparison and audition
+- **Parameter Smoothing** (20ms linear interpolation, coefficients refreshed every 16 samples)
 
-### Advanced Features
-- **Output Gain Control** (-24dB to +24dB)
-- **Global Scale Parameter** (0.1x to 2x) - scales all band gains simultaneously
-- **Adaptive Q Mode** - automatically adjusts Q based on gain (UI ready)
-- **State Save/Restore** - all settings persist in your DAW project
+### Advanced Processing
+- **Linear Phase Mode** — symmetric FIR from combined biquad magnitude, overlap-add FFT convolution (2048-sample latency when active)
+- **Dynamic EQ** — per-band envelope follower with sidechain bandpass, threshold, ratio, attack & release
+- **Per-Band Saturation / Drive** — gain-compensated tanh waveshaper (0–100%)
+- **Mid/Side Processing** — M/S encode/decode with per-band channel routing (Both / L-Mid / R-Side)
+- **Oversampling** — 1x / 2x / 4x / 8x using JUCE polyphase IIR half-band filters
+- **Band Linking** — link groups A/B propagate frequency (ratio), gain & Q (delta) changes
+- **Match EQ** — capture a reference spectrum, analyze current signal, compute & apply per-bin correction via FFT
+- **Adaptive Q** — automatically widens Q with increasing gain
+
+### Visualization & UI
+- **Real-Time Spectrum Analyzer** — 4096-point FFT, Hann window, pre/post EQ toggle
+- **Interactive Response Curve** — composite + per-band colored curves with dB/frequency grid
+- **Draggable Band Nodes** — click-drag for freq/gain, shift+drag for Q, right-click context menu
+- **Stereo Level Meter** — peak hold + RMS display
+- **Selected-Band Paradigm** — 8 colored band buttons, single set of controls rebound per selection
+- **Dark Theme** — resizable UI (750×550 to 1400×900)
+
+### Global Controls
+- **Output Gain** (-24 dB to +24 dB)
+- **Scale** (0.1x to 2x) — scales all band gains simultaneously
+- **Preset System** — save / load / delete, 8 factory presets
+- **Undo / Redo** — integrated with JUCE UndoManager via APVTS
+- **State Save/Restore** — all settings persist in your DAW project
 
 ### DSP Specifications
-- Stereo processing
-- Sample rates: 44.1kHz to 192kHz+
-- Internal double-precision calculations
-- Low CPU usage
-- Zero latency
+- Stereo processing (or Mid/Side)
+- Sample rates: 44.1 kHz to 192 kHz+
+- Transposed Direct Form II biquad with double-precision (64-bit) internal arithmetic
+- RBJ Audio EQ Cookbook coefficients
+- Zero latency in minimum-phase mode; linear phase adds 2048 samples
+- Low CPU usage (disable unused bands, lower oversampling to reduce load)
 
 ## 🚀 Quick Start
 
@@ -120,11 +135,19 @@ chmod +x build_macos.sh
 ### Parameter Ranges
 | Parameter | Range | Scale | Description |
 |-----------|-------|-------|-------------|
-| Frequency | 20 Hz - 20 kHz | Logarithmic | Center/cutoff frequency |
-| Q | 0.1 - 24 | Logarithmic | Bandwidth (0.1=wide, 24=narrow) |
+| Frequency | 20 Hz – 20 kHz | Logarithmic | Center/cutoff frequency |
+| Q | 0.1 – 24 | Logarithmic | Bandwidth (0.1 = wide, 24 = narrow) |
 | Gain | -24 dB to +24 dB | Linear | Boost/cut amount |
+| Slope | 12 / 24 / 48 dB/oct | Discrete | Filter steepness (1/2/4 cascaded stages) |
+| Drive | 0 – 100 % | Linear | Per-band tanh saturation amount |
+| Channel | Both / L-Mid / R-Side | Discrete | Per-band channel routing |
+| Link Group | -- / A / B | Discrete | Band linking group |
+| Dyn Threshold | -60 dB to 0 dB | Linear | Dynamic EQ threshold |
+| Dyn Ratio | 1:1 – 20:1 | Logarithmic | Dynamic EQ compression ratio |
+| Dyn Attack | 0.1 – 100 ms | Logarithmic | Dynamic EQ attack time |
+| Dyn Release | 1 – 1000 ms | Logarithmic | Dynamic EQ release time |
 | Output | -24 dB to +24 dB | Linear | Master output level |
-| Scale | 0.1x - 2x | Linear | Global gain multiplier |
+| Scale | 0.1x – 2x | Linear | Global gain multiplier |
 
 ### Common EQ Techniques
 
@@ -172,34 +195,52 @@ Q: 0.7 (standard)
 
 ### Architecture
 ```
-┌─────────────────────────────────────┐
-│     FreeEQ8 Audio Processor         │
-├─────────────────────────────────────┤
-│  Input Buffer (Stereo)              │
-│          ↓                          │
-│  ┌─────────────────────────────┐   │
-│  │   Band 1 (Biquad Filter)    │   │
-│  │   Band 2 (Biquad Filter)    │   │
-│  │   Band 3 (Biquad Filter)    │   │
-│  │   Band 4 (Biquad Filter)    │   │
-│  │   Band 5 (Biquad Filter)    │   │
-│  │   Band 6 (Biquad Filter)    │   │
-│  │   Band 7 (Biquad Filter)    │   │
-│  │   Band 8 (Biquad Filter)    │   │
-│  └─────────────────────────────┘   │
-│          ↓                          │
-│  Output Gain & Scaling              │
-│          ↓                          │
-│  Output Buffer (Stereo)             │
-└─────────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│               FreeEQ8 Audio Processor                │
+├──────────────────────────────────────────────────────┤
+│  Input Buffer (Stereo)                               │
+│          ↓                                           │
+│  Spectrum FIFO (pre-EQ) ──→ UI spectrum display      │
+│          ↓                                           │
+│  ┌─── IF linear_phase ───┐  ┌── ELSE (min-phase) ──┐│
+│  │ Build composite mag   │  │ Oversampling ↑ (opt.) ││
+│  │ response from biquads │  │       ↓               ││
+│  │       ↓               │  │ M/S Encode (optional) ││
+│  │ FIR convolution       │  │       ↓               ││
+│  │ (overlap-add FFT,     │  │ Per-band loop ×8:     ││
+│  │  4096-tap, 8192 FFT,  │  │  ├ Dyn EQ envelope    ││
+│  │  2048-sample latency) │  │  ├ Smooth + update    ││
+│  │       ↓               │  │  │  coefficients      ││
+│  │ Output Gain           │  │  ├ Cascaded biquads   ││
+│  └───────────────────────┘  │  │  (1/2/4 stages)    ││
+│                              │  └ Drive (tanh)       ││
+│                              │       ↓               ││
+│                              │ Output Gain & Scale   ││
+│                              │       ↓               ││
+│                              │ M/S Decode (optional) ││
+│                              │       ↓               ││
+│                              │ Oversampling ↓ (opt.) ││
+│                              └───────────────────────┘│
+│          ↓                                           │
+│  Match EQ correction (FFT overlap-add, optional)     │
+│          ↓                                           │
+│  Spectrum FIFO (post-EQ) ──→ UI spectrum display     │
+│          ↓                                           │
+│  Output Metering (peak hold + RMS)                   │
+│          ↓                                           │
+│  Output Buffer (Stereo)                              │
+└──────────────────────────────────────────────────────┘
 ```
 
 ### DSP Implementation
-- **Filter Structure**: Direct Form I biquad
+- **Filter Structure**: Transposed Direct Form II biquad (Biquad.h)
 - **Coefficient Calculation**: RBJ Audio EQ Cookbook
 - **Smoothing**: Linear interpolation over 20ms
 - **Update Rate**: Coefficients refreshed every 16 samples during smoothing
-- **Precision**: Double-precision (64-bit) internal calculations
+- **Precision**: Double-precision (64-bit) coefficients and internal state; float I/O
+- **Linear Phase**: 4096-tap symmetric FIR, 8192-point FFT, overlap-add convolution
+- **Dynamic EQ**: One-pole envelope follower with sidechain bandpass at band frequency
+- **Spectrum**: 4096-point FFT, Hann window, lock-free SPSC FIFO
 
 ### Project Structure
 ```
@@ -218,6 +259,7 @@ FreeEQ8/
 │   │   └── LevelMeter.h           # Stereo peak/RMS level meter
 │   └── Presets/
 │       └── PresetManager.h/.cpp   # Preset save/load system
+├── docs/                          # Screenshots & assets
 ├── JUCE/                          # JUCE framework (submodule)
 ├── build/                         # Build output (ignored)
 ├── CMakeLists.txt                 # CMake configuration
@@ -229,7 +271,7 @@ FreeEQ8/
 
 ## 🛣️ Roadmap
 
-### v0.5.0 (Current Release)
+### v0.5.0
 - [x] Multiple filter slopes (12/24/48 dB/oct) via cascaded biquads
 - [x] Mid/Side processing mode with M/S encode/decode
 - [x] Per-band channel routing (Both / L-Mid / R-Side)
@@ -271,7 +313,6 @@ Contributions are welcome! Here's how you can help:
 
 ### Areas for Contribution
 - 🎨 UI/UX improvements
-- 📊 Spectrum analyzer implementation
 - 🔊 Additional filter types
 - 🐛 Bug fixes and optimizations
 - 📚 Documentation improvements
@@ -295,7 +336,7 @@ Contributions are welcome! Here's how you can help:
 - ✅ Per-band channel routing: Both / Left(Mid) / Right(Side)
 - ✅ Oversampling: 1x / 2x / 4x / 8x using JUCE polyphase IIR
 - ✅ Output level metering with peak hold and RMS display
-- ✅ Resizable UI with proportional layout (700×500 to 1400×900)
+- ✅ Resizable UI with proportional layout (750×550 to 1400×900)
 - ✅ New global controls: Oversampling selector, Processing Mode selector
 - ✅ Per-band controls: Slope selector, Channel routing selector
 
