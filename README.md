@@ -13,6 +13,8 @@
 
 FreeEQ8 is a professional-grade, free, cross-platform 8-band parametric EQ plugin inspired by Ableton's EQ Eight. Built with JUCE for VST3 and AU formats.
 
+![FreeEQ8 in Ableton Live](docs/screenshot.jpg)
+
 ## ✨ Features
 
 ### Core EQ Functionality
