@@ -506,7 +506,7 @@ Other ways to help:
 
 - **Issues**: [GitHub Issues](https://github.com/GareBear99/FreeEQ8/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/GareBear99/FreeEQ8/discussions)
-- **Email**: GareBear99@users.noreply.github.com
+- **Email**: neovectr.inc@gmail.com
 
 ---
 
