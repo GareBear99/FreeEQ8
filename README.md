@@ -4,6 +4,8 @@
 
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey.svg)]()
+[![macOS](https://img.shields.io/badge/macOS-10.15%20Catalina%2B-blue.svg)]()
+[![Tested](https://img.shields.io/badge/tested-Ableton%20Live%2010+-green.svg)]()
 [![JUCE](https://img.shields.io/badge/JUCE-7.0.12-orange.svg)](https://juce.com/)
 [![Release](https://img.shields.io/github/v/release/GareBear99/FreeEQ8?label=Download&style=for-the-badge&color=brightgreen)](https://github.com/GareBear99/FreeEQ8/releases/latest)
 
@@ -80,6 +82,12 @@ FreeEQ8 is a professional-grade, free and open-source 8-band parametric EQ plugi
 - RBJ Audio EQ Cookbook coefficients
 - Zero latency in minimum-phase mode; linear phase adds 2048 samples
 - Low CPU usage (disable unused bands, lower oversampling to reduce load)
+
+### Compatibility
+- **macOS**: 10.15 Catalina and later (built & tested on Catalina with AppleClang 12)
+- **Windows**: 10 and later (64-bit)
+- **DAWs tested**: Ableton Live 10+, Logic Pro, FL Studio
+- **Formats**: VST3, AU
 
 ## 🚀 Quick Start
 
