@@ -4,6 +4,10 @@
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey.svg)]()
 [![JUCE](https://img.shields.io/badge/JUCE-7.0.12-orange.svg)](https://juce.com/)
 
+[![Sponsor](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-ea4aaa?logo=githubsponsors)](https://github.com/sponsors/GareBear99)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/garebear99)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/luciferai)
+
 FreeEQ8 is a professional-grade, free, cross-platform 8-band parametric EQ plugin inspired by Ableton's EQ Eight. Built with JUCE for VST3 and AU formats.
 
 ## ✨ Features
@@ -370,15 +374,25 @@ Report issues at: https://github.com/GareBear99/FreeEQ8/issues
 - **Audio Plugin Development Community** - For knowledge sharing
 - **Ableton** - For inspiration (not affiliation)
 
-## 📧 Support
+## 💖 Support the Project
+
+FreeEQ8 is free and open source. If it's useful to you, consider supporting development:
+
+<a href="https://github.com/sponsors/GareBear99"><img src="https://img.shields.io/badge/sponsor-GitHub%20Sponsors-ea4aaa?logo=githubsponsors&style=for-the-badge" alt="GitHub Sponsors"></a>
+<a href="https://buymeacoffee.com/garebear99"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?logo=buy-me-a-coffee&logoColor=black&style=for-the-badge" alt="Buy Me a Coffee"></a>
+<a href="https://ko-fi.com/luciferai"><img src="https://img.shields.io/badge/Ko--fi-ff5e5b?logo=ko-fi&logoColor=white&style=for-the-badge" alt="Ko-fi"></a>
+
+Other ways to help:
+- ⭐ **Star this repo** — helps others find FreeEQ8
+- 🐛 **Report bugs** — [open an issue](https://github.com/GareBear99/FreeEQ8/issues)
+- 🔀 **Contribute** — PRs are welcome
+- 📣 **Spread the word** — tell a producer friend
+
+## 📧 Contact
 
 - **Issues**: [GitHub Issues](https://github.com/GareBear99/FreeEQ8/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/GareBear99/FreeEQ8/discussions)
 - **Email**: GareBear99@users.noreply.github.com
-
-## 🌟 Star History
-
-If you find FreeEQ8 useful, please star the repository to show your support!
 
 ---
 
