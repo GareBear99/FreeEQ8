@@ -20,11 +20,23 @@ jobs:
       - name: Install CMake
         run: brew install cmake
 
-      - name: Build
+      - name: Build universal binary
         run: |
           mkdir -p build
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET="10.13"
           cmake --build build --config Release
+
+      - name: Verify universal binary
+        run: |
+          echo "=== VST3 ==="
+          file build/FreeEQ8_artefacts/Release/VST3/FreeEQ8.vst3/Contents/MacOS/FreeEQ8
+          lipo -info build/FreeEQ8_artefacts/Release/VST3/FreeEQ8.vst3/Contents/MacOS/FreeEQ8
+          echo "=== AU ==="
+          file build/FreeEQ8_artefacts/Release/AU/FreeEQ8.component/Contents/MacOS/FreeEQ8
+          lipo -info build/FreeEQ8_artefacts/Release/AU/FreeEQ8.component/Contents/MacOS/FreeEQ8
 
       - name: Package DMG
         run: ./package_macos.sh build
