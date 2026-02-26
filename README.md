@@ -43,6 +43,31 @@ FreeEQ8 is a professional-grade, free and open-source 8-band parametric EQ plugi
 
 > **FreeEQ8 is the only free EQ that combines linear phase + dynamic EQ + match EQ + per-band saturation + band linking in one plugin.**
 
+## ⚡ Coming Soon: ProEQ8 ($20)
+
+> **Love FreeEQ8? ProEQ8 takes everything further.**
+
+ProEQ8 is the upcoming commercial big brother of FreeEQ8 — same rock-solid DSP engine, massively expanded.
+
+| | **FreeEQ8** (Free) | **ProEQ8** ($20) |
+|---|:---:|:---:|
+| Bands | 8 | **24** |
+| Saturation Modes | tanh | **Tube · Tape · Transistor · Tanh** |
+| A/B Comparison | — | **✓** (instant snapshot toggle) |
+| Auto-Gain Bypass | — | **✓** (RMS-matched) |
+| Piano Roll Overlay | — | **✓** (note frequency reference) |
+| Collision Detection | — | **✓** (overlapping band warnings) |
+| Factory Presets | 8 | **30+** (genre-specific) |
+| Dynamic EQ | ✓ | ✓ |
+| Linear Phase | ✓ | ✓ |
+| Match EQ | ✓ | ✓ |
+| Mid/Side | ✓ | ✓ |
+| Oversampling | ✓ | ✓ |
+| Band Linking | ✓ | ✓ |
+| Formats | VST3, AU | VST3, AU |
+
+**Status:** In development · Follow this repo or [join Discussions](https://github.com/GareBear99/FreeEQ8/discussions) for launch updates.
+
 ## ✨ Features
 
 ### Core EQ
@@ -328,6 +353,15 @@ FreeEQ8/
 - [x] Per-band saturation/drive (gain-compensated tanh waveshaper)
 - [x] Undo/Redo system (integrated with APVTS UndoManager)
 - [x] Match EQ functionality (capture reference spectrum, compute & apply correction)
+
+### ProEQ8 (Coming Soon — $20)
+- [ ] 24-band parametric EQ (3× the bands of FreeEQ8)
+- [ ] Multiple saturation modes per band: Tube (soft clip), Tape (bias saturation), Transistor (hard clip), Tanh
+- [ ] A/B comparison: instant toggle between two full parameter snapshots, with Copy A→B / B→A
+- [ ] Auto-gain bypass: RMS-matched loudness compensation for honest A/B listening
+- [ ] Piano roll overlay: musical note frequency reference lines (C1–C8) on the response curve
+- [ ] Collision detection: visual warning when bands overlap within 1/3 octave
+- [ ] 30+ genre-specific factory presets (Vocal Chain, Kick, Bass, Acoustic Guitar, Master Bus, Podcast, and more)
 
 ## 🤝 Contributing
 
