@@ -28,6 +28,7 @@ public:
     void pushSpectrumData(const float* magnitudes, int numBins, double sampleRate);
 
     int getSelectedBand() const { return selectedBand; }
+    void setSelectedBand(int band) { selectedBand = band; repaint(); }
 
     // Band colors
     static juce::Colour getBandColour(int bandIndex);
