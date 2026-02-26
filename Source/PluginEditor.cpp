@@ -16,6 +16,15 @@ void FreeEQ8AudioProcessorEditor::initKnob(juce::Slider& s, juce::Colour c, bool
     addAndMakeVisible(s);
 }
 
+// ── Dark-style combo box helper ────────────────────────────────────
+static void styleCombo(juce::ComboBox& cb)
+{
+    cb.setColour(juce::ComboBox::backgroundColourId,  juce::Colour(0xFF1C2040));
+    cb.setColour(juce::ComboBox::outlineColourId,     juce::Colours::white.withAlpha(0.15f));
+    cb.setColour(juce::ComboBox::textColourId,        juce::Colours::white.withAlpha(0.9f));
+    cb.setColour(juce::ComboBox::arrowColourId,       juce::Colours::white.withAlpha(0.5f));
+}
+
 // ── Constructor ────────────────────────────────────────────────────
 FreeEQ8AudioProcessorEditor::FreeEQ8AudioProcessorEditor(FreeEQ8AudioProcessor& p)
     : juce::AudioProcessorEditor(&p), proc(p), responseCurve(p),
@@ -53,15 +62,19 @@ FreeEQ8AudioProcessorEditor::FreeEQ8AudioProcessorEditor(FreeEQ8AudioProcessor& 
     addAndMakeVisible(bandSolo);
 
     typeBox.addItemList({ "Bell", "LowShelf", "HighShelf", "HighPass", "LowPass" }, 1);
+    styleCombo(typeBox);
     addAndMakeVisible(typeBox);
 
     slopeBox.addItemList({ "12 dB", "24 dB", "48 dB" }, 1);
+    styleCombo(slopeBox);
     addAndMakeVisible(slopeBox);
 
     channelBox.addItemList({ "Both", "L / Mid", "R / Side" }, 1);
+    styleCombo(channelBox);
     addAndMakeVisible(channelBox);
 
     linkBox.addItemList({ "--", "A", "B" }, 1);
+    styleCombo(linkBox);
     addAndMakeVisible(linkBox);
 
     auto bandCol = ResponseCurveComponent::getBandColour(0);
@@ -92,8 +105,10 @@ FreeEQ8AudioProcessorEditor::FreeEQ8AudioProcessorEditor(FreeEQ8AudioProcessor& 
     addAndMakeVisible(linPhaseBtn);
 
     oversamplingBox.addItemList({ "1x", "2x", "4x", "8x" }, 1);
+    styleCombo(oversamplingBox);
     addAndMakeVisible(oversamplingBox);
     procModeBox.addItemList({ "Stereo", "Mid-Side" }, 1);
+    styleCombo(procModeBox);
     addAndMakeVisible(procModeBox);
 
     // Global attachments (permanent)
@@ -123,6 +138,7 @@ FreeEQ8AudioProcessorEditor::FreeEQ8AudioProcessorEditor(FreeEQ8AudioProcessor& 
     addAndMakeVisible(levelMeter);
 
     // ── Presets ──
+    styleCombo(presetBox);
     addAndMakeVisible(presetBox);
     presetBox.setTextWhenNothingSelected("-- Presets --");
     presetBox.onChange = [this] { onPresetSelected(); };
@@ -228,6 +244,8 @@ void FreeEQ8AudioProcessorEditor::paint(juce::Graphics& g)
     const int titleH = 32;
     const int curveH = std::max(180, (int)(h * 0.52f));
     const int stripH = 28;
+    const int sidebarW = 155;
+    const int meterW = 36;
     const int controlsTop = titleH + curveH + stripH;
 
     g.fillAll(juce::Colour(0xFF0D0D1A));
@@ -254,47 +272,58 @@ void FreeEQ8AudioProcessorEditor::paint(juce::Graphics& g)
     g.setColour(juce::Colours::white.withAlpha(0.08f));
     g.drawHorizontalLine(controlsTop, 0.0f, (float)w);
 
-    // ── Control labels (painted) ──
-    const int sidebarW = 155;
-    const int meterW = 36;
-    const int panelW = w - sidebarW - meterW;
-    const int panelX = 0;
-    const int cy = controlsTop + 4;
+    // Vertical separator between band panel and global sidebar
+    const int sepX = w - sidebarW - meterW;
+    g.setColour(juce::Colours::white.withAlpha(0.1f));
+    g.drawVerticalLine(sepX, (float)controlsTop, (float)h);
 
+    // ── Row 1 labels — computed from the SAME layout constants as resized() ──
     g.setFont(10.0f);
     g.setColour(juce::Colours::white.withAlpha(0.45f));
+    const int ly = controlsTop + 4;  // label y (12px above controls at controlsTop+16)
 
-    // Row 1 labels
-    int lx = panelX + 90;
-    g.drawText("Type",  panelX + 6,  cy, 40, 12, juce::Justification::left);
-    g.drawText("Freq",  lx,          cy, 40, 12, juce::Justification::centred);
-    g.drawText("Gain",  lx + 80,     cy, 40, 12, juce::Justification::centred);
-    g.drawText("Q",     lx + 160,    cy, 40, 12, juce::Justification::centred);
-    g.drawText("Slope", lx + 230,    cy, 40, 12, juce::Justification::centred);
-    g.drawText("Drive", lx + 295,    cy, 40, 12, juce::Justification::centred);
+    // Mirror the x-offsets from resized() Row 1:
+    const int knobL = 80, knobS = 56;
+    int lx = 6;                              // On/Solo column
+    lx += 48;                                // past On/Solo → typeBox start
+    g.drawText("Type", lx, ly, 86, 12, juce::Justification::centred);
+    lx += 92;                                // past typeBox → freqKnob start
+    g.drawText("Freq", lx, ly, knobL, 12, juce::Justification::centred);
+    lx += knobL + 2;
+    g.drawText("Gain", lx, ly, knobL, 12, juce::Justification::centred);
+    lx += knobL + 2;
+    g.drawText("Q",    lx, ly, knobL, 12, juce::Justification::centred);
+    lx += knobL + 2;
+    g.drawText("Slope", lx, ly, 78, 12, juce::Justification::centred);
+    lx += 84;
+    g.drawText("Drive", lx, ly, knobS, 12, juce::Justification::centred);
 
-    // Row 2 labels
-    int r2y = cy + 90;
-    g.drawText("Channel", panelX + 6,  r2y, 50, 12, juce::Justification::left);
-    g.drawText("Link",    panelX + 80, r2y, 30, 12, juce::Justification::left);
+    // ── Row 2 labels — match resized() Row 2 positions ──
+    const int r2ly = controlsTop + 4 + 90; // label row 2
+    g.drawText("Channel", 6,  r2ly, 72, 12, juce::Justification::centred);
+    g.drawText("Link",    82, r2ly, 58, 12, juce::Justification::centred);
 
-    // Dynamic section
-    int dynX = panelX + 155;
-    g.drawText("Dynamic EQ", dynX, r2y, 80, 12, juce::Justification::left);
-    g.drawText("Thr",  dynX + 80,  r2y, 30, 12, juce::Justification::centred);
-    g.drawText("Ratio", dynX + 140, r2y, 35, 12, juce::Justification::centred);
-    g.drawText("Atk",  dynX + 200, r2y, 30, 12, juce::Justification::centred);
-    g.drawText("Rel",  dynX + 260, r2y, 30, 12, juce::Justification::centred);
+    // Dynamic EQ section
+    int dlx = 155;
+    g.drawText("Dyn", dlx, r2ly, 50, 12, juce::Justification::centred);
+    dlx += 55;
+    g.drawText("Thr",   dlx, r2ly, knobS, 12, juce::Justification::centred);
+    dlx += knobS + 4;
+    g.drawText("Ratio", dlx, r2ly, knobS, 12, juce::Justification::centred);
+    dlx += knobS + 4;
+    g.drawText("Atk",   dlx, r2ly, knobS, 12, juce::Justification::centred);
+    dlx += knobS + 4;
+    g.drawText("Rel",   dlx, r2ly, knobS, 12, juce::Justification::centred);
 
     // Sidebar labels
-    int sx = w - sidebarW - meterW + 4;
+    const int sx = w - sidebarW - meterW + 4;
     g.drawText("Output",  sx, controlsTop + 4,  60, 12, juce::Justification::centred);
     g.drawText("Scale",   sx + 65, controlsTop + 4,  50, 12, juce::Justification::centred);
 
     // Band indicator on selected band
     auto bandCol = ResponseCurveComponent::getBandColour(selectedBand);
     g.setColour(bandCol);
-    g.fillRoundedRectangle((float)panelX + 2, (float)controlsTop + 1, 3.0f, 14.0f, 1.5f);
+    g.fillRoundedRectangle(2.0f, (float)controlsTop + 1, 3.0f, 14.0f, 1.5f);
 }
 
 // ── Resized ────────────────────────────────────────────────────────
@@ -337,12 +366,12 @@ void FreeEQ8AudioProcessorEditor::resized()
     int x = 6;
 
     // Row 1: On/Solo | Type | Freq | Gain | Q | Slope | Drive
-    bandOn.setBounds(x, cy, 42, 20);
-    bandSolo.setBounds(x, cy + 22, 42, 20);
+    bandOn.setBounds(x, cy, 44, 20);
+    bandSolo.setBounds(x, cy + 22, 44, 20);
     x += 48;
 
-    typeBox.setBounds(x, cy + 6, 82, 22);
-    x += 88;
+    typeBox.setBounds(x, cy + 6, 86, 22);
+    x += 92;
 
     freqKnob.setBounds(x, cy - 4, knobL, knobL);
     x += knobL + 2;
@@ -351,15 +380,15 @@ void FreeEQ8AudioProcessorEditor::resized()
     qKnob.setBounds(x, cy - 4, knobL, knobL);
     x += knobL + 2;
 
-    slopeBox.setBounds(x, cy + 6, 62, 22);
-    x += 68;
+    slopeBox.setBounds(x, cy + 6, 78, 22);
+    x += 84;
 
     driveKnob.setBounds(x, cy, knobS, knobS);
 
     // Row 2: Channel | Link | Dynamic EQ
     const int r2y = cy + 90 + 12;
-    channelBox.setBounds(6, r2y, 68, 20);
-    linkBox.setBounds(80, r2y, 50, 20);
+    channelBox.setBounds(6, r2y, 72, 20);
+    linkBox.setBounds(82, r2y, 58, 20);
 
     int dynX = 155;
     dynOn.setBounds(dynX, r2y, 50, 20);
