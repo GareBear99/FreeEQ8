@@ -179,10 +179,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout FreeEQ8AudioProcessor::creat
         params.push_back(std::make_unique<juce::AudioParameterChoice>(bandId(i,"ch"), "Band " + juce::String(i) + " Channel", channelChoices, 0));
         params.push_back(std::make_unique<juce::AudioParameterChoice>(bandId(i,"link"), "Band " + juce::String(i) + " Link", linkChoices, 0));
 
+        // Default frequencies spread logarithmically across the spectrum
+        static const float defaultFreqs[] = { 0.f, 80.f, 250.f, 500.f, 1000.f, 2000.f, 4000.f, 8000.f, 12000.f };
         params.push_back(std::make_unique<juce::AudioParameterFloat>(
             bandId(i,"freq"), "Band " + juce::String(i) + " Freq",
             juce::NormalisableRange<float>(20.0f, 20000.0f, 0.001f, 0.5f),
-            (i == 1 ? 80.0f : i == 8 ? 12000.0f : 1000.0f)));
+            defaultFreqs[i]));
 
         params.push_back(std::make_unique<juce::AudioParameterFloat>(
             bandId(i,"q"), "Band " + juce::String(i) + " Q",
