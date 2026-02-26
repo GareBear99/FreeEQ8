@@ -1,8 +1,11 @@
 # FreeEQ8 - Professional 8-Band Parametric EQ Plugin
 
+> **📥 [Download the latest release (macOS DMG & Windows ZIP)](https://github.com/GareBear99/FreeEQ8/releases/latest)**
+
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey.svg)]()
 [![JUCE](https://img.shields.io/badge/JUCE-7.0.12-orange.svg)](https://juce.com/)
+[![Release](https://img.shields.io/github/v/release/GareBear99/FreeEQ8?label=Download&style=for-the-badge&color=brightgreen)](https://github.com/GareBear99/FreeEQ8/releases/latest)
 
 [![Sponsor](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-ea4aaa?logo=githubsponsors)](https://github.com/sponsors/GareBear99)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/garebear99)
