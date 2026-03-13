@@ -181,7 +181,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout FreeEQ8AudioProcessor::creat
     params.push_back(std::make_unique<juce::AudioParameterBool>(
         "linear_phase", "Linear Phase", false));
 
-    auto typeChoices    = juce::StringArray { "Bell", "LowShelf", "HighShelf", "HighPass", "LowPass", "Bandpass" };
+    // Auto-gain bypass compensation
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        "auto_gain", "Auto Gain", false));
+
+    auto typeChoices
     auto slopeChoices   = juce::StringArray { "12 dB", "24 dB", "48 dB" };
     auto channelChoices = juce::StringArray { "Both", "L / Mid", "R / Side" };
     auto linkChoices    = juce::StringArray { "--", "A", "B" };
@@ -220,6 +224,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout FreeEQ8AudioProcessor::creat
             bandId(i,"drive"), "Band " + juce::String(i) + " Drive",
             juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f, 1.0f),
             0.0f));
+
+#if PROEQ8
+        params.push_back(std::make_unique<juce::AudioParameterChoice>(
+            bandId(i,"sat_mode"), "Band " + juce::String(i) + " Sat Mode",
+            juce::StringArray { "Tanh", "Tube", "Tape", "Transistor" }, 0));
+#endif
 
         // Dynamic EQ per band
         params.push_back(std::make_unique<juce::AudioParameterBool>(bandId(i,"dyn_on"), "Band " + juce::String(i) + " Dyn On", false));
@@ -278,6 +288,8 @@ void FreeEQ8AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
 
     // Prime coefficients from current params
     syncBandsFromParams();
+
+    licenseValidator.resetDemoCounter();
 }
 
 void FreeEQ8AudioProcessor::rebuildOversampler(int order, double sampleRate, int samplesPerBlock)
@@ -405,6 +417,10 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 
         // Drive
         const float drive = apvts.getRawParameterValue(bandId(i + 1, "drive"))->load() / 100.0f;
+#if PROEQ8
+        const int satIdx = (int) apvts.getRawParameterValue(bandId(i + 1, "sat_mode"))->load();
+        b.satType = static_cast<SaturationType>(std::clamp(satIdx, 0, 3));
+#endif
 
         // Dynamic EQ params
         const bool dynOn     = apvts.getRawParameterValue(bandId(i + 1, "dyn_on"))->load() > 0.5f;
@@ -430,6 +446,17 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 
     // Push pre-EQ samples to spectrum FIFO
     preSpectrumFifo.pushBlock(L, R, n);
+
+    // Measure input RMS for auto-gain compensation
+    const bool autoGain = apvts.getRawParameterValue("auto_gain")->load() > 0.5f;
+    float inputRms = 0.0f;
+    if (autoGain)
+    {
+        float sumSq = 0.0f;
+        for (int i = 0; i < n; ++i)
+            sumSq += L[i] * L[i] + R[i] * R[i];
+        inputRms = std::sqrt(sumSq / (float)(n * 2));
+    }
 
     // Linear phase mode
     const bool linearPhase = apvts.getRawParameterValue("linear_phase")->load() > 0.5f;
@@ -519,6 +546,38 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
         processEQ(L, R, n, sr);
     }
 
+    // Auto-gain compensation: match output RMS to input RMS
+    if (autoGain && inputRms > 1e-7f)
+    {
+        float outSumSq = 0.0f;
+        for (int i = 0; i < n; ++i)
+            outSumSq += L[i] * L[i] + R[i] * R[i];
+        float outputRms = std::sqrt(outSumSq / (float)(n * 2));
+
+        if (outputRms > 1e-7f)
+        {
+            float targetDb = 20.0f * std::log10(inputRms / outputRms);
+            targetDb = std::clamp(targetDb, -24.0f, 24.0f);
+
+            // Smooth the compensation (one-pole, ~100ms)
+            float prevComp = autoGainCompDb.load(std::memory_order_relaxed);
+            float alpha = 1.0f - std::exp(-1.0f / (float)(sr * 0.1f) * (float)n);
+            float newComp = prevComp + alpha * (targetDb - prevComp);
+            autoGainCompDb.store(newComp, std::memory_order_relaxed);
+
+            float compGain = std::pow(10.0f, newComp / 20.0f);
+            for (int i = 0; i < n; ++i)
+            {
+                L[i] *= compGain;
+                R[i] *= compGain;
+            }
+        }
+    }
+    else if (!autoGain)
+    {
+        autoGainCompDb.store(0.0f, std::memory_order_relaxed);
+    }
+
     // Match EQ: capture reference if active, apply correction if matching
     matchEQ.pushSamples(L, R, n);
     if (matchEQ.isMatchActive())
@@ -526,6 +585,10 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 
     // Push post-EQ samples to spectrum FIFO
     spectrumFifo.pushBlock(L, R, n);
+
+    // Demo mute (ProEQ8 only, unactivated)
+    if (licenseValidator.shouldMuteDemo(sr, n))
+        buffer.clear();
 
     // --- Output metering ---
     {

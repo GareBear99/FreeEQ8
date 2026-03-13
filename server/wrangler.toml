@@ -1,0 +1,9 @@
+name = "proeq8-license-server"
+main = "stripe-webhook.js"
+compatibility_date = "2024-01-01"
+
+# Set these via `wrangler secret put <NAME>`:
+# - STRIPE_WEBHOOK_SECRET
+# - STRIPE_SECRET_KEY
+# - RESEND_API_KEY
+# - LICENSE_SIGNING_SECRET

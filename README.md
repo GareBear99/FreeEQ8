@@ -66,7 +66,7 @@ ProEQ8 is the upcoming commercial big brother of FreeEQ8 — same rock-solid DSP
 | Band Linking | ✓ | ✓ |
 | Formats | VST3, AU | VST3, AU |
 
-**Status:** In development · Follow this repo or [join Discussions](https://github.com/GareBear99/FreeEQ8/discussions) for launch updates.
+**Status:** Feature-complete · Available soon. Follow this repo or [join Discussions](https://github.com/GareBear99/FreeEQ8/discussions) for launch updates.
 
 ## ✨ Features
 
@@ -339,12 +339,17 @@ FreeEQ8/
 │   ├── UI/
 │   │   ├── ResponseCurveComponent.h/.cpp  # EQ curve + spectrum + nodes
 │   │   └── LevelMeter.h           # Stereo peak/RMS level meter
-│   └── Presets/
-│       └── PresetManager.h/.cpp   # Preset save/load system
+│   ├── Presets/
+│   │   └── PresetManager.h/.cpp   # Preset save/load system
+│   ├── UpdateChecker.h            # GitHub releases update checker
+│   └── LicenseValidator.h         # Offline license key validation
+├── server/
+│   ├── stripe-webhook.js          # Cloudflare Worker for Stripe → license
+│   └── wrangler.toml              # Wrangler deployment config
 ├── docs/                          # Screenshots & assets
 ├── JUCE/                          # JUCE framework (submodule)
 ├── build/                         # Build output (ignored)
-├── CMakeLists.txt                 # CMake configuration
+├── CMakeLists.txt                 # CMake config (FreeEQ8 + ProEQ8 targets)
 ├── build_macos.sh                 # macOS build script
 ├── build_windows.ps1              # Windows build script
 ├── .gitignore                     # Git ignore rules
@@ -377,14 +382,19 @@ FreeEQ8/
 - [x] Undo/Redo system (integrated with APVTS UndoManager)
 - [x] Match EQ functionality (capture reference spectrum, compute & apply correction)
 
-### ProEQ8 (Coming Soon — $20)
-- [ ] 24-band parametric EQ (3× the bands of FreeEQ8)
-- [ ] Multiple saturation modes per band: Tube (soft clip), Tape (bias saturation), Transistor (hard clip), Tanh
-- [ ] A/B comparison: instant toggle between two full parameter snapshots, with Copy A→B / B→A
-- [ ] Auto-gain bypass: RMS-matched loudness compensation for honest A/B listening
-- [ ] Piano roll overlay: musical note frequency reference lines (C1–C8) on the response curve
-- [ ] Collision detection: visual warning when bands overlap within 1/3 octave
-- [ ] 30+ genre-specific factory presets (Vocal Chain, Kick, Bass, Acoustic Guitar, Master Bus, Podcast, and more)
+### v1.1.0 (ProEQ8 + Enhancements)
+- ✅ ProEQ8 commercial target: 24-band parametric EQ (same source, PROEQ8=1 compile flag)
+- ✅ 4 saturation modes per band (Pro): Tanh, Tube, Tape, Transistor
+- ✅ A/B comparison (Pro): instant snapshot toggle with Copy A→B / B→A
+- ✅ Auto-gain bypass: RMS-matched loudness compensation for honest A/B listening
+- ✅ Piano roll overlay (Pro): musical note reference lines C1–C8 on the response curve
+- ✅ Collision detection (Pro): amber warning when bands overlap within 1/3 octave
+- ✅ Update checker: background thread checks GitHub releases, shows banner when new version available
+- ✅ License validator + activation dialog (Pro): offline license keys, demo mode (mute 30s every 5min)
+- ✅ Stripe webhook serverless function: Cloudflare Worker generates license keys, emails via Resend
+- ✅ 30 genre-specific factory presets
+- ✅ Fixed preset directory using product name (not hardcoded)
+- ✅ Fixed factory preset OOB access for ProEQ8's 24-band layout
 
 ## 🤝 Contributing
 

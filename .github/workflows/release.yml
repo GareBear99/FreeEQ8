@@ -20,23 +20,27 @@ jobs:
       - name: Install CMake
         run: brew install cmake
 
-      - name: Build universal binary
+      - name: Build universal binary (FreeEQ8 + ProEQ8)
         run: |
           mkdir -p build
           cmake -S . -B build \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
             -DCMAKE_OSX_DEPLOYMENT_TARGET="10.13"
-          cmake --build build --config Release
+          cmake --build build --config Release --target FreeEQ8_All
+          cmake --build build --config Release --target ProEQ8_All
 
-      - name: Verify universal binary
+      - name: Verify universal binaries
         run: |
-          echo "=== VST3 ==="
+          echo "=== FreeEQ8 VST3 ==="
           file build/FreeEQ8_artefacts/Release/VST3/FreeEQ8.vst3/Contents/MacOS/FreeEQ8
           lipo -info build/FreeEQ8_artefacts/Release/VST3/FreeEQ8.vst3/Contents/MacOS/FreeEQ8
-          echo "=== AU ==="
+          echo "=== FreeEQ8 AU ==="
           file build/FreeEQ8_artefacts/Release/AU/FreeEQ8.component/Contents/MacOS/FreeEQ8
           lipo -info build/FreeEQ8_artefacts/Release/AU/FreeEQ8.component/Contents/MacOS/FreeEQ8
+          echo "=== ProEQ8 VST3 ==="
+          file build/ProEQ8_artefacts/Release/VST3/ProEQ8.vst3/Contents/MacOS/ProEQ8
+          lipo -info build/ProEQ8_artefacts/Release/VST3/ProEQ8.vst3/Contents/MacOS/ProEQ8
 
       - name: Package DMG
         run: ./package_macos.sh build
@@ -74,6 +78,9 @@ jobs:
           cmake --build build --config Release -j$(nproc)
           ./build/FreeEQ8_Tests
 
+      - name: Build ProEQ8
+        run: cmake --build build --config Release --target ProEQ8_All -j$(nproc)
+
       - name: Package tar.gz
         run: |
           VERSION=$(grep 'project(FreeEQ8 VERSION' CMakeLists.txt | sed 's/.*VERSION \([0-9.]*\).*/\1/')
@@ -99,7 +106,7 @@ jobs:
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
-      - name: Build
+      - name: Build FreeEQ8 + ProEQ8
         run: cmake --build build --config Release
 
       - name: Package zip

@@ -46,6 +46,8 @@ target_sources(FreeEQ8 PRIVATE
     Source/PluginEditor.cpp
     Source/PluginEditor.h
     Source/Config.h
+    Source/UpdateChecker.h
+    Source/LicenseValidator.h
     Source/DSP/Biquad.h
     Source/DSP/EQBand.h
     Source/DSP/SpectrumFIFO.h
@@ -93,6 +95,8 @@ target_sources(ProEQ8 PRIVATE
     Source/PluginEditor.cpp
     Source/PluginEditor.h
     Source/Config.h
+    Source/UpdateChecker.h
+    Source/LicenseValidator.h
     Source/DSP/Biquad.h
     Source/DSP/EQBand.h
     Source/DSP/SpectrumFIFO.h

@@ -83,6 +83,13 @@ FreeEQ8AudioProcessorEditor::FreeEQ8AudioProcessorEditor(FreeEQ8AudioProcessor& 
     initKnob(qKnob,     bandCol, true);
     initKnob(driveKnob, bandCol, false);
 
+#if PROEQ8
+    satModeBox.addItemList({ "Tanh", "Tube", "Tape", "Transistor" }, 1);
+    styleCombo(satModeBox);
+    satModeBox.setTooltip("Saturation mode (Tanh/Tube/Tape/Transistor)");
+    addAndMakeVisible(satModeBox);
+#endif
+
     // Dynamic EQ
     dynOn.setButtonText("Dyn");
     dynOn.setColour(juce::ToggleButton::tickColourId, juce::Colour(0xFFFF5722));
@@ -103,6 +110,9 @@ FreeEQ8AudioProcessorEditor::FreeEQ8AudioProcessorEditor(FreeEQ8AudioProcessor& 
     addAndMakeVisible(adaptiveQBtn);
     linPhaseBtn.setButtonText("Lin Phase");
     addAndMakeVisible(linPhaseBtn);
+    autoGainBtn.setButtonText("Auto Gain");
+    autoGainBtn.setTooltip("Loudness-compensated bypass (match output RMS to input)");
+    addAndMakeVisible(autoGainBtn);
 
     oversamplingBox.addItemList({ "1x", "2x", "4x", "8x" }, 1);
     styleCombo(oversamplingBox);
@@ -116,6 +126,7 @@ FreeEQ8AudioProcessorEditor::FreeEQ8AudioProcessorEditor(FreeEQ8AudioProcessor& 
     scaleAtt       = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(proc.apvts, "scale", scaleSlider);
     adaptiveQAtt   = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(proc.apvts, "adaptive_q", adaptiveQBtn);
     linPhaseAtt    = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(proc.apvts, "linear_phase", linPhaseBtn);
+    autoGainAtt    = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(proc.apvts, "auto_gain", autoGainBtn);
     oversamplingAtt = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(proc.apvts, "oversampling", oversamplingBox);
     procModeAtt    = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(proc.apvts, "proc_mode", procModeBox);
 
@@ -183,6 +194,35 @@ FreeEQ8AudioProcessorEditor::FreeEQ8AudioProcessorEditor(FreeEQ8AudioProcessor& 
     redoBtn.setTooltip("Redo last undone change");
     postEqToggle.setTooltip("Toggle pre/post EQ spectrum display");
 
+#if PROEQ8
+    // ── A/B comparison buttons ──
+    abBtn.onClick = [this] { toggleAB(); };
+    abBtn.setTooltip("Switch between A/B settings");
+    addAndMakeVisible(abBtn);
+
+    copyABBtn.onClick = [this] {
+        if (proc.isSlotA)
+            proc.copySnapshot(true);   // A → B
+        else
+            proc.copySnapshot(false);  // B → A
+    };
+    copyABBtn.setTooltip("Copy current slot to the other");
+    addAndMakeVisible(copyABBtn);
+
+    // Store initial state into slot A
+    proc.storeSnapshot(true);
+
+    // License activation button
+    licenseBtn.setTooltip("Enter license key to activate ProEQ8");
+    licenseBtn.onClick = [this] { showActivationDialog(); };
+    if (proc.licenseValidator.isActivated())
+        licenseBtn.setButtonText("Licensed");
+    addAndMakeVisible(licenseBtn);
+#endif
+
+    // ── Update checker ──
+    updateChecker.checkAsync();
+
     // ── Initial band selection ──
     rebindBandControls(0);
     selectBand(0);
@@ -211,6 +251,10 @@ void FreeEQ8AudioProcessorEditor::rebindBandControls(int band)
     gainAtt      = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(proc.apvts, bandId(idx, "gain"),  gainKnob);
     qAtt         = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(proc.apvts, bandId(idx, "q"),     qKnob);
     driveAtt     = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(proc.apvts, bandId(idx, "drive"), driveKnob);
+#if PROEQ8
+    satModeAtt.reset();
+    satModeAtt   = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(proc.apvts, bandId(idx, "sat_mode"), satModeBox);
+#endif
     dynOnAtt     = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(proc.apvts, bandId(idx, "dyn_on"),      dynOn);
     dynThreshAtt = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(proc.apvts, bandId(idx, "dyn_thresh"),  dynThreshKnob);
     dynRatioAtt  = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(proc.apvts, bandId(idx, "dyn_ratio"),   dynRatioKnob);
@@ -256,6 +300,13 @@ void FreeEQ8AudioProcessorEditor::timerCallback()
     int curveSel = responseCurve.getSelectedBand();
     if (curveSel >= 0 && curveSel != selectedBand)
         selectBand(curveSel);
+
+    // Check for updates
+    if (!hasUpdate && updateChecker.isUpdateAvailable())
+    {
+        hasUpdate = true;
+        repaint();
+    }
 
     // Update band button on/off appearance
     for (int i = 0; i < kNumBands; ++i)
@@ -353,6 +404,18 @@ void FreeEQ8AudioProcessorEditor::paint(juce::Graphics& g)
     auto bandCol = ResponseCurveComponent::getBandColour(selectedBand);
     g.setColour(bandCol);
     g.fillRoundedRectangle(2.0f, (float)controlsTop + 1, 3.0f, 14.0f, 1.5f);
+
+    // ── Update banner ──
+    if (hasUpdate)
+    {
+        g.setColour(juce::Colour(0xFF2196F3));
+        g.fillRect(0, h - 20, w, 20);
+        g.setColour(juce::Colours::white);
+        g.setFont(11.0f);
+        g.drawText("Update available: v" + updateChecker.getLatestVersion()
+                   + " — visit GitHub to download",
+                   0, h - 20, w, 20, juce::Justification::centred);
+    }
 }
 
 // ── Resized ────────────────────────────────────────────────────────
@@ -413,6 +476,10 @@ void FreeEQ8AudioProcessorEditor::resized()
     x += 84;
 
     driveKnob.setBounds(x, cy, knobS, knobS);
+#if PROEQ8
+    x += knobS + 4;
+    satModeBox.setBounds(x, cy + 6, 82, 22);
+#endif
 
     // Row 2: Channel | Link | Dynamic EQ
     const int r2y = cy + 90 + 12;
@@ -443,6 +510,8 @@ void FreeEQ8AudioProcessorEditor::resized()
     adaptiveQBtn.setBounds(sx, sy, sw, 18);
     sy += 20;
     linPhaseBtn.setBounds(sx, sy, sw, 18);
+    sy += 20;
+    autoGainBtn.setBounds(sx, sy, sw, 18);
     sy += 22;
     oversamplingBox.setBounds(sx, sy, halfW, 18);
     procModeBox.setBounds(sx + halfW + 4, sy, halfW, 18);
@@ -457,6 +526,15 @@ void FreeEQ8AudioProcessorEditor::resized()
     // Undo/Redo
     undoBtn.setBounds(sx, sy, halfW, 18);
     redoBtn.setBounds(sx + halfW + 4, sy, halfW, 18);
+    sy += 22;
+
+#if PROEQ8
+    // A/B comparison
+    abBtn.setBounds(sx, sy, halfW, 18);
+    copyABBtn.setBounds(sx + halfW + 4, sy, halfW, 18);
+    sy += 22;
+    licenseBtn.setBounds(sx, sy, sw, 18);
+#endif
 
     // Level meter
     levelMeter.setBounds(w - meterW, controlsTop, meterW - 4, controlsH);
@@ -519,3 +597,63 @@ void FreeEQ8AudioProcessorEditor::onDeleteClicked()
         refreshPresetList();
     }
 }
+
+#if PROEQ8
+void FreeEQ8AudioProcessorEditor::showActivationDialog()
+{
+    if (proc.licenseValidator.isActivated())
+    {
+        // Already activated — show deactivation option
+        auto* dlg = new juce::AlertWindow("ProEQ8 License",
+            "Licensed to: " + proc.licenseValidator.getEmail(),
+            juce::AlertWindow::InfoIcon);
+        dlg->addButton("OK", 0);
+        dlg->addButton("Deactivate", 1);
+        dlg->enterModalState(true, juce::ModalCallbackFunction::create(
+            [this, dlg](int result) {
+                if (result == 1)
+                {
+                    proc.licenseValidator.deactivate();
+                    licenseBtn.setButtonText("Activate");
+                }
+                delete dlg;
+            }), true);
+        return;
+    }
+
+    auto* dlg = new juce::AlertWindow("Activate ProEQ8",
+        "Enter your license key:", juce::AlertWindow::NoIcon);
+    dlg->addTextEditor("key", "", "License Key:");
+    dlg->addButton("Activate", 1);
+    dlg->addButton("Cancel", 0);
+
+    dlg->enterModalState(true, juce::ModalCallbackFunction::create(
+        [this, dlg](int result) {
+            if (result == 1)
+            {
+                auto key = dlg->getTextEditorContents("key");
+                if (proc.licenseValidator.activate(key))
+                    licenseBtn.setButtonText("Licensed");
+                else
+                    juce::AlertWindow::showMessageBoxAsync(
+                        juce::AlertWindow::WarningIcon,
+                        "Activation Failed",
+                        "Invalid or expired license key.");
+            }
+            delete dlg;
+        }), true);
+}
+
+void FreeEQ8AudioProcessorEditor::toggleAB()
+{
+    // Store current into the active slot, then switch
+    proc.storeSnapshot(proc.isSlotA);
+    proc.isSlotA = !proc.isSlotA;
+    proc.recallSnapshot(proc.isSlotA);
+
+    abBtn.setButtonText(proc.isSlotA ? "A" : "B");
+    copyABBtn.setButtonText(proc.isSlotA ? "A\xe2\x86\x92" "B" : "B\xe2\x86\x92" "A");
+    rebindBandControls(selectedBand);
+    repaint();
+}
+#endif

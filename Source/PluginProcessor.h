@@ -7,6 +7,7 @@
 #include "DSP/LinearPhaseEngine.h"
 #include "DSP/MatchEQ.h"
 #include "Presets/PresetManager.h"
+#include "LicenseValidator.h"
 #include <atomic>
 
 class FreeEQ8AudioProcessor : public juce::AudioProcessor,
@@ -61,6 +62,36 @@ public:
 
     // Match EQ (public for UI capture/match control)
     MatchEQ matchEQ;
+
+    // ── A/B comparison ────────────────────────────────────────────
+    juce::ValueTree snapshotA, snapshotB;
+    bool isSlotA = true;  // true = editing slot A
+
+    void storeSnapshot(bool slotA)
+    {
+        auto state = apvts.copyState();
+        if (slotA) snapshotA = state;
+        else       snapshotB = state;
+    }
+
+    void recallSnapshot(bool slotA)
+    {
+        auto& snap = slotA ? snapshotA : snapshotB;
+        if (snap.isValid())
+            apvts.replaceState(snap);
+    }
+
+    void copySnapshot(bool fromAtoB)
+    {
+        if (fromAtoB) snapshotB = snapshotA.createCopy();
+        else          snapshotA = snapshotB.createCopy();
+    }
+
+    // ── Auto-gain bypass ───────────────────────────────────────────
+    std::atomic<float> autoGainCompDb { 0.0f }; // smoothed compensation in dB
+
+    // ── License validation (demo mute for ProEQ8) ──────────────────
+    LicenseValidator licenseValidator;
 
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createParams();

@@ -1,10 +1,14 @@
 #pragma once
 #include <juce_dsp/juce_dsp.h>
 #include "Biquad.h"
+#include "../Config.h"
 #include <array>
 
 // Channel routing for Mid/Side and L/R independent processing.
 enum class ChannelRoute { Both = 0, LeftOrMid = 1, RightOrSide = 2 };
+
+// Saturation / waveshaper modes. FreeEQ8 only uses Tanh; ProEQ8 adds Tube/Tape/Transistor.
+enum class SaturationType { Tanh = 0, Tube = 1, Tape = 2, Transistor = 3 };
 
 // EQBand with lightweight parameter smoothing and cascaded biquads.
 // Supports 1/2/4 cascaded stages for 12/24/48 dB/oct slopes.
@@ -25,6 +29,7 @@ struct EQBand
 
     // Drive / saturation (0 = off, 1 = full)
     float driveAmount = 0.0f;
+    SaturationType satType = SaturationType::Tanh;
 
     // Dynamic EQ state
     bool dynEnabled = false;
@@ -190,10 +195,56 @@ struct EQBand
 
         // Apply saturation/drive
         if (driveAmount > 0.001f)
+            applySaturation(l, r);
+    }
+
+    // Saturation waveshaper — applies gain-compensated nonlinearity
+    inline void applySaturation(float& l, float& r) const
+    {
+        const float d = 1.0f + driveAmount * 9.0f; // 1x to 10x drive
+
+        switch (satType)
         {
-            const float d = 1.0f + driveAmount * 9.0f; // 1x to 10x
-            l = std::tanh(l * d) / std::tanh(d);       // gain-compensated tanh
-            r = std::tanh(r * d) / std::tanh(d);
+            case SaturationType::Tanh:
+            {
+                const float invTanhD = 1.0f / std::tanh(d);
+                l = std::tanh(l * d) * invTanhD;
+                r = std::tanh(r * d) * invTanhD;
+            } break;
+
+            case SaturationType::Tube:
+            {
+                // Asymmetric soft clip: even harmonics from positive bias
+                auto tube = [d](float x) -> float {
+                    float xd = x * d;
+                    // Positive half clips softer (tube-style asymmetry)
+                    if (xd >= 0.0f)
+                        return xd / (1.0f + xd);
+                    else
+                        return xd / (1.0f - 0.5f * xd);
+                };
+                float normL = tube(1.0f);  // normalise so unity input → unity output
+                l = tube(l) / normL;
+                r = tube(r) / normL;
+            } break;
+
+            case SaturationType::Tape:
+            {
+                // Arctangent saturation with bias — warm, smooth
+                const float invAtanD = 1.0f / std::atan(d);
+                l = std::atan(l * d) * invAtanD;
+                r = std::atan(r * d) * invAtanD;
+            } break;
+
+            case SaturationType::Transistor:
+            {
+                // Hard clip — aggressive, odd harmonics
+                const float invD = 1.0f / d;
+                l = std::clamp(l * d, -1.0f, 1.0f) * invD * d;  // clip then restore level
+                l = std::clamp(l, -1.0f, 1.0f);
+                r = std::clamp(r * d, -1.0f, 1.0f) * invD * d;
+                r = std::clamp(r, -1.0f, 1.0f);
+            } break;
         }
     }
 

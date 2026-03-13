@@ -75,6 +75,10 @@ private:
     void paintResponseCurve(juce::Graphics& g);
     void paintBandCurves(juce::Graphics& g);
     void paintNodes(juce::Graphics& g);
+#if PROEQ8
+    void paintPianoRoll(juce::Graphics& g);
+    void paintCollisionWarnings(juce::Graphics& g);
+#endif
 
     // Hit test for band nodes
     int hitTestNode(float x, float y) const;

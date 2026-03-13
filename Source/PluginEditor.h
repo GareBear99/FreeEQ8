@@ -5,6 +5,7 @@
 #include "PluginProcessor.h"
 #include "UI/ResponseCurveComponent.h"
 #include "UI/LevelMeter.h"
+#include "UpdateChecker.h"
 
 class FreeEQ8AudioProcessorEditor : public juce::AudioProcessorEditor,
                                     public juce::Timer
@@ -31,6 +32,10 @@ private:
     juce::ToggleButton bandOn, bandSolo, dynOn;
     juce::ComboBox typeBox, slopeBox, channelBox, linkBox;
     juce::Slider freqKnob, gainKnob, qKnob, driveKnob;
+#if PROEQ8
+    juce::ComboBox satModeBox;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> satModeAtt;
+#endif
     juce::Slider dynThreshKnob, dynRatioKnob, dynAttackKnob, dynReleaseKnob;
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>  bandOnAtt, bandSoloAtt, dynOnAtt;
@@ -40,11 +45,11 @@ private:
 
     // ── Global controls ──────────────────────────────────────────
     juce::Slider outputGainSlider, scaleSlider;
-    juce::ToggleButton adaptiveQBtn, linPhaseBtn;
+    juce::ToggleButton adaptiveQBtn, linPhaseBtn, autoGainBtn;
     juce::ComboBox oversamplingBox, procModeBox;
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>  outputGainAtt, scaleAtt;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>  adaptiveQAtt, linPhaseAtt;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>  adaptiveQAtt, linPhaseAtt, autoGainAtt;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> oversamplingAtt, procModeAtt;
 
     // ── Toolbar ──────────────────────────────────────────────────
@@ -63,6 +68,19 @@ private:
     juce::ToggleButton postEqToggle;
     bool showPostSpectrum = true;
     LevelMeter levelMeter;
+
+    // ── A/B comparison (Pro only) ────────────────────────────────
+#if PROEQ8
+    juce::TextButton abBtn { "A" }, copyABBtn { "A\u2192B" };
+    void toggleAB();
+    // License activation
+    juce::TextButton licenseBtn { "Activate" };
+    void showActivationDialog();
+#endif
+
+    // ── Update checker ───────────────────────────────────────────
+    UpdateChecker updateChecker;
+    bool hasUpdate = false;
 
     // ── Helpers ──────────────────────────────────────────────────
     void initKnob(juce::Slider& s, juce::Colour c, bool large);
