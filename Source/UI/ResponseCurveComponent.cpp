@@ -26,6 +26,10 @@ juce::Colour ResponseCurveComponent::getBandColour(int i)
 ResponseCurveComponent::ResponseCurveComponent(FreeEQ8AudioProcessor& processor)
     : proc(processor)
 {
+    // Initialize smoothed spectrum to silence (-100 dB) so the max()-based
+    // peak-hold logic works correctly with negative dB values.
+    std::fill(std::begin(smoothedSpectrum), std::end(smoothedSpectrum), -100.0f);
+
     startTimerHz(30);
     setMouseCursor(juce::MouseCursor::CrosshairCursor);
 }
@@ -243,10 +247,12 @@ void ResponseCurveComponent::paintSpectrum(juce::Graphics& g)
     const float h = (float)getHeight();
     const float binWidth = (float)(spectrumSampleRate / (2.0 * currentSpectrumSize));
 
-    // Smooth the spectrum with exponential decay
-    const float decay = 0.85f;
+    // Smooth the spectrum: peak-hold with linear dB decay.
+    // Multiplicative decay (old * 0.85) is wrong for dB values — it moves
+    // negative dB toward zero (louder). Use subtractive decay instead.
+    const float decayDbPerFrame = 1.5f;  // ~45 dB/sec at 30 Hz timer
     for (int i = 0; i < currentSpectrumSize; ++i)
-        smoothedSpectrum[i] = std::max(spectrumMagnitudes[i], smoothedSpectrum[i] * decay);
+        smoothedSpectrum[i] = std::max(spectrumMagnitudes[i], smoothedSpectrum[i] - decayDbPerFrame);
 
     juce::Path spectrumPath;
     bool started = false;
