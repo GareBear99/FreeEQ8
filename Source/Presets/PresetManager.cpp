@@ -167,7 +167,7 @@ void PresetManager::ensureFactoryPresets()
                 child.setProperty("value", fp.scale, nullptr);
         }
 
-        // Set band params
+        // Set band params (including drive/slope/channel/dynamic to defaults)
         for (int i = 1; i <= 8; ++i)
         {
             auto& bs = fp.bands[i - 1];
@@ -184,6 +184,18 @@ void PresetManager::ensureFactoryPresets()
             setParam("freq", bs.freq);
             setParam("q",    bs.q);
             setParam("gain", bs.gain);
+
+            // Ensure factory presets have clean defaults for all params
+            setParam("solo",        0.0f);    // solo off
+            setParam("slope",       0.0f);    // 12 dB/oct
+            setParam("ch",          0.0f);    // Both channels
+            setParam("link",        0.0f);    // No link group
+            setParam("drive",       0.0f);    // No drive
+            setParam("dyn_on",      0.0f);    // Dynamic EQ off
+            setParam("dyn_thresh", -20.0f);   // Default threshold
+            setParam("dyn_ratio",   4.0f);    // Default ratio
+            setParam("dyn_attack", 10.0f);    // Default attack
+            setParam("dyn_release",100.0f);   // Default release
         }
 
         std::unique_ptr<juce::XmlElement> xml(state.createXml());

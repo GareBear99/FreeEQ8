@@ -27,12 +27,19 @@ public:
     }
 
     // Start capturing reference spectrum.
+    // NOTE: Must only be called from the GUI thread. Audio thread checks
+    // `capturing` atomically before touching shared buffers.
     void startCapture()
     {
-        // Reset state before enabling capture (release ordering ensures visibility)
-        captureFrames = 0;
-        fifoIndex = 0;
+        // Disable capture/analysis first so audio thread stops touching buffers
+        capturing.store(false, std::memory_order_release);
+        analyzing.store(false, std::memory_order_release);
+
+        // Safe to reset now — audio thread will skip pushSamples
+        captureFrames.store(0, std::memory_order_relaxed);
+        fifoIndex.store(0, std::memory_order_relaxed);
         std::fill(capturedSpectrum.begin(), capturedSpectrum.end(), 0.0f);
+
         capturing.store(true, std::memory_order_release);
     }
 
@@ -40,9 +47,10 @@ public:
     void stopCapture()
     {
         capturing.store(false, std::memory_order_release);
-        if (captureFrames > 0)
+        const int frames = captureFrames.load(std::memory_order_acquire);
+        if (frames > 0)
         {
-            const float inv = 1.0f / (float)captureFrames;
+            const float inv = 1.0f / (float)frames;
             for (int i = 0; i < numBins; ++i)
                 capturedSpectrum[(size_t)i] *= inv;
             hasCapturedData.store(true, std::memory_order_release);
@@ -52,13 +60,14 @@ public:
     // Clear all captured data and correction state.
     void clear()
     {
+        // Disable all modes first so audio thread stops touching buffers
         capturing.store(false, std::memory_order_release);
-        hasCapturedData.store(false, std::memory_order_release);
         matchActive.store(false, std::memory_order_release);
         analyzing.store(false, std::memory_order_release);
-        captureFrames = 0;
-        analyzeFrames = 0;
-        fifoIndex = 0;
+        hasCapturedData.store(false, std::memory_order_release);
+        captureFrames.store(0, std::memory_order_relaxed);
+        analyzeFrames.store(0, std::memory_order_relaxed);
+        fifoIndex.store(0, std::memory_order_relaxed);
         std::fill(capturedSpectrum.begin(), capturedSpectrum.end(), 0.0f);
         std::fill(currentSpectrum.begin(), currentSpectrum.end(), 0.0f);
         std::fill(correctionDb.begin(), correctionDb.end(), 0.0f);
@@ -73,20 +82,22 @@ public:
         const bool ana = analyzing.load(std::memory_order_acquire);
         if (!cap && !ana) return;
 
+        int idx = fifoIndex.load(std::memory_order_relaxed);
         for (int i = 0; i < numSamples; ++i)
         {
-            fifoBuffer[(size_t)fifoIndex] = (L[i] + R[i]) * 0.5f;
-            fifoIndex++;
+            fifoBuffer[(size_t)idx] = (L[i] + R[i]) * 0.5f;
+            idx++;
 
-            if (fifoIndex >= fftSize)
+            if (idx >= fftSize)
             {
-                fifoIndex = 0;
+                idx = 0;
                 if (cap)
                     processReferenceFrame();
                 else if (ana)
                     processAnalysisFrame();
             }
         }
+        fifoIndex.store(idx, std::memory_order_relaxed);
     }
 
     // Activate or deactivate match correction.
@@ -107,10 +118,11 @@ public:
             // Need captured reference data
             if (!hasCapturedData.load(std::memory_order_acquire)) return;
 
-            // Start analyzing current signal
-            analyzeFrames = 0;
+            // Disable analysis first, reset state, then re-enable
+            analyzing.store(false, std::memory_order_release);
+            analyzeFrames.store(0, std::memory_order_relaxed);
             std::fill(currentSpectrum.begin(), currentSpectrum.end(), 0.0f);
-            fifoIndex = 0;
+            fifoIndex.store(0, std::memory_order_relaxed);
             analyzing.store(true, std::memory_order_release);
         }
         else
@@ -148,11 +160,11 @@ private:
     std::atomic<bool> matchActive { false };
     std::atomic<bool> analyzing { false };
 
-    int captureFrames = 0;
-    int analyzeFrames = 0;
+    std::atomic<int> captureFrames { 0 };
+    std::atomic<int> analyzeFrames { 0 };
 
     std::array<float, fftSize> fifoBuffer {};
-    int fifoIndex = 0;
+    std::atomic<int> fifoIndex { 0 };
 
     // Captured reference spectrum in dB (averaged over capture frames)
     std::array<float, numBins> capturedSpectrum {};
@@ -171,44 +183,48 @@ private:
     // JUCE real-only FFT requires 2*fftSize floats
     std::array<float, fftSize * 2> processBuf {};
 
+    // Pre-allocated scratch for processReferenceFrame / processAnalysisFrame
+    // (avoids 32 KB stack allocations on the audio thread)
+    std::array<float, fftSize * 2> frameFftBuf {};
+
     void processReferenceFrame()
     {
-        std::array<float, fftSize * 2> fftData {};
-        std::copy(fifoBuffer.begin(), fifoBuffer.end(), fftData.begin());
+        std::fill(frameFftBuf.begin(), frameFftBuf.end(), 0.0f);
+        std::copy(fifoBuffer.begin(), fifoBuffer.end(), frameFftBuf.begin());
 
-        window.multiplyWithWindowingTable(fftData.data(), (size_t)fftSize);
-        fft.performFrequencyOnlyForwardTransform(fftData.data());
+        window.multiplyWithWindowingTable(frameFftBuf.data(), (size_t)fftSize);
+        fft.performFrequencyOnlyForwardTransform(frameFftBuf.data());
 
         for (int i = 0; i < numBins; ++i)
         {
-            float mag = fftData[(size_t)i] / (float)fftSize;
+            float mag = frameFftBuf[(size_t)i] / (float)fftSize;
             float db = 20.0f * std::log10(std::max(mag, 1e-7f));
             capturedSpectrum[(size_t)i] += db;
         }
 
-        captureFrames++;
+        captureFrames.fetch_add(1, std::memory_order_relaxed);
     }
 
     void processAnalysisFrame()
     {
-        std::array<float, fftSize * 2> fftData {};
-        std::copy(fifoBuffer.begin(), fifoBuffer.end(), fftData.begin());
+        std::fill(frameFftBuf.begin(), frameFftBuf.end(), 0.0f);
+        std::copy(fifoBuffer.begin(), fifoBuffer.end(), frameFftBuf.begin());
 
-        window.multiplyWithWindowingTable(fftData.data(), (size_t)fftSize);
-        fft.performFrequencyOnlyForwardTransform(fftData.data());
+        window.multiplyWithWindowingTable(frameFftBuf.data(), (size_t)fftSize);
+        fft.performFrequencyOnlyForwardTransform(frameFftBuf.data());
 
         for (int i = 0; i < numBins; ++i)
         {
-            float mag = fftData[(size_t)i] / (float)fftSize;
+            float mag = frameFftBuf[(size_t)i] / (float)fftSize;
             float db = 20.0f * std::log10(std::max(mag, 1e-7f));
             currentSpectrum[(size_t)i] += db;
         }
 
-        analyzeFrames++;
-        if (analyzeFrames >= analysisFramesNeeded)
+        const int frames = analyzeFrames.fetch_add(1, std::memory_order_relaxed) + 1;
+        if (frames >= analysisFramesNeeded)
         {
             // Average the current spectrum
-            const float inv = 1.0f / (float)analyzeFrames;
+            const float inv = 1.0f / (float)frames;
             for (int i = 0; i < numBins; ++i)
                 currentSpectrum[(size_t)i] *= inv;
 

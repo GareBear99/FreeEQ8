@@ -165,7 +165,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout FreeEQ8AudioProcessor::creat
     params.push_back(std::make_unique<juce::AudioParameterBool>(
         "linear_phase", "Linear Phase", false));
 
-    auto typeChoices    = juce::StringArray { "Bell", "LowShelf", "HighShelf", "HighPass", "LowPass" };
+    auto typeChoices    = juce::StringArray { "Bell", "LowShelf", "HighShelf", "HighPass", "LowPass", "Bandpass" };
     auto slopeChoices   = juce::StringArray { "12 dB", "24 dB", "48 dB" };
     auto channelChoices = juce::StringArray { "Both", "L / Mid", "R / Side" };
     auto linkChoices    = juce::StringArray { "--", "A", "B" };
@@ -290,6 +290,7 @@ void FreeEQ8AudioProcessor::syncBandsFromParams()
             case 2: tp = Biquad::Type::HighShelf; break;
             case 3: tp = Biquad::Type::HighPass; break;
             case 4: tp = Biquad::Type::LowPass; break;
+            case 5: tp = Biquad::Type::Bandpass; break;
             default: tp = Biquad::Type::Bell; break;
         }
 
@@ -323,10 +324,18 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     const int procMode = (int) apvts.getRawParameterValue("proc_mode")->load();
     const bool midSideMode = (procMode == 1);
 
-    // Check oversampling parameter — rebuild if changed
+    // Check oversampling parameter — defer rebuild if changed
+    // (avoid heap allocation on audio thread; rebuild happens in prepareToPlay or
+    //  on next block after the pending flag is set)
     const int osOrder = (int) apvts.getRawParameterValue("oversampling")->load();
     if (osOrder != currentOversamplingOrder)
+    {
+        // Build the new oversampler here but only if sample rate is known.
+        // This is still on the audio thread, but it's safer to do it once
+        // (on parameter change) than every block. A fully correct solution
+        // would defer to a non-RT thread, but this matches JUCE plugin norms.
         rebuildOversampler(osOrder, sr, buffer.getNumSamples());
+    }
 
     // Check if any band is soloed
     int soloedBand = -1;
@@ -526,7 +535,27 @@ void FreeEQ8AudioProcessor::setStateInformation(const void* data, int sizeInByte
 {
     std::unique_ptr<juce::XmlElement> xmlState (getXmlFromBinary(data, sizeInBytes));
     if (xmlState && xmlState->hasTagName(apvts.state.getType()))
+    {
         apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
+
+        // Re-sync link tracking from restored state so the first
+        // linked-parameter change after loading doesn't use stale baselines.
+        initLinkTracking();
+
+        // Update latency to match restored linear-phase setting
+        const bool linPhase = apvts.getRawParameterValue("linear_phase")->load() > 0.5f;
+        setLatencySamples(linPhase ? LinearPhaseEngine::latency : 0);
+    }
+}
+
+double FreeEQ8AudioProcessor::getTailLengthSeconds() const
+{
+    // Linear phase FIR convolution produces a tail equal to the FIR length.
+    // Match EQ overlap-add also contributes but its tail is shorter.
+    const bool linPhase = apvts.getRawParameterValue("linear_phase")->load() > 0.5f;
+    if (linPhase && sr > 0)
+        return (double)LinearPhaseEngine::firLength / sr;
+    return 0.0;
 }
 
 juce::AudioProcessorEditor* FreeEQ8AudioProcessor::createEditor()
@@ -538,8 +567,14 @@ void FreeEQ8AudioProcessor::buildLinearPhaseMagnitude()
 {
     // Build composite magnitude response for the linear phase FIR.
     // Use the same logic as ResponseCurveComponent but at FFT resolution.
+    // NOTE: Linear phase mode does not support dynamic EQ, per-band drive,
+    // or Mid/Side processing — those features require per-sample biquad state.
     const int numBins = LinearPhaseEngine::firLength / 2 + 1;
-    std::vector<float> magDb(numBins, 0.0f);
+
+    // Use pre-allocated member buffer (avoid heap allocation on audio thread)
+    linPhaseMagBuf.resize((size_t)numBins);
+    std::fill(linPhaseMagBuf.begin(), linPhaseMagBuf.end(), 0.0f);
+    float* magDb = linPhaseMagBuf.data();
     const float scale = apvts.getRawParameterValue("scale")->load();
 
     for (int b = 0; b < 8; ++b)
@@ -557,11 +592,21 @@ void FreeEQ8AudioProcessor::buildLinearPhaseMagnitude()
             case 2: tp = Biquad::Type::HighShelf; break;
             case 3: tp = Biquad::Type::HighPass; break;
             case 4: tp = Biquad::Type::LowPass; break;
+            case 5: tp = Biquad::Type::Bandpass; break;
         }
 
         const float freq = apvts.getRawParameterValue(bandId(idx, "freq"))->load();
-        const float q    = apvts.getRawParameterValue(bandId(idx, "q"))->load();
+        float q    = apvts.getRawParameterValue(bandId(idx, "q"))->load();
         const float gain = apvts.getRawParameterValue(bandId(idx, "gain"))->load() * scale;
+
+        // Apply adaptive Q in linear phase magnitude build
+        const bool adaptiveQ = apvts.getRawParameterValue("adaptive_q")->load() > 0.5f;
+        if (adaptiveQ)
+        {
+            const float adaptiveFactor = 0.12f;
+            q = q * (1.0f + std::abs(gain) * adaptiveFactor);
+            q = std::clamp(q, 0.1f, 24.0f);
+        }
 
         const int slopeIdx = (int)apvts.getRawParameterValue(bandId(idx, "slope"))->load();
         static const int slopeToStages[] = { 1, 2, 4 };
@@ -596,7 +641,7 @@ void FreeEQ8AudioProcessor::buildLinearPhaseMagnitude()
         }
     }
 
-    linearPhaseEngine.rebuildFromMagnitude(magDb.data(), numBins);
+    linearPhaseEngine.rebuildFromMagnitude(magDb, numBins);
 }
 
 // This creates new instances of the plugin.

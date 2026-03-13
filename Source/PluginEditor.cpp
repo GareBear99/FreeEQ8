@@ -61,7 +61,7 @@ FreeEQ8AudioProcessorEditor::FreeEQ8AudioProcessorEditor(FreeEQ8AudioProcessor& 
     bandSolo.setColour(juce::ToggleButton::tickColourId, juce::Colour(0xFFFFD54F));
     addAndMakeVisible(bandSolo);
 
-    typeBox.addItemList({ "Bell", "LowShelf", "HighShelf", "HighPass", "LowPass" }, 1);
+    typeBox.addItemList({ "Bell", "LowShelf", "HighShelf", "HighPass", "LowPass", "Bandpass" }, 1);
     styleCombo(typeBox);
     addAndMakeVisible(typeBox);
 

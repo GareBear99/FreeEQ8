@@ -119,6 +119,7 @@ void ResponseCurveComponent::updateResponseCurve()
             case 2: tp = Biquad::Type::HighShelf; break;
             case 3: tp = Biquad::Type::HighPass; break;
             case 4: tp = Biquad::Type::LowPass; break;
+            case 5: tp = Biquad::Type::Bandpass; break;
         }
 
         // Slope: number of cascaded stages
@@ -462,6 +463,7 @@ void ResponseCurveComponent::mouseDown(const juce::MouseEvent& e)
         menu.addItem(12, "High Shelf");
         menu.addItem(13, "High Pass");
         menu.addItem(14, "Low Pass");
+        menu.addItem(15, "Bandpass");
 
         menu.showMenuAsync(juce::PopupMenu::Options(), [this, idx](int result)
         {
@@ -471,7 +473,7 @@ void ResponseCurveComponent::mouseDown(const juce::MouseEvent& e)
                 auto* param = proc.apvts.getParameter(bandId(idx, "on"));
                 if (param) param->setValueNotifyingHost(p->load() > 0.5f ? 0.0f : 1.0f);
             }
-            else if (result >= 10 && result <= 14)
+            else if (result >= 10 && result <= 15)
             {
                 auto* param = proc.apvts.getParameter(bandId(idx, "type"));
                 if (param)
