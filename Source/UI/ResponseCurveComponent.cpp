@@ -19,7 +19,7 @@ juce::Colour ResponseCurveComponent::getBandColour(int i)
         juce::Colour(0xFFAB47BC),  // purple
         juce::Colour(0xFFEC407A),  // pink
     };
-    return colours[i % 8];
+    return colours[i % 8];  // cycles for >8 bands
 }
 
 // ── Constructor ────────────────────────────────────────────────────
@@ -99,7 +99,7 @@ void ResponseCurveComponent::updateResponseCurve()
     // Clear composite
     std::fill(std::begin(magnitudes), std::end(magnitudes), 0.0f);
 
-    for (int b = 0; b < 8; ++b)
+    for (int b = 0; b < kNumBands; ++b)
     {
         const int idx = b + 1;
         const bool on = proc.apvts.getRawParameterValue(bandId(idx, "on"))->load() > 0.5f;
@@ -317,7 +317,7 @@ void ResponseCurveComponent::paintBandCurves(juce::Graphics& g)
     const float w = (float)getWidth();
     const float zeroY = dbToY(0.0f);
 
-    for (int b = 0; b < 8; ++b)
+    for (int b = 0; b < kNumBands; ++b)
     {
         const int idx = b + 1;
         const bool on = proc.apvts.getRawParameterValue(bandId(idx, "on"))->load() > 0.5f;
@@ -368,7 +368,7 @@ void ResponseCurveComponent::paintResponseCurve(juce::Graphics& g)
 // ── Band nodes ─────────────────────────────────────────────────────
 void ResponseCurveComponent::paintNodes(juce::Graphics& g)
 {
-    for (int b = 0; b < 8; ++b)
+    for (int b = 0; b < kNumBands; ++b)
     {
         const int idx = b + 1;
         const bool on = proc.apvts.getRawParameterValue(bandId(idx, "on"))->load() > 0.5f;
@@ -428,7 +428,7 @@ int ResponseCurveComponent::hitTestNode(float mx, float my) const
 {
     const float hitRadius = nodeRadius + 5.0f;
 
-    for (int b = 0; b < 8; ++b)
+    for (int b = 0; b < kNumBands; ++b)
     {
         const int idx = b + 1;
         const bool on = proc.apvts.getRawParameterValue(bandId(idx, "on"))->load() > 0.5f;

@@ -1,6 +1,7 @@
 #pragma once
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
+#include "Config.h"
 #include "PluginProcessor.h"
 #include "UI/ResponseCurveComponent.h"
 #include "UI/LevelMeter.h"
@@ -22,7 +23,7 @@ private:
 
     // ── Band selection ───────────────────────────────────────────
     int selectedBand = 0;
-    std::array<juce::TextButton, 8> bandBtns;
+    std::array<juce::TextButton, kNumBands> bandBtns;
     void selectBand(int band);
     void rebindBandControls(int band);
 

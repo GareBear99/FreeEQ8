@@ -14,7 +14,7 @@ FreeEQ8AudioProcessor::FreeEQ8AudioProcessor()
     presetManager = std::make_unique<PresetManager>(apvts);
 
     // Register for parameter changes to support band linking + latency + linear phase dirty flag
-    for (int i = 1; i <= 8; ++i)
+    for (int i = 1; i <= kNumBands; ++i)
     {
         apvts.addParameterListener(bandId(i, "freq"),  this);
         apvts.addParameterListener(bandId(i, "gain"),  this);
@@ -35,7 +35,7 @@ FreeEQ8AudioProcessor::~FreeEQ8AudioProcessor()
     apvts.removeParameterListener("adaptive_q", this);
     apvts.removeParameterListener("scale", this);
     apvts.removeParameterListener("linear_phase", this);
-    for (int i = 1; i <= 8; ++i)
+    for (int i = 1; i <= kNumBands; ++i)
     {
         apvts.removeParameterListener(bandId(i, "slope"), this);
         apvts.removeParameterListener(bandId(i, "type"),  this);
@@ -48,7 +48,7 @@ FreeEQ8AudioProcessor::~FreeEQ8AudioProcessor()
 
 void FreeEQ8AudioProcessor::initLinkTracking()
 {
-    for (int i = 1; i <= 8; ++i)
+    for (int i = 1; i <= kNumBands; ++i)
     {
         lastLinkedFreq[i - 1] = apvts.getRawParameterValue(bandId(i, "freq"))->load();
         lastLinkedGain[i - 1] = apvts.getRawParameterValue(bandId(i, "gain"))->load();
@@ -80,7 +80,7 @@ void FreeEQ8AudioProcessor::parameterChanged(const juce::String& parameterID, fl
 
     const int bandIdx = parameterID.substring(1, underscoreIdx).getIntValue();
     const auto suffix = parameterID.substring(underscoreIdx + 1);
-    if (bandIdx < 1 || bandIdx > 8) return;
+    if (bandIdx < 1 || bandIdx > kNumBands) return;
 
     // Check this band's link group (0 = none, 1 = A, 2 = B)
     const int linkGroup = (int)apvts.getRawParameterValue(bandId(bandIdx, "link"))->load();
@@ -96,9 +96,8 @@ void FreeEQ8AudioProcessor::parameterChanged(const juce::String& parameterID, fl
         const float ratio = newValue / oldVal;
 
         propagatingLink = true;
-        for (int i = 1; i <= 8; ++i)
-        {
-            if (i == bandIdx) continue;
+        for (int i = 1; i <= kNumBands; ++i)
+              if (i == bandIdx) continue;
             if ((int)apvts.getRawParameterValue(bandId(i, "link"))->load() != linkGroup) continue;
 
             const float other = apvts.getRawParameterValue(bandId(i, "freq"))->load();
@@ -115,7 +114,7 @@ void FreeEQ8AudioProcessor::parameterChanged(const juce::String& parameterID, fl
         lastLinkedGain[ai] = newValue;
 
         propagatingLink = true;
-        for (int i = 1; i <= 8; ++i)
+        for (int i = 1; i <= kNumBands; ++i)
         {
             if (i == bandIdx) continue;
             if ((int)apvts.getRawParameterValue(bandId(i, "link"))->load() != linkGroup) continue;
@@ -134,7 +133,7 @@ void FreeEQ8AudioProcessor::parameterChanged(const juce::String& parameterID, fl
         lastLinkedQ[ai] = newValue;
 
         propagatingLink = true;
-        for (int i = 1; i <= 8; ++i)
+        for (int i = 1; i <= kNumBands; ++i)
         {
             if (i == bandIdx) continue;
             if ((int)apvts.getRawParameterValue(bandId(i, "link"))->load() != linkGroup) continue;
@@ -152,7 +151,7 @@ void FreeEQ8AudioProcessor::parameterChanged(const juce::String& parameterID, fl
 juce::AudioProcessorValueTreeState::ParameterLayout FreeEQ8AudioProcessor::createParams()
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
-    params.reserve(8 * 14 + 8);  // 14 per band + 8 globals
+    params.reserve(kNumBands * 15 + 8);  // 15 per band + 8 globals
 
     // Global parameters
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -187,9 +186,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout FreeEQ8AudioProcessor::creat
     auto channelChoices = juce::StringArray { "Both", "L / Mid", "R / Side" };
     auto linkChoices    = juce::StringArray { "--", "A", "B" };
 
-    for (int i = 1; i <= 8; ++i)
+    for (int i = 1; i <= kNumBands; ++i)
     {
-        params.push_back(std::make_unique<juce::AudioParameterBool>(bandId(i,"on"), "Band " + juce::String(i) + " On", true));
+        params.push_back(std::make_unique<juce::AudioParameterBool>(bandId(i,"on"), "Band " + juce::String(i) + " On", i <= 8));
         params.push_back(std::make_unique<juce::AudioParameterBool>(bandId(i,"solo"), "Band " + juce::String(i) + " Solo", false));
         params.push_back(std::make_unique<juce::AudioParameterChoice>(bandId(i,"type"), "Band " + juce::String(i) + " Type", typeChoices, 0));
         params.push_back(std::make_unique<juce::AudioParameterChoice>(bandId(i,"slope"), "Band " + juce::String(i) + " Slope", slopeChoices, 0));
@@ -197,11 +196,14 @@ juce::AudioProcessorValueTreeState::ParameterLayout FreeEQ8AudioProcessor::creat
         params.push_back(std::make_unique<juce::AudioParameterChoice>(bandId(i,"link"), "Band " + juce::String(i) + " Link", linkChoices, 0));
 
         // Default frequencies spread logarithmically across the spectrum
-        static const float defaultFreqs[] = { 0.f, 80.f, 250.f, 500.f, 1000.f, 2000.f, 4000.f, 8000.f, 12000.f };
+        // First 8 use classic fixed defaults; additional Pro bands use log spacing
+        static const float defaultFreqs8[] = { 0.f, 80.f, 250.f, 500.f, 1000.f, 2000.f, 4000.f, 8000.f, 12000.f };
+        float defaultFreq = (i <= 8) ? defaultFreqs8[i]
+            : 20.0f * std::pow(20000.0f / 20.0f, (float)(i - 1) / (float)(kNumBands - 1));
         params.push_back(std::make_unique<juce::AudioParameterFloat>(
             bandId(i,"freq"), "Band " + juce::String(i) + " Freq",
             juce::NormalisableRange<float>(20.0f, 20000.0f, 0.001f, 0.5f),
-            defaultFreqs[i]));
+            defaultFreq));
 
         params.push_back(std::make_unique<juce::AudioParameterFloat>(
             bandId(i,"q"), "Band " + juce::String(i) + " Q",
@@ -296,7 +298,7 @@ void FreeEQ8AudioProcessor::rebuildOversampler(int order, double sampleRate, int
 
 void FreeEQ8AudioProcessor::syncBandsFromParams()
 {
-    for (int i = 1; i <= 8; ++i)
+    for (int i = 1; i <= kNumBands; ++i)
     {
         auto& b = bands[(size_t)i - 1];
 
@@ -360,7 +362,7 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 
     // Check if any band is soloed
     int soloedBand = -1;
-    for (int i = 1; i <= 8; ++i)
+    for (int i = 1; i <= kNumBands; ++i)
     {
         if (apvts.getRawParameterValue(bandId(i, "solo"))->load() > 0.5f)
         {
@@ -374,7 +376,7 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
         ? sr * std::pow(2.0, currentOversamplingOrder)
         : sr;
 
-    for (int i = 0; i < 8; ++i)
+    for (int i = 0; i < kNumBands; ++i)
     {
         auto& b = bands[(size_t)i];
 
@@ -600,7 +602,7 @@ void FreeEQ8AudioProcessor::buildLinearPhaseMagnitude()
     float* magDb = linPhaseMagBuf.data();
     const float scale = apvts.getRawParameterValue("scale")->load();
 
-    for (int b = 0; b < 8; ++b)
+    for (int b = 0; b < kNumBands; ++b)
     {
         const int idx = b + 1;
         const bool on = apvts.getRawParameterValue(bandId(idx, "on"))->load() > 0.5f;

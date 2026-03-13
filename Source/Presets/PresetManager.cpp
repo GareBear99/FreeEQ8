@@ -209,7 +209,7 @@ void PresetManager::ensureFactoryPresets()
         }
 
         // Set band params (including drive/slope/channel/dynamic to defaults)
-        for (int i = 1; i <= 8; ++i)
+        for (int i = 1; i <= kNumBands; ++i)
         {
             auto& bs = fp.bands[i - 1];
             auto setParam = [&](const char* suffix, float val)

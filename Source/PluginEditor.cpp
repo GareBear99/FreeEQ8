@@ -37,7 +37,7 @@ FreeEQ8AudioProcessorEditor::FreeEQ8AudioProcessorEditor(FreeEQ8AudioProcessor& 
     addAndMakeVisible(responseCurve);
 
     // ── Band selector buttons ──
-    for (int i = 0; i < 8; ++i)
+    for (int i = 0; i < kNumBands; ++i)
     {
         auto& btn = bandBtns[(size_t)i];
         btn.setButtonText(juce::String(i + 1));
@@ -232,7 +232,7 @@ void FreeEQ8AudioProcessorEditor::selectBand(int band)
     rebindBandControls(band);
     responseCurve.setSelectedBand(band);
 
-    for (int i = 0; i < 8; ++i)
+    for (int i = 0; i < kNumBands; ++i)
     {
         bool sel = (i == band);
         bandBtns[(size_t)i].setColour(juce::TextButton::buttonColourId,
@@ -258,7 +258,7 @@ void FreeEQ8AudioProcessorEditor::timerCallback()
         selectBand(curveSel);
 
     // Update band button on/off appearance
-    for (int i = 0; i < 8; ++i)
+    for (int i = 0; i < kNumBands; ++i)
     {
         bool on = proc.apvts.getRawParameterValue(bandId(i + 1, "on"))->load() > 0.5f;
         bandBtns[(size_t)i].setAlpha(on ? 1.0f : 0.4f);
@@ -284,10 +284,10 @@ void FreeEQ8AudioProcessorEditor::paint(juce::Graphics& g)
     g.fillRect(0, 0, w, titleH);
     g.setColour(juce::Colours::white.withAlpha(0.9f));
     g.setFont(15.0f);
-    g.drawText("FreeEQ8", 12, 6, 90, 20, juce::Justification::left);
+    g.drawText(kProductName, 12, 6, 90, 20, juce::Justification::left);
     g.setFont(10.0f);
     g.setColour(juce::Colours::white.withAlpha(0.4f));
-    g.drawText("8-Band Parametric EQ", 82, 6, 160, 20, juce::Justification::left);
+    g.drawText(kProductTag, 82, 6, 160, 20, juce::Justification::left);
 
     // Band strip background
     g.setColour(juce::Colour(0xFF12172E));
@@ -380,11 +380,11 @@ void FreeEQ8AudioProcessorEditor::resized()
 
     // Band selector strip
     {
-        const int btnW = std::min(60, (w - 20) / 8);
+        const int btnW = std::min(60, (w - 20) / kNumBands);
         const int stripY = titleH + curveH;
-        const int totalW = btnW * 8;
+        const int totalW = btnW * kNumBands;
         const int startX = (w - totalW) / 2;
-        for (int i = 0; i < 8; ++i)
+        for (int i = 0; i < kNumBands; ++i)
             bandBtns[(size_t)i].setBounds(startX + i * btnW, stripY + 2, btnW - 2, stripH - 4);
     }
 
