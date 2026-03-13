@@ -69,7 +69,7 @@ float ResponseCurveComponent::computeMagnitudeDb(const Biquad& bq, double freq, 
 {
     // H(z) = (b0 + b1*z^-1 + b2*z^-2) / (1 + a1*z^-1 + a2*z^-2)
     // Evaluate at z = e^(j*omega), omega = 2*pi*freq/sampleRate
-    const double omega = 2.0 * M_PI * freq / sampleRate;
+    const double omega = 2.0 * kPi * freq / sampleRate;
     const double cosw  = std::cos(omega);
     const double cos2w = std::cos(2.0 * omega);
     const double sinw  = std::sin(omega);

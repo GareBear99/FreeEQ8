@@ -154,6 +154,35 @@ FreeEQ8AudioProcessorEditor::FreeEQ8AudioProcessorEditor(FreeEQ8AudioProcessor& 
     postEqToggle.onClick = [this] { showPostSpectrum = postEqToggle.getToggleState(); };
     addAndMakeVisible(postEqToggle);
 
+    // ── Tooltips ──
+    freqKnob.setTooltip("Band frequency (20 Hz - 20 kHz)");
+    gainKnob.setTooltip("Boost/cut (-24 dB to +24 dB)");
+    qKnob.setTooltip("Bandwidth (0.1 = wide, 24 = narrow)");
+    driveKnob.setTooltip("Per-band saturation (tanh waveshaper)");
+    typeBox.setTooltip("Filter type");
+    slopeBox.setTooltip("Filter slope (12/24/48 dB/oct)");
+    channelBox.setTooltip("Per-band channel routing");
+    linkBox.setTooltip("Band link group (A or B)");
+    bandOn.setTooltip("Enable/disable this band");
+    bandSolo.setTooltip("Solo — audition this band only");
+    dynOn.setTooltip("Enable dynamic EQ for this band");
+    dynThreshKnob.setTooltip("Dynamic EQ threshold (-60 to 0 dB)");
+    dynRatioKnob.setTooltip("Dynamic EQ ratio (1:1 to 20:1)");
+    dynAttackKnob.setTooltip("Dynamic EQ attack (0.1 - 100 ms)");
+    dynReleaseKnob.setTooltip("Dynamic EQ release (1 - 1000 ms)");
+    outputGainSlider.setTooltip("Master output gain (-24 to +24 dB)");
+    scaleSlider.setTooltip("Scale all band gains (0.1x to 2x)");
+    adaptiveQBtn.setTooltip("Auto-widen Q with increasing gain");
+    linPhaseBtn.setTooltip("Linear phase mode (adds 2048 samples latency)");
+    oversamplingBox.setTooltip("Oversampling factor (higher = cleaner, more CPU)");
+    procModeBox.setTooltip("Stereo or Mid-Side processing");
+    matchCapBtn.setTooltip("Capture reference spectrum");
+    matchAppBtn.setTooltip("Apply match EQ correction");
+    matchClrBtn.setTooltip("Clear match EQ data");
+    undoBtn.setTooltip("Undo last parameter change");
+    redoBtn.setTooltip("Redo last undone change");
+    postEqToggle.setTooltip("Toggle pre/post EQ spectrum display");
+
     // ── Initial band selection ──
     rebindBandControls(0);
     selectBand(0);

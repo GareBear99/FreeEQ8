@@ -4,8 +4,8 @@
 
 [![Build](https://img.shields.io/github/actions/workflow/status/GareBear99/FreeEQ8/release.yml?label=build&logo=github)](https://github.com/GareBear99/FreeEQ8/actions)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey.svg)]()
-[![macOS](https://img.shields.io/badge/macOS-10.15%20Catalina%2B-blue.svg)]()
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey.svg)]()
+[![macOS](https://img.shields.io/badge/macOS-10.13%20High%20Sierra%2B-blue.svg)]()
 [![Tested](https://img.shields.io/badge/tested-Ableton%20Live%2010+-green.svg)]()
 [![Stars](https://img.shields.io/github/stars/GareBear99/FreeEQ8?style=social)](https://github.com/GareBear99/FreeEQ8)
 [![JUCE](https://img.shields.io/badge/JUCE-7.0.12-orange.svg)](https://juce.com/)
@@ -15,7 +15,7 @@
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/garebear99)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/luciferai)
 
-FreeEQ8 is a professional-grade, free and open-source 8-band parametric EQ plugin for macOS and Windows. Linear phase, dynamic EQ, match EQ, per-band drive, band linking, M/S processing, oversampling, and a real-time spectrum analyzer — all in a single, zero-cost plugin. Built with JUCE for VST3 and AU.
+FreeEQ8 is a professional-grade, free and open-source 8-band parametric EQ plugin for macOS, Linux, and Windows. Linear phase, dynamic EQ, match EQ, per-band drive, band linking, M/S processing, oversampling, and a real-time spectrum analyzer — all in a single, zero-cost plugin. Built with JUCE for VST3 and AU.
 
 ![FreeEQ8 in Ableton Live](docs/screenshot.jpg)
 
@@ -98,7 +98,7 @@ ProEQ8 is the upcoming commercial big brother of FreeEQ8 — same rock-solid DSP
 ### Global Controls
 - **Output Gain** (-24 dB to +24 dB)
 - **Scale** (0.1x to 2x) — scales all band gains simultaneously
-- **Preset System** — save / load / delete, 8 factory presets
+|- **Preset System** — save / load / delete, 16 factory presets
 - **Undo / Redo** — integrated with JUCE UndoManager via APVTS
 - **State Save/Restore** — all settings persist in your DAW project
 
@@ -111,10 +111,11 @@ ProEQ8 is the upcoming commercial big brother of FreeEQ8 — same rock-solid DSP
 - Low CPU usage (disable unused bands, lower oversampling to reduce load)
 
 ### Compatibility
-- **macOS**: 10.15 Catalina and later (built & tested on Catalina with AppleClang 12)
+- **macOS**: 10.13 High Sierra and later (universal binary: Intel + Apple Silicon)
+- **Linux**: Debian/Ubuntu 20.04+ (VST3 only; see build instructions for dependencies)
 - **Windows**: 10 and later (64-bit)
-- **DAWs tested**: Ableton Live 10+, Logic Pro, FL Studio
-- **Formats**: VST3, AU
+- **DAWs tested**: Ableton Live 10+, Logic Pro, FL Studio, Bitwig, REAPER
+- **Formats**: VST3, AU (macOS only)
 
 ## 🚀 Quick Start
 
@@ -123,6 +124,13 @@ ProEQ8 is the upcoming commercial big brother of FreeEQ8 — same rock-solid DSP
 git clone --recursive https://github.com/GareBear99/FreeEQ8.git
 cd FreeEQ8
 ./build_macos.sh
+```
+
+### Linux (Debian/Ubuntu)
+```bash
+git clone --recursive https://github.com/GareBear99/FreeEQ8.git
+cd FreeEQ8
+./build_linux.sh          # installs deps via apt, then builds
 ```
 
 ### Windows
@@ -141,6 +149,12 @@ Plugins will be automatically installed to your system plugin directories.
 #### macOS
 - Xcode Command Line Tools: `xcode-select --install`
 - CMake 3.15+: `brew install cmake`
+
+#### Linux (Debian/Ubuntu)
+- GCC 9+ or Clang 10+
+- CMake 3.15+
+- JUCE system dependencies (installed automatically by `build_linux.sh`):
+  `libasound2-dev libjack-jackd2-dev libfreetype6-dev libx11-dev libxcomposite-dev libxcursor-dev libxext-dev libxfixes-dev libxinerama-dev libxrandr-dev libxrender-dev libwebkit2gtk-4.0-dev`
 
 #### Windows
 - Visual Studio 2019+ with C++ build tools
@@ -169,6 +183,12 @@ chmod +x build_macos.sh
 ./build_macos.sh
 ```
 
+**Linux:**
+```bash
+chmod +x build_linux.sh
+./build_linux.sh
+```
+
 **Windows:**
 ```powershell
 .\build_windows.ps1
@@ -179,6 +199,9 @@ chmod +x build_macos.sh
 **macOS (automatic):**
 - VST3: `~/Library/Audio/Plug-Ins/VST3/FreeEQ8.vst3`
 - AU: `~/Library/Audio/Plug-Ins/Components/FreeEQ8.component`
+
+**Linux (manual):**
+- Copy `build/FreeEQ8_artefacts/Release/VST3/FreeEQ8.vst3` to `~/.vst3/`
 
 **Windows (manual):**
 - Copy `build\FreeEQ8_artefacts\Release\VST3\FreeEQ8.vst3` to:
@@ -457,9 +480,9 @@ FreeEQ8 is an **original implementation** of a parametric EQ plugin. It is:
 ## 🐛 Known Issues
 
 - Changing oversampling mid-playback may cause a brief click
-- Factory presets don't include slope/channel/drive/dynamic settings (defaults used)
-- Linear phase mode adds 2048 samples of latency
+- Linear phase mode adds 2048 samples of latency (reported to DAW via `setLatencySamples`)
 - Match EQ capture is mono-summed; correction is per-channel
+- Linear phase mode does not currently apply M/S, per-band drive, or dynamic EQ (minimum-phase path only)
 
 Report issues at: https://github.com/GareBear99/FreeEQ8/issues
 

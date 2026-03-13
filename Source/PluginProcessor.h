@@ -76,6 +76,9 @@ private:
     // Pre-allocated buffer for buildLinearPhaseMagnitude (avoids heap alloc on audio thread)
     std::vector<float> linPhaseMagBuf;
 
+    // Linear phase dirty flag — only rebuild the FIR when params actually change
+    std::atomic<bool> linPhaseDirty { true };
+
     void syncBandsFromParams();
     void rebuildOversampler(int order, double sampleRate, int samplesPerBlock);
     void buildLinearPhaseMagnitude();

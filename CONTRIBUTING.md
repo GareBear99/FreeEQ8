@@ -85,6 +85,9 @@ cd FreeEQ8
 # macOS
 ./build_macos.sh
 
+# Linux (Debian/Ubuntu — installs deps automatically)
+./build_linux.sh
+
 # Windows
 .\build_windows.ps1
 ```
@@ -120,13 +123,21 @@ void MyClass::processAudio(float* buffer, int numSamples)
 ### File Organization
 ```
 Source/
-├── PluginProcessor.h      # Audio processor interface
-├── PluginProcessor.cpp    # Audio processing implementation
-├── PluginEditor.h         # UI interface
-├── PluginEditor.cpp       # UI implementation
-└── DSP/
-    ├── Biquad.h           # Filter implementations
-    └── EQBand.h           # Band logic
+├── PluginProcessor.h/.cpp  # Main audio processor
+├── PluginEditor.h/.cpp     # UI editor & layout
+├── DSP/
+│   ├── Biquad.h            # Biquad filter (RBJ cookbook)
+│   ├── EQBand.h            # Band with smoothing, drive & dynamic EQ
+│   ├── SpectrumFIFO.h      # Lock-free FFT FIFO
+│   ├── LinearPhaseEngine.h # FIR-based linear-phase engine
+│   └── MatchEQ.h           # Reference capture & correction
+├── UI/
+│   ├── ResponseCurveComponent.h/.cpp  # Curve + spectrum + nodes
+│   └── LevelMeter.h        # Stereo peak/RMS meter
+└── Presets/
+    └── PresetManager.h/.cpp # Preset save/load system
+Tests/
+└── BiquadTest.cpp           # Standalone coefficient tests
 ```
 
 ## Testing
@@ -150,26 +161,34 @@ Before submitting:
 
 ## Priority Areas for Contribution
 
+### Implemented ✅
+The following features are already complete:
+- 🎨 Spectrum analyzer (4096-pt FFT, pre/post toggle)
+- 📊 Interactive frequency response curve with dB/freq grid
+- 🎛️ Draggable band nodes (freq/gain + shift-drag Q)
+- 🔊 Adaptive Q (auto-widens with increasing gain)
+- 💾 Preset management (save/load/delete, 16 factory presets)
+- 🎚️ Multiple filter slopes (12/24/48 dB/oct)
+- 🔀 Mid/Side processing with per-band routing
+- ⚡ Oversampling (1x/2x/4x/8x)
+- 📏 Output metering (peak hold + RMS)
+- 🖼️ Resizable UI (750×550 to 1400×900)
+- 🧪 Biquad coefficient unit tests
+
 ### High Priority
-- 🎨 Spectrum analyzer implementation
-- 📊 Visual frequency response curve
-- 🎛️ Draggable band nodes
-- 🔊 Adaptive Q algorithm
-- 💾 Preset management
+- 🚀 Performance profiling and optimization
+- ♿ Accessibility (keyboard navigation, screen reader labels)
+- 🐛 Edge-case bug fixes and stability
 
 ### Medium Priority
-- 🎚️ Multiple filter slopes
-- 🔀 Mid/Side processing
-- ⚡ Oversampling
-- 📏 Output metering
-- 🖼️ Resizable UI
+- 📱 Standalone app version
+- 🎨 Custom look-and-feel / theme support
+- 🧪 Additional test coverage (integration tests, automation tests)
 
 ### Low Priority (Nice to Have)
-- 🧪 Unit tests
-- 📱 Standalone app version
-- 🎨 Custom look and feel
 - 🌐 Internationalization
-- ♿ Accessibility improvements
+- 🖥️ CLAP format support
+- 📝 Inline parameter help / tutorial overlay
 
 ## Documentation
 

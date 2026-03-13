@@ -13,26 +13,36 @@ FreeEQ8AudioProcessor::FreeEQ8AudioProcessor()
 {
     presetManager = std::make_unique<PresetManager>(apvts);
 
-    // Register for parameter changes to support band linking + latency updates
+    // Register for parameter changes to support band linking + latency + linear phase dirty flag
     for (int i = 1; i <= 8; ++i)
     {
-        apvts.addParameterListener(bandId(i, "freq"), this);
-        apvts.addParameterListener(bandId(i, "gain"), this);
-        apvts.addParameterListener(bandId(i, "q"),    this);
+        apvts.addParameterListener(bandId(i, "freq"),  this);
+        apvts.addParameterListener(bandId(i, "gain"),  this);
+        apvts.addParameterListener(bandId(i, "q"),     this);
+        apvts.addParameterListener(bandId(i, "on"),    this);
+        apvts.addParameterListener(bandId(i, "type"),  this);
+        apvts.addParameterListener(bandId(i, "slope"), this);
     }
     apvts.addParameterListener("linear_phase", this);
+    apvts.addParameterListener("scale", this);
+    apvts.addParameterListener("adaptive_q", this);
 
     initLinkTracking();
 }
 
 FreeEQ8AudioProcessor::~FreeEQ8AudioProcessor()
 {
+    apvts.removeParameterListener("adaptive_q", this);
+    apvts.removeParameterListener("scale", this);
     apvts.removeParameterListener("linear_phase", this);
     for (int i = 1; i <= 8; ++i)
     {
-        apvts.removeParameterListener(bandId(i, "freq"), this);
-        apvts.removeParameterListener(bandId(i, "gain"), this);
-        apvts.removeParameterListener(bandId(i, "q"),    this);
+        apvts.removeParameterListener(bandId(i, "slope"), this);
+        apvts.removeParameterListener(bandId(i, "type"),  this);
+        apvts.removeParameterListener(bandId(i, "on"),    this);
+        apvts.removeParameterListener(bandId(i, "q"),     this);
+        apvts.removeParameterListener(bandId(i, "gain"),  this);
+        apvts.removeParameterListener(bandId(i, "freq"),  this);
     }
 }
 
@@ -48,12 +58,19 @@ void FreeEQ8AudioProcessor::initLinkTracking()
 
 void FreeEQ8AudioProcessor::parameterChanged(const juce::String& parameterID, float newValue)
 {
+    // Any EQ-relevant parameter change invalidates the linear phase FIR
+    linPhaseDirty.store(true, std::memory_order_relaxed);
+
     // Handle linear phase latency update (safe: parameterChanged is called on message thread)
     if (parameterID == "linear_phase")
     {
         setLatencySamples(newValue > 0.5f ? LinearPhaseEngine::latency : 0);
         return;
     }
+
+    // Global params (scale, adaptive_q) don't need band-linking logic
+    if (parameterID == "scale" || parameterID == "adaptive_q")
+        return;
 
     if (propagatingLink) return;
     if (!parameterID.startsWith("b")) return;
@@ -248,6 +265,10 @@ void FreeEQ8AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
 
     // Linear phase engine
     linearPhaseEngine.prepare(sampleRate, samplesPerBlock);
+    linPhaseDirty.store(true, std::memory_order_relaxed);
+
+    // Pre-allocate linear phase magnitude buffer
+    linPhaseMagBuf.resize((size_t)(LinearPhaseEngine::firLength / 2 + 1), 0.0f);
 
     // Update latency based on current linear-phase setting
     const bool linPhase = apvts.getRawParameterValue("linear_phase")->load() > 0.5f;
@@ -460,8 +481,9 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 
     if (linearPhase)
     {
-        // Linear phase path: build magnitude response, convolve via FIR
-        buildLinearPhaseMagnitude();
+        // Linear phase path: only rebuild FIR when parameters actually change
+        if (linPhaseDirty.exchange(false, std::memory_order_relaxed))
+            buildLinearPhaseMagnitude();
 
         // Apply output gain to the buffer before linear phase processing
         // (output gain is baked into the magnitude response)
@@ -541,6 +563,7 @@ void FreeEQ8AudioProcessor::setStateInformation(const void* data, int sizeInByte
         // Re-sync link tracking from restored state so the first
         // linked-parameter change after loading doesn't use stale baselines.
         initLinkTracking();
+        linPhaseDirty.store(true, std::memory_order_relaxed);
 
         // Update latency to match restored linear-phase setting
         const bool linPhase = apvts.getRawParameterValue("linear_phase")->load() > 0.5f;
@@ -620,7 +643,7 @@ void FreeEQ8AudioProcessor::buildLinearPhaseMagnitude()
             const double f = (double)i / (double)(numBins - 1) * sr * 0.5;
             if (f < 1.0) continue;
 
-            const double omega = 2.0 * M_PI * f / sr;
+            const double omega = 2.0 * kPi * f / sr;
             const double cosw  = std::cos(omega);
             const double cos2w = std::cos(2.0 * omega);
             const double sinw  = std::sin(omega);

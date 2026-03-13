@@ -1,14 +1,10 @@
 #pragma once
 #include <juce_dsp/juce_dsp.h>
-#include "Biquad.h"
+#include "Biquad.h"   // provides constexpr kPi
 #include <array>
 #include <vector>
 #include <cmath>
 #include <algorithm>
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
 
 // Linear-phase EQ engine.
 // Generates a symmetric FIR from the combined biquad magnitude response
@@ -84,7 +80,7 @@ public:
         // Apply Hann window to the FIR
         for (int i = 0; i < firLength; ++i)
         {
-            const float w = 0.5f * (1.0f - std::cos(2.0f * (float)M_PI * (float)i / (float)(firLength - 1)));
+            const float w = 0.5f * (1.0f - std::cos(2.0f * (float)kPi * (float)i / (float)(firLength - 1)));
             fir[(size_t)i] *= w;
         }
 

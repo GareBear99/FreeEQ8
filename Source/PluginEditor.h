@@ -66,5 +66,8 @@ private:
     // ── Helpers ──────────────────────────────────────────────────
     void initKnob(juce::Slider& s, juce::Colour c, bool large);
 
+    // Tooltip window — auto-shows tooltips for any child component with setTooltip()
+    juce::TooltipWindow tooltipWindow { this, 500 };
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FreeEQ8AudioProcessorEditor)
 };
