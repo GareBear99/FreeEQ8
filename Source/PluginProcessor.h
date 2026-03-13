@@ -27,7 +27,7 @@ public:
     const juce::String getName() const override { return "FreeEQ8"; }
     bool acceptsMidi() const override { return false; }
     bool producesMidi() const override { return false; }
-    double getTailLengthSeconds() const override { return 0.0; }
+    double getTailLengthSeconds() const override;
 
     int getNumPrograms() override { return 1; }
     int getCurrentProgram() override { return 0; }
@@ -71,6 +71,13 @@ private:
     // Oversampling
     std::unique_ptr<juce::dsp::Oversampling<float>> oversampler;
     int currentOversamplingOrder = 0;
+    std::atomic<int> pendingOversamplingOrder { -1 };  // -1 = no pending change
+
+    // Pre-allocated buffer for buildLinearPhaseMagnitude (avoids heap alloc on audio thread)
+    std::vector<float> linPhaseMagBuf;
+
+    // Linear phase dirty flag — only rebuild the FIR when params actually change
+    std::atomic<bool> linPhaseDirty { true };
 
     void syncBandsFromParams();
     void rebuildOversampler(int order, double sampleRate, int samplesPerBlock);

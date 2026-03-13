@@ -2,9 +2,8 @@
 #include <cmath>
 #include <algorithm>
 
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
+// C++17 constant — replaces the fragile #ifndef M_PI / #define M_PI pattern.
+constexpr double kPi = 3.14159265358979323846;
 
 struct Biquad
 {
@@ -42,7 +41,7 @@ struct Biquad
         Q = std::clamp(Q, 0.1, 24.0);
 
         const double A  = std::pow(10.0, gainDb / 40.0);
-        const double w0 = 2.0 * M_PI * (freqHz / sampleRate);
+        const double w0 = 2.0 * kPi * (freqHz / sampleRate);
         const double cosw0 = std::cos(w0);
         const double sinw0 = std::sin(w0);
         const double alpha = sinw0 / (2.0 * Q);

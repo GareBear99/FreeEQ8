@@ -47,6 +47,47 @@ jobs:
           name: macos-dmg
           path: build/FreeEQ8-v*-macOS.dmg
 
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake pkg-config \
+            libasound2-dev libjack-jackd2-dev \
+            libfreetype6-dev libx11-dev libxcomposite-dev \
+            libxcursor-dev libxext-dev libxfixes-dev \
+            libxinerama-dev libxrandr-dev libxrender-dev \
+            libwebkit2gtk-4.0-dev libcurl4-openssl-dev \
+            ladspa-sdk
+
+      - name: Build & run tests
+        run: |
+          mkdir -p build
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DFREEEQ8_BUILD_TESTS=ON
+          cmake --build build --config Release -j$(nproc)
+          ./build/FreeEQ8_Tests
+
+      - name: Package tar.gz
+        run: |
+          VERSION=$(grep 'project(FreeEQ8 VERSION' CMakeLists.txt | sed 's/.*VERSION \([0-9.]*\).*/\1/')
+          DIR="FreeEQ8-v${VERSION}-Linux"
+          mkdir -p "build/${DIR}"
+          cp -r build/FreeEQ8_artefacts/Release/VST3/FreeEQ8.vst3 "build/${DIR}/"
+          tar czf "build/${DIR}.tar.gz" -C build "${DIR}"
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-tar
+          path: build/FreeEQ8-v*-Linux.tar.gz
+
   build-windows:
     runs-on: windows-latest
     steps:
@@ -101,13 +142,19 @@ jobs:
           path: build/FreeEQ8-v*-Windows.zip
 
   release:
-    needs: [build-macos, build-windows]
+    needs: [build-macos, build-linux, build-windows]
     runs-on: ubuntu-latest
     steps:
       - name: Download macOS artifact
         uses: actions/download-artifact@v4
         with:
           name: macos-dmg
+          path: artifacts
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-tar
           path: artifacts
 
       - name: Download Windows artifact
@@ -121,4 +168,5 @@ jobs:
         with:
           files: |
             artifacts/*.dmg
+            artifacts/*.tar.gz
             artifacts/*.zip

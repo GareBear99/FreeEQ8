@@ -26,6 +26,10 @@ juce::Colour ResponseCurveComponent::getBandColour(int i)
 ResponseCurveComponent::ResponseCurveComponent(FreeEQ8AudioProcessor& processor)
     : proc(processor)
 {
+    // Initialize smoothed spectrum to silence (-100 dB) so the max()-based
+    // peak-hold logic works correctly with negative dB values.
+    std::fill(std::begin(smoothedSpectrum), std::end(smoothedSpectrum), -100.0f);
+
     startTimerHz(30);
     setMouseCursor(juce::MouseCursor::CrosshairCursor);
 }
@@ -65,7 +69,7 @@ float ResponseCurveComponent::computeMagnitudeDb(const Biquad& bq, double freq, 
 {
     // H(z) = (b0 + b1*z^-1 + b2*z^-2) / (1 + a1*z^-1 + a2*z^-2)
     // Evaluate at z = e^(j*omega), omega = 2*pi*freq/sampleRate
-    const double omega = 2.0 * M_PI * freq / sampleRate;
+    const double omega = 2.0 * kPi * freq / sampleRate;
     const double cosw  = std::cos(omega);
     const double cos2w = std::cos(2.0 * omega);
     const double sinw  = std::sin(omega);
@@ -119,6 +123,7 @@ void ResponseCurveComponent::updateResponseCurve()
             case 2: tp = Biquad::Type::HighShelf; break;
             case 3: tp = Biquad::Type::HighPass; break;
             case 4: tp = Biquad::Type::LowPass; break;
+            case 5: tp = Biquad::Type::Bandpass; break;
         }
 
         // Slope: number of cascaded stages
@@ -242,10 +247,12 @@ void ResponseCurveComponent::paintSpectrum(juce::Graphics& g)
     const float h = (float)getHeight();
     const float binWidth = (float)(spectrumSampleRate / (2.0 * currentSpectrumSize));
 
-    // Smooth the spectrum with exponential decay
-    const float decay = 0.85f;
+    // Smooth the spectrum: peak-hold with linear dB decay.
+    // Multiplicative decay (old * 0.85) is wrong for dB values — it moves
+    // negative dB toward zero (louder). Use subtractive decay instead.
+    const float decayDbPerFrame = 1.5f;  // ~45 dB/sec at 30 Hz timer
     for (int i = 0; i < currentSpectrumSize; ++i)
-        smoothedSpectrum[i] = std::max(spectrumMagnitudes[i], smoothedSpectrum[i] * decay);
+        smoothedSpectrum[i] = std::max(spectrumMagnitudes[i], smoothedSpectrum[i] - decayDbPerFrame);
 
     juce::Path spectrumPath;
     bool started = false;
@@ -462,6 +469,7 @@ void ResponseCurveComponent::mouseDown(const juce::MouseEvent& e)
         menu.addItem(12, "High Shelf");
         menu.addItem(13, "High Pass");
         menu.addItem(14, "Low Pass");
+        menu.addItem(15, "Bandpass");
 
         menu.showMenuAsync(juce::PopupMenu::Options(), [this, idx](int result)
         {
@@ -471,7 +479,7 @@ void ResponseCurveComponent::mouseDown(const juce::MouseEvent& e)
                 auto* param = proc.apvts.getParameter(bandId(idx, "on"));
                 if (param) param->setValueNotifyingHost(p->load() > 0.5f ? 0.0f : 1.0f);
             }
-            else if (result >= 10 && result <= 14)
+            else if (result >= 10 && result <= 15)
             {
                 auto* param = proc.apvts.getParameter(bandId(idx, "type"));
                 if (param)

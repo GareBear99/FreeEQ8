@@ -67,3 +67,11 @@ target_link_libraries(FreeEQ8 PRIVATE
     juce::juce_audio_utils
     juce::juce_dsp
 )
+
+# ── Optional test target (standalone, no JUCE dependency) ────────────
+option(FREEEQ8_BUILD_TESTS "Build unit tests" OFF)
+
+if (FREEEQ8_BUILD_TESTS)
+    add_executable(FreeEQ8_Tests Tests/BiquadTest.cpp)
+    target_compile_features(FreeEQ8_Tests PRIVATE cxx_std_17)
+endif()
