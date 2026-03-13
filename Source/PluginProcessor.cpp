@@ -97,7 +97,8 @@ void FreeEQ8AudioProcessor::parameterChanged(const juce::String& parameterID, fl
 
         propagatingLink = true;
         for (int i = 1; i <= kNumBands; ++i)
-              if (i == bandIdx) continue;
+        {
+            if (i == bandIdx) continue;
             if ((int)apvts.getRawParameterValue(bandId(i, "link"))->load() != linkGroup) continue;
 
             const float other = apvts.getRawParameterValue(bandId(i, "freq"))->load();
@@ -185,7 +186,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout FreeEQ8AudioProcessor::creat
     params.push_back(std::make_unique<juce::AudioParameterBool>(
         "auto_gain", "Auto Gain", false));
 
-    auto typeChoices
+    auto typeChoices    = juce::StringArray { "Bell", "LowShelf", "HighShelf", "HighPass", "LowPass", "Bandpass" };
     auto slopeChoices   = juce::StringArray { "12 dB", "24 dB", "48 dB" };
     auto channelChoices = juce::StringArray { "Both", "L / Mid", "R / Side" };
     auto linkChoices    = juce::StringArray { "--", "A", "B" };

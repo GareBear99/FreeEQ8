@@ -14,17 +14,23 @@
 
 export default {
   async fetch(request, env) {
-    if (request.method !== "POST") {
-      return new Response("Method Not Allowed", { status: 405 });
-    }
-
     const url = new URL(request.url);
 
-    // Health check endpoint
+    // Health check endpoint (GET)
     if (url.pathname === "/health") {
-      return new Response(JSON.stringify({ status: "ok" }), {
+      return new Response(JSON.stringify({ status: "ok", version: "1.1.0" }), {
         headers: { "Content-Type": "application/json" },
       });
+    }
+
+    // ── Create Stripe Checkout session (POST /create-checkout) ─────
+    if (url.pathname === "/create-checkout" && request.method === "POST") {
+      return handleCreateCheckout(env);
+    }
+
+    // All other routes require POST
+    if (request.method !== "POST") {
+      return new Response("Method Not Allowed", { status: 405 });
     }
 
     if (url.pathname !== "/webhook/stripe") {
@@ -111,12 +117,54 @@ async function verifyStripeWebhook(payload, sigHeader, secret) {
   }
 }
 
-// ── License key generation ──────────────────────────────────────────
+// ── Create Stripe Checkout session ─────────────────────────────────
+// Creates a Stripe Checkout session for ProEQ8 purchase.
+// The frontend redirects the user to the returned URL.
+async function handleCreateCheckout(env) {
+  try {
+    const resp = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        "mode": "payment",
+        "line_items[0][price]": env.STRIPE_PRICE_ID,
+        "line_items[0][quantity]": "1",
+        "success_url": env.SUCCESS_URL || "https://github.com/GareBear99/FreeEQ8?purchase=success",
+        "cancel_url": env.CANCEL_URL || "https://github.com/GareBear99/FreeEQ8?purchase=cancelled",
+        "payment_method_types[0]": "card",
+      }),
+    });
+
+    const session = await resp.json();
+    if (!resp.ok) {
+      console.error("Stripe checkout creation failed:", session);
+      return new Response(JSON.stringify({ error: session.error?.message || "Unknown error" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({ url: session.url, id: session.id }), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
+  } catch (e) {
+    console.error("Checkout creation error:", e);
+    return new Response(JSON.stringify({ error: "Internal error" }), { status: 500 });
+  }
+}
+
+// ── License key generation (HMAC-SHA256 signed) ──────────────────────
 // Format: <base64_payload>.<base64_signature>
 // Payload: { "product": "ProEQ8", "email": "...", "expires": "..." }
-//
-// Currently uses HMAC-SHA256 as a placeholder.
-// TODO: Replace with RSA signing for production (matching LicenseValidator.h).
+// Signature: HMAC-SHA256(LICENSE_SIGNING_SECRET, payloadB64) → Base64
+// Verified client-side by LicenseValidator.h using the same shared secret.
 async function generateLicense(email, signingSecret) {
   const payload = JSON.stringify({
     product: "ProEQ8",

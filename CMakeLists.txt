@@ -69,9 +69,10 @@ target_compile_definitions(FreeEQ8 PRIVATE
 target_link_libraries(FreeEQ8 PRIVATE
     juce::juce_audio_utils
     juce::juce_dsp
+    juce::juce_cryptography
 )
 
-# ── ProEQ8 commercial target (same source, PROEQ8=1 compile flag) ────
+# ── ProEQ8 commercial target
 juce_add_plugin(ProEQ8
     COMPANY_NAME "TizWildinEntertainment"
     IS_SYNTH FALSE
@@ -119,6 +120,7 @@ target_compile_definitions(ProEQ8 PRIVATE
 target_link_libraries(ProEQ8 PRIVATE
     juce::juce_audio_utils
     juce::juce_dsp
+    juce::juce_cryptography
 )
 
 # ── Optional test target (standalone, no JUCE dependency) ────────────
