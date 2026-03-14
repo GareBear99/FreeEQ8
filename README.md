@@ -17,12 +17,9 @@
 
 FreeEQ8 is a professional-grade, free and open-source 8-band parametric EQ plugin for macOS, Linux, and Windows. Linear phase, dynamic EQ, match EQ, per-band drive, band linking, M/S processing, oversampling, and a real-time spectrum analyzer — all in a single, zero-cost plugin. Built with JUCE for VST3 and AU.
 
-![FreeEQ8 in Ableton Live](docs/1.jpg)
-
-![FreeEQ8 in Ableton Live](docs/2.jpg)
-
-![FreeEQ8 in Ableton Live](docs/3.jpg)
-
+![FreeEQ8 in Ableton](docs/eq_ableton_1.jpg)
+![FreeEQ8 in Ableton](docs/eq_ableton_2.jpg)
+![FreeEQ8 in Ableton](docs/eq_ableton_3.jpg)
 
 
 ## 🆚 How FreeEQ8 Compares
