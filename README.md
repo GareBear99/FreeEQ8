@@ -37,7 +37,7 @@ FreeEQ8 is a professional-grade, free and open-source 8-band parametric EQ plugi
 | Spectrum Analyzer | **✓** (4096-pt FFT) | ✓ | ✓ | ✓ |
 | Level Meter | **✓** (peak + RMS) | — | — | — |
 | Undo / Redo | **✓** | ✓ | ✓ | — |
-| Collision Detection | — | ✓ | ✓ | — |
+| Collision Detection | ✓ (Pro) | ✓ | ✓ | — |
 | Surround / Atmos | — | ✓ | — | — |
 | Formats | VST3, AU | VST3, AU, AAX, CLAP | VST3, AU, LV2 | VST3, AU, AAX |
 
@@ -57,7 +57,7 @@ ProEQ8 is the upcoming commercial big brother of FreeEQ8 — same rock-solid DSP
 | Auto-Gain Bypass | — | **✓** (RMS-matched) |
 | Piano Roll Overlay | — | **✓** (note frequency reference) |
 | Collision Detection | — | **✓** (overlapping band warnings) |
-| Factory Presets | 8 | **30+** (genre-specific) |
+|| Factory Presets | 30 | **30+** (genre-specific) |
 | Dynamic EQ | ✓ | ✓ |
 | Linear Phase | ✓ | ✓ |
 | Match EQ | ✓ | ✓ |
@@ -98,7 +98,7 @@ ProEQ8 is the upcoming commercial big brother of FreeEQ8 — same rock-solid DSP
 ### Global Controls
 - **Output Gain** (-24 dB to +24 dB)
 - **Scale** (0.1x to 2x) — scales all band gains simultaneously
-|- **Preset System** — save / load / delete, 16 factory presets
+- **Preset System** — save / load / delete, 30 factory presets
 - **Undo / Redo** — integrated with JUCE UndoManager via APVTS
 - **State Save/Restore** — all settings persist in your DAW project
 
@@ -345,13 +345,17 @@ FreeEQ8/
 │   └── LicenseValidator.h         # Offline license key validation
 ├── server/
 │   ├── stripe-webhook.js          # Cloudflare Worker for Stripe → license
-│   └── wrangler.toml              # Wrangler deployment config
+│   ├── wrangler.toml              # Wrangler deployment config
+│   └── package.json               # Server dependencies (wrangler)
+├── STRIPE_SETUP.md                # ProEQ8 Stripe deployment guide
 ├── docs/                          # Screenshots & assets
 ├── JUCE/                          # JUCE framework (submodule)
 ├── build/                         # Build output (ignored)
 ├── CMakeLists.txt                 # CMake config (FreeEQ8 + ProEQ8 targets)
 ├── build_macos.sh                 # macOS build script
+├── build_linux.sh                 # Linux build script
 ├── build_windows.ps1              # Windows build script
+├── package_macos.sh               # macOS DMG packaging script
 ├── .gitignore                     # Git ignore rules
 └── README.md                      # This file
 ```

@@ -7,12 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-03-13
+
 ### Added
-- **Bandpass filter type** — available in all 8 bands alongside Bell, LowShelf, HighShelf, HighPass, LowPass
+- **ProEQ8 commercial target** — 24-band parametric EQ built from same source with `PROEQ8=1` compile flag
+- **4 saturation modes** (Pro) — Tanh, Tube, Tape, Transistor per band via `sat_mode` parameter
+- **A/B comparison** (Pro) — instant snapshot toggle with Copy A→B / B→A
+- **Auto-gain bypass** — RMS-matched loudness compensation for honest A/B listening
+- **Piano roll overlay** (Pro) — C1–C8 musical note reference lines on response curve
+- **Collision detection** (Pro) — amber warning rings when bands overlap within 1/3 octave
+- **Update checker** — background thread checks GitHub releases API, shows blue banner in editor
+- **License validator** (Pro) — offline HMAC-SHA256-signed keys, activation dialog, demo mode (mute 30s/5min)
+- **Stripe webhook server** — Cloudflare Worker for Stripe checkout → license key generation → email via Resend
+- **30 factory presets** — genre-specific starting points (Vocal Clarity, Kick Punch, Acoustic Guitar, Bass DI, Drum Bus, De-Harsh, Broadcast Voice, EDM Sub Bass, Lo-Fi, Mix Bus Sweetener, and more)
+- **Bandpass filter type** — available in all bands alongside Bell, LowShelf, HighShelf, HighPass, LowPass
 - **Tooltips** for every knob, button, and combo box (`juce::TooltipWindow`)
 - **Biquad unit tests** — standalone test verifying RBJ cookbook coefficients for all 6 filter types at 44.1/48/96 kHz (`Tests/BiquadTest.cpp`)
 - **Linux build support** — `build_linux.sh` script with automatic dependency install; Linux job in CI
-- **8 new factory presets**: Vocal Clarity, Kick Punch, Acoustic Guitar Warmth, Bass Guitar DI, Drum Bus Glue, De-Harsh, Broadcast Voice, Master Gentle Tilt (16 total)
+- **STRIPE_SETUP.md** — complete deployment guide for ProEQ8 Stripe integration
 
 ### Fixed
 - **Spectrum analyzer not showing audio** — smoothing logic used `std::max` with zero-initialized buffer vs. negative-dB values; fixed init to -100 dB + subtractive decay
@@ -21,13 +33,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Audio-thread heap allocation** — `std::vector<float> magDb` in `buildLinearPhaseMagnitude()` replaced with pre-allocated member
 - **Linear phase FIR rebuilt every block** (#11) — added `std::atomic<bool> linPhaseDirty` flag; FIR only rebuilt when EQ params change
 - **Factory presets incomplete** — all 15 per-band params now set (was missing solo/slope/ch/link/drive/dyn)
+- **Factory preset OOB access** — fixed for ProEQ8's 24-band layout (bands 9-24 get safe defaults)
 - **`getTailLengthSeconds()`** — returns `firLength / sampleRate` when linear phase active (was 0)
+- **Missing brace in freq link propagation** — for-loop body had only first `if` in scope
+- **Missing typeChoices assignment** — `auto typeChoices` had no initializer, would not compile
+- **HMAC verification alignment** — LicenseValidator.h now uses full RFC 2104 HMAC-SHA256 via `juce::SHA256`
 
 ### Changed
 - Replaced fragile `#ifndef M_PI / #define M_PI` with `constexpr double kPi` in `Biquad.h` and `LinearPhaseEngine.h`
 - Expanded parameter listeners to include on/type/slope/scale/adaptive_q for dirty-flag + linking
-- Updated CONTRIBUTING.md priority list to reflect implemented features
-- Updated README: added Linux support, fixed macOS version badge, removed stale known issues
+- Added `juce_cryptography` to link libraries for both CMake targets
+- Preset directory now uses `kProductName` (FreeEQ8 or ProEQ8) instead of hardcoded path
+- Build scripts and CI updated to build both FreeEQ8 and ProEQ8 targets
+- Updated README with ProEQ8 comparison, corrected preset counts, expanded project structure
 
 ## [1.0.0] — 2026-02-25
 
