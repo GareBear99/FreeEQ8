@@ -388,19 +388,6 @@ FreeEQ8/
 - [x] Undo/Redo system (integrated with APVTS UndoManager)
 - [x] Match EQ functionality (capture reference spectrum, compute & apply correction)
 
-### v1.1.0 (ProEQ8 + Enhancements)
-- ✅ ProEQ8 commercial target: 24-band parametric EQ (same source, PROEQ8=1 compile flag)
-- ✅ 4 saturation modes per band (Pro): Tanh, Tube, Tape, Transistor
-- ✅ A/B comparison (Pro): instant snapshot toggle with Copy A→B / B→A
-- ✅ Auto-gain bypass: RMS-matched loudness compensation for honest A/B listening
-- ✅ Piano roll overlay (Pro): musical note reference lines C1–C8 on the response curve
-- ✅ Collision detection (Pro): amber warning when bands overlap within 1/3 octave
-- ✅ Update checker: background thread checks GitHub releases, shows banner when new version available
-- ✅ License validator + activation dialog (Pro): offline license keys, demo mode (mute 30s every 5min)
-- ✅ Stripe webhook serverless function: Cloudflare Worker generates license keys, emails via Resend
-- ✅ 30 genre-specific factory presets
-- ✅ Fixed preset directory using product name (not hardcoded)
-- ✅ Fixed factory preset OOB access for ProEQ8's 24-band layout
 
 ## 🤝 Contributing
 
@@ -426,6 +413,20 @@ Contributions are welcome! Here's how you can help:
 - 🧪 Unit tests
 
 ## 📝 Changelog
+
+### v1.1.0 (ProEQ8 + Enhancements)
+- ✅ ProEQ8 commercial target: 24-band parametric EQ (same source, PROEQ8=1 compile flag)
+- ✅ 4 saturation modes per band (Pro): Tanh, Tube, Tape, Transistor
+- ✅ A/B comparison (Pro): instant snapshot toggle with Copy A→B / B→A
+- ✅ Auto-gain bypass: RMS-matched loudness compensation for honest A/B listening
+- ✅ Piano roll overlay (Pro): musical note reference lines C1–C8 on the response curve
+- ✅ Collision detection (Pro): amber warning when bands overlap within 1/3 octave
+- ✅ Update checker: background thread checks GitHub releases, shows banner when new version available
+- ✅ License validator + activation dialog (Pro): offline license keys, demo mode (mute 30s every 5min)
+- ✅ Stripe webhook serverless function: Cloudflare Worker generates license keys, emails via Resend
+- ✅ 30 genre-specific factory presets
+- ✅ Fixed preset directory using product name (not hardcoded)
+- ✅ Fixed factory preset OOB access for ProEQ8's 24-band layout
 
 ### v1.0.0 (2026-02-25)
 - ✅ Linear phase mode: symmetric FIR from combined biquad magnitude, overlap-add FFT convolution (2048-sample latency)
