@@ -8,8 +8,8 @@
  *   STRIPE_WEBHOOK_SECRET  — Stripe webhook signing secret (whsec_...)
  *   STRIPE_SECRET_KEY      — Stripe secret key (sk_live_... or sk_test_...)
  *   RESEND_API_KEY         — Resend.com API key for sending email
- *   LICENSE_SIGNING_SECRET — HMAC secret for signing license keys
- *                            (placeholder for RSA — swap to RSA private key in production)
+ *   LICENSE_SIGNING_SECRET — Shared HMAC-SHA256 secret for signing license keys
+ *                            (must match LicenseValidator.h in the plugin)
  */
 
 export default {
@@ -175,7 +175,7 @@ async function generateLicense(email, signingSecret) {
 
   const payloadB64 = btoa(payload);
 
-  // HMAC-SHA256 signature (placeholder for RSA)
+  // HMAC-SHA256 signature
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(signingSecret),

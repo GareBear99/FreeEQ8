@@ -43,11 +43,13 @@ FreeEQ8 is a professional-grade, free and open-source 8-band parametric EQ plugi
 
 > **FreeEQ8 is the only free EQ that combines linear phase + dynamic EQ + match EQ + per-band saturation + band linking in one plugin.**
 
-## ⚡ Coming Soon: ProEQ8 ($20)
+## ⚡ ProEQ8 — Available Now ($20)
 
 > **Love FreeEQ8? ProEQ8 takes everything further.**
 
-ProEQ8 is the upcoming commercial big brother of FreeEQ8 — same rock-solid DSP engine, massively expanded.
+[![Buy ProEQ8](https://img.shields.io/badge/Buy%20ProEQ8-%2420-brightgreen?style=for-the-badge&logo=stripe&logoColor=white)](https://github.com/GareBear99/FreeEQ8/releases/latest)
+
+ProEQ8 is the commercial big brother of FreeEQ8 — same rock-solid DSP engine, massively expanded. Included in the [v1.1.0 release download](https://github.com/GareBear99/FreeEQ8/releases/latest).
 
 | | **FreeEQ8** (Free) | **ProEQ8** ($20) |
 |---|:---:|:---:|
@@ -57,7 +59,7 @@ ProEQ8 is the upcoming commercial big brother of FreeEQ8 — same rock-solid DSP
 | Auto-Gain Bypass | — | **✓** (RMS-matched) |
 | Piano Roll Overlay | — | **✓** (note frequency reference) |
 | Collision Detection | — | **✓** (overlapping band warnings) |
-|| Factory Presets | 30 | **30+** (genre-specific) |
+| Factory Presets | 30 | **30+** (genre-specific) |
 | Dynamic EQ | ✓ | ✓ |
 | Linear Phase | ✓ | ✓ |
 | Match EQ | ✓ | ✓ |
@@ -66,7 +68,7 @@ ProEQ8 is the upcoming commercial big brother of FreeEQ8 — same rock-solid DSP
 | Band Linking | ✓ | ✓ |
 | Formats | VST3, AU | VST3, AU |
 
-**Status:** Feature-complete · Available soon. Follow this repo or [join Discussions](https://github.com/GareBear99/FreeEQ8/discussions) for launch updates.
+**ProEQ8 is included in the macOS DMG download.** A license key is required to unlock it — purchase through the link above to receive your key via email. Without a license, ProEQ8 runs in demo mode (mutes for 30 seconds every 5 minutes).
 
 ## ✨ Features
 
