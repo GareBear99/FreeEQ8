@@ -1,0 +1,15 @@
+name = "proeq8-license-server"
+main = "stripe-webhook.js"
+compatibility_date = "2024-01-01"
+
+# Non-secret environment variables
+[vars]
+SUCCESS_URL = "https://github.com/GareBear99/FreeEQ8?purchase=success"
+CANCEL_URL  = "https://github.com/GareBear99/FreeEQ8?purchase=cancelled"
+
+# Set SECRETS via `wrangler secret put <NAME>`:
+# - STRIPE_WEBHOOK_SECRET  (whsec_... from Stripe dashboard)
+# - STRIPE_SECRET_KEY      (sk_live_... or sk_test_...)
+# - STRIPE_PRICE_ID        (price_... from Stripe product)
+# - RESEND_API_KEY         (re_... from resend.com)
+# - LICENSE_SIGNING_SECRET  (random 32+ char string — MUST match LicenseValidator.h)

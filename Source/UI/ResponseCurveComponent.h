@@ -3,6 +3,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <juce_dsp/juce_dsp.h>
 #include "../DSP/Biquad.h"
+#include "../Config.h"
 #include "../DSP/EQBand.h"
 
 class FreeEQ8AudioProcessor;
@@ -39,7 +40,7 @@ private:
     // Frequency response calculation
     static constexpr int numPoints = 512;
     float magnitudes[numPoints] = {};
-    float perBandMagnitudes[8][numPoints] = {};
+    float perBandMagnitudes[kNumBands][numPoints] = {};
 
     // Spectrum analyzer display data
     static constexpr int maxSpectrumBins = 2048;
@@ -74,6 +75,10 @@ private:
     void paintResponseCurve(juce::Graphics& g);
     void paintBandCurves(juce::Graphics& g);
     void paintNodes(juce::Graphics& g);
+#if PROEQ8
+    void paintPianoRoll(juce::Graphics& g);
+    void paintCollisionWarnings(juce::Graphics& g);
+#endif
 
     // Hit test for band nodes
     int hitTestNode(float x, float y) const;

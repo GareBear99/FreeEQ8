@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(FreeEQ8 VERSION 1.0.0)
+project(FreeEQ8 VERSION 1.1.0)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -45,6 +45,9 @@ target_sources(FreeEQ8 PRIVATE
     Source/PluginProcessor.h
     Source/PluginEditor.cpp
     Source/PluginEditor.h
+    Source/Config.h
+    Source/UpdateChecker.h
+    Source/LicenseValidator.h
     Source/DSP/Biquad.h
     Source/DSP/EQBand.h
     Source/DSP/SpectrumFIFO.h
@@ -66,6 +69,58 @@ target_compile_definitions(FreeEQ8 PRIVATE
 target_link_libraries(FreeEQ8 PRIVATE
     juce::juce_audio_utils
     juce::juce_dsp
+    juce::juce_cryptography
+)
+
+# ── ProEQ8 commercial target
+juce_add_plugin(ProEQ8
+    COMPANY_NAME "TizWildinEntertainment"
+    IS_SYNTH FALSE
+    NEEDS_MIDI_INPUT FALSE
+    NEEDS_MIDI_OUTPUT FALSE
+    IS_MIDI_EFFECT FALSE
+    COPY_PLUGIN_AFTER_BUILD TRUE
+    PLUGIN_MANUFACTURER_CODE TzWd
+    PLUGIN_CODE PEQ8
+    FORMATS VST3 AU
+    PRODUCT_NAME "ProEQ8"
+    BUNDLE_ID "com.tizwildinentertainment.proeq8"
+    COMPANY_URL "https://github.com/GareBear99/FreeEQ8"
+    COMPANY_EMAIL "GareBear99@users.noreply.github.com"
+    DESCRIPTION "Professional 24-Band Parametric EQ"
+)
+
+target_sources(ProEQ8 PRIVATE
+    Source/PluginProcessor.cpp
+    Source/PluginProcessor.h
+    Source/PluginEditor.cpp
+    Source/PluginEditor.h
+    Source/Config.h
+    Source/UpdateChecker.h
+    Source/LicenseValidator.h
+    Source/DSP/Biquad.h
+    Source/DSP/EQBand.h
+    Source/DSP/SpectrumFIFO.h
+    Source/DSP/LinearPhaseEngine.h
+    Source/DSP/MatchEQ.h
+    Source/UI/ResponseCurveComponent.h
+    Source/UI/ResponseCurveComponent.cpp
+    Source/UI/LevelMeter.h
+    Source/Presets/PresetManager.h
+    Source/Presets/PresetManager.cpp
+)
+
+target_compile_definitions(ProEQ8 PRIVATE
+    PROEQ8=1
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_VST3_CAN_REPLACE_VST2=0
+)
+
+target_link_libraries(ProEQ8 PRIVATE
+    juce::juce_audio_utils
+    juce::juce_dsp
+    juce::juce_cryptography
 )
 
 # ── Optional test target (standalone, no JUCE dependency) ────────────

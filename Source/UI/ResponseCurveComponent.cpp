@@ -19,7 +19,7 @@ juce::Colour ResponseCurveComponent::getBandColour(int i)
         juce::Colour(0xFFAB47BC),  // purple
         juce::Colour(0xFFEC407A),  // pink
     };
-    return colours[i % 8];
+    return colours[i % 8];  // cycles for >8 bands
 }
 
 // ── Constructor ────────────────────────────────────────────────────
@@ -99,7 +99,7 @@ void ResponseCurveComponent::updateResponseCurve()
     // Clear composite
     std::fill(std::begin(magnitudes), std::end(magnitudes), 0.0f);
 
-    for (int b = 0; b < 8; ++b)
+    for (int b = 0; b < kNumBands; ++b)
     {
         const int idx = b + 1;
         const bool on = proc.apvts.getRawParameterValue(bandId(idx, "on"))->load() > 0.5f;
@@ -164,10 +164,16 @@ void ResponseCurveComponent::paint(juce::Graphics& g)
     g.fillAll(juce::Colour(0xFF1A1A2E));
 
     paintGrid(g);
+#if PROEQ8
+    paintPianoRoll(g);
+#endif
     paintSpectrum(g);
     paintBandCurves(g);
     paintResponseCurve(g);
     paintNodes(g);
+#if PROEQ8
+    paintCollisionWarnings(g);
+#endif
 
     // Border
     g.setColour(juce::Colours::white.withAlpha(0.3f));
@@ -317,7 +323,7 @@ void ResponseCurveComponent::paintBandCurves(juce::Graphics& g)
     const float w = (float)getWidth();
     const float zeroY = dbToY(0.0f);
 
-    for (int b = 0; b < 8; ++b)
+    for (int b = 0; b < kNumBands; ++b)
     {
         const int idx = b + 1;
         const bool on = proc.apvts.getRawParameterValue(bandId(idx, "on"))->load() > 0.5f;
@@ -368,7 +374,7 @@ void ResponseCurveComponent::paintResponseCurve(juce::Graphics& g)
 // ── Band nodes ─────────────────────────────────────────────────────
 void ResponseCurveComponent::paintNodes(juce::Graphics& g)
 {
-    for (int b = 0; b < 8; ++b)
+    for (int b = 0; b < kNumBands; ++b)
     {
         const int idx = b + 1;
         const bool on = proc.apvts.getRawParameterValue(bandId(idx, "on"))->load() > 0.5f;
@@ -428,7 +434,7 @@ int ResponseCurveComponent::hitTestNode(float mx, float my) const
 {
     const float hitRadius = nodeRadius + 5.0f;
 
-    for (int b = 0; b < 8; ++b)
+    for (int b = 0; b < kNumBands; ++b)
     {
         const int idx = b + 1;
         const bool on = proc.apvts.getRawParameterValue(bandId(idx, "on"))->load() > 0.5f;
@@ -551,3 +557,75 @@ void ResponseCurveComponent::mouseMove(const juce::MouseEvent& e)
         repaint();
     }
 }
+
+#if PROEQ8
+// ── Piano roll overlay (C1-C8 note lines) ─────────────────────────
+void ResponseCurveComponent::paintPianoRoll(juce::Graphics& g)
+{
+    const float h = (float)getHeight();
+    g.setFont(8.0f);
+
+    // C1 = 32.7 Hz through C8 = 4186 Hz
+    static const float cNotes[] = { 32.70f, 65.41f, 130.81f, 261.63f, 523.25f, 1046.50f, 2093.00f, 4186.01f };
+    static const char* cLabels[] = { "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8" };
+
+    for (int i = 0; i < 8; ++i)
+    {
+        const float x = freqToX(cNotes[i]);
+        g.setColour(juce::Colours::white.withAlpha(0.12f));
+        g.drawVerticalLine((int)x, 0.0f, h);
+        g.setColour(juce::Colours::white.withAlpha(0.25f));
+        g.drawText(cLabels[i], (int)x + 2, 2, 18, 10, juce::Justification::left);
+    }
+}
+
+// ── Collision detection (warn when bands overlap within 1/3 octave) ──
+void ResponseCurveComponent::paintCollisionWarnings(juce::Graphics& g)
+{
+    // Gather active band frequencies
+    struct BandInfo { int index; float freq; };
+    std::vector<BandInfo> active;
+    active.reserve(kNumBands);
+
+    for (int b = 0; b < kNumBands; ++b)
+    {
+        const int idx = b + 1;
+        const bool on = proc.apvts.getRawParameterValue(bandId(idx, "on"))->load() > 0.5f;
+        if (!on) continue;
+        const float freq = proc.apvts.getRawParameterValue(bandId(idx, "freq"))->load();
+        active.push_back({ b, freq });
+    }
+
+    // Check each pair for 1/3-octave proximity
+    const float thirdOctaveRatio = std::pow(2.0f, 1.0f / 3.0f); // ~1.26
+
+    for (size_t i = 0; i < active.size(); ++i)
+    {
+        for (size_t j = i + 1; j < active.size(); ++j)
+        {
+            float ratio = active[i].freq / active[j].freq;
+            if (ratio < 1.0f) ratio = 1.0f / ratio;
+
+            if (ratio < thirdOctaveRatio)
+            {
+                // Draw amber warning ring on both nodes
+                auto drawWarning = [&](const BandInfo& bi)
+                {
+                    const float gain = proc.apvts.getRawParameterValue(
+                        bandId(bi.index + 1, "gain"))->load()
+                        * proc.apvts.getRawParameterValue("scale")->load();
+                    const float x = freqToX(bi.freq);
+                    const float y = dbToY(gain);
+                    const float wr = nodeRadius + 4.0f;
+
+                    g.setColour(juce::Colour(0xFFFFAB00).withAlpha(0.6f));
+                    g.drawEllipse(x - wr, y - wr, wr * 2.0f, wr * 2.0f, 2.0f);
+                };
+
+                drawWarning(active[i]);
+                drawWarning(active[j]);
+            }
+        }
+    }
+}
+#endif

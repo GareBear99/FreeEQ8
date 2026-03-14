@@ -17,11 +17,11 @@ juce::File PresetManager::getPresetDirectory() const
 #if JUCE_MAC
     return juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
         .getChildFile("Application Support")
-        .getChildFile("FreeEQ8")
+        .getChildFile(kProductName)
         .getChildFile("Presets");
 #else
     return juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
-        .getChildFile("FreeEQ8")
+        .getChildFile(kProductName)
         .getChildFile("Presets");
 #endif
 }
@@ -185,6 +185,76 @@ void PresetManager::ensureFactoryPresets()
             { {true,1,80,0.7f,2}, {true,0,300,0.5f,-1}, {true,0,1000,0.5f,-1}, {true,0,3000,0.5f,0},
               {true,0,6000,0.5f,1}, {true,2,12000,0.7f,2}, {false,0,8000,1,0}, {false,0,16000,1,0} },
             0.0f, 1.0f },
+
+        { "Snare Crack",
+            { {true,3,100,0.7f,0}, {true,0,200,2,3}, {true,0,500,3,-3}, {true,0,2000,2,4},
+              {true,0,5000,1.5f,2}, {true,4,12000,0.7f,0}, {false,0,8000,1,0}, {false,0,16000,1,0} },
+            0.0f, 1.0f },
+
+        { "Electric Guitar Bite",
+            { {true,3,80,0.7f,0}, {true,0,300,1.5f,-2}, {true,0,800,1,2}, {true,0,2000,2,3},
+              {true,0,4000,1.5f,2}, {true,2,8000,1,1}, {false,0,12000,1,0}, {false,0,16000,1,0} },
+            0.0f, 1.0f },
+
+        { "Piano Warmth",
+            { {true,3,40,0.7f,0}, {true,0,200,1,2}, {true,0,500,1.5f,1}, {true,0,1000,0.8f,-1},
+              {true,0,3000,1,1}, {true,2,8000,1,2}, {false,0,12000,1,0}, {false,0,16000,1,0} },
+            0.0f, 1.0f },
+
+        { "Strings Warmth",
+            { {true,3,60,0.7f,0}, {true,0,250,1,2}, {true,0,600,1,-1}, {true,0,1500,0.8f,1},
+              {true,0,4000,1.5f,-2}, {true,2,10000,1,2}, {false,0,12000,1,0}, {false,0,16000,1,0} },
+            0.0f, 1.0f },
+
+        { "Synth Pad",
+            { {true,3,30,0.7f,0}, {true,1,120,1,3}, {true,0,400,2,-2}, {true,0,1000,1,0},
+              {true,0,3000,1,1}, {true,0,6000,2,-2}, {true,2,12000,1,3}, {false,0,16000,1,0} },
+            0.0f, 1.0f },
+
+        { "EDM Sub Bass",
+            { {true,3,25,0.7f,0}, {true,0,50,2,6}, {true,0,100,3,-2}, {true,0,250,2,-3},
+              {true,4,5000,0.7f,0}, {false,0,8000,1,0}, {false,0,12000,1,0}, {false,0,16000,1,0} },
+            0.0f, 1.0f },
+
+        { "Podcast De-Mud",
+            { {true,3,80,0.7f,0}, {true,0,200,2,-4}, {true,0,400,2,-2}, {true,0,1000,1,1},
+              {true,0,3000,1.5f,2}, {true,2,8000,1,1}, {true,4,14000,0.7f,0}, {false,0,16000,1,0} },
+            0.0f, 1.0f },
+
+        { "Lo-Fi",
+            { {true,3,200,0.7f,0}, {true,0,500,1,2}, {true,0,1000,0.8f,1}, {true,0,2000,1,-2},
+              {true,4,4000,0.7f,0}, {false,0,6000,1,0}, {false,0,8000,1,0}, {false,0,12000,1,0} },
+            -2.0f, 1.0f },
+
+        { "Mix Bus Sweetener",
+            { {true,1,60,0.7f,1}, {true,0,300,0.5f,-1}, {true,0,1000,0.5f,0}, {true,0,3000,0.5f,0.5f},
+              {true,0,6000,0.5f,1}, {true,2,14000,0.7f,2}, {false,0,8000,1,0}, {false,0,16000,1,0} },
+            -0.5f, 1.0f },
+
+        { "Vocal De-Ess",
+            { {false,0,200,1,0}, {false,0,500,1,0}, {false,0,1000,1,0}, {true,0,5000,4,-4},
+              {true,0,7000,4,-5}, {true,0,9000,3,-3}, {false,0,12000,1,0}, {false,0,16000,1,0} },
+            0.0f, 1.0f },
+
+        { "Overhead Mics",
+            { {true,3,200,0.7f,0}, {true,0,400,2,-2}, {true,0,800,1,-1}, {true,0,3000,1.5f,2},
+              {true,0,6000,1,1}, {true,2,12000,1,3}, {false,0,14000,1,0}, {false,0,16000,1,0} },
+            0.0f, 1.0f },
+
+        { "Hi-Hat Sizzle",
+            { {true,3,400,0.7f,0}, {true,0,2000,2,-2}, {true,0,5000,1.5f,2}, {true,0,8000,1,3},
+              {true,2,12000,1,2}, {false,0,14000,1,0}, {false,0,16000,1,0}, {false,0,18000,1,0} },
+            0.0f, 1.0f },
+
+        { "Toms Body",
+            { {true,3,50,0.7f,0}, {true,0,100,1.5f,3}, {true,0,300,2,-2}, {true,0,800,3,-3},
+              {true,0,2500,2,2}, {true,4,8000,0.7f,0}, {false,0,12000,1,0}, {false,0,16000,1,0} },
+            0.0f, 1.0f },
+
+        { "Room Mic EQ",
+            { {true,3,60,0.7f,0}, {true,0,200,1,-2}, {true,0,500,0.8f,-1}, {true,0,2000,1,2},
+              {true,0,5000,1,1}, {true,2,10000,1,2}, {false,0,14000,1,0}, {false,0,16000,1,0} },
+            0.0f, 1.0f },
     };
 
     for (auto& fp : factories)
@@ -208,10 +278,13 @@ void PresetManager::ensureFactoryPresets()
                 child.setProperty("value", fp.scale, nullptr);
         }
 
-        // Set band params (including drive/slope/channel/dynamic to defaults)
-        for (int i = 1; i <= 8; ++i)
+        // Set band params (factory presets define up to 8 bands; extra Pro bands stay at defaults)
+        for (int i = 1; i <= kNumBands; ++i)
         {
-            auto& bs = fp.bands[i - 1];
+            // Guard: factory presets only have 8 band slots
+            const bool hasPresetData = (i <= 8);
+            auto defaultBs = FactoryPreset::BandSetting{ false, 0, 1000.0f, 1.0f, 0.0f };
+            auto& bs = hasPresetData ? fp.bands[i - 1] : defaultBs;
             auto setParam = [&](const char* suffix, float val)
             {
                 auto id = bandId(i, suffix);
