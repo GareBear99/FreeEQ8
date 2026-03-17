@@ -558,6 +558,7 @@ Other ways to help:
 
 ---
 **Other Projects by Me!**
+
 https://github.com/GareBear99/TizWildinEntertainmentHUB
 
 https://github.com/GareBear99/PaintMask_Free-JUCE-Plugin
