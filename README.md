@@ -557,7 +557,18 @@ Other ways to help:
 - **Email**: neovectr.inc@gmail.com
 
 ---
-
+**Other Projects by Me!**
+https://github.com/GareBear99/TizWildinEntertainmentHUB
+https://github.com/GareBear99/PaintMask_Free-JUCE-Plugin
+https://github.com/GareBear99/Therum_JUCE-Plugin
+https://github.com/GareBear99/WURP_Toxic-Motion-Engine_JUCE
+https://github.com/GareBear99/WhisperGate_Free-JUCE-Plugin
+https://github.com/GareBear99/RiftWaveSuite_RiftSynth_WaveForm_Lite
+https://github.com/GareBear99/MixMaid
+https://github.com/GareBear99/AETHER_Choir-Atmosphere-Designer
+https://github.com/GareBear99/BassMaid
+https://github.com/GareBear99/SpaceMaid
+https://github.com/GareBear99/GlueMaid
 **Built with ❤️ by Gary Doman (GareBear99)**
 
 *"Great sound shouldn't cost anything"*
