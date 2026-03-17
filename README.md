@@ -571,9 +571,9 @@ https://github.com/GareBear99/WhisperGate_Free-JUCE-Plugin
 
 https://github.com/GareBear99/RiftWaveSuite_RiftSynth_WaveForm_Lite
 
-https://github.com/GareBear99/MixMaid
-
 https://github.com/GareBear99/AETHER_Choir-Atmosphere-Designer
+
+https://github.com/GareBear99/MixMaid
 
 https://github.com/GareBear99/BassMaid
 
