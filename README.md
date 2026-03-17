@@ -563,8 +563,6 @@ https://github.com/GareBear99/TizWildinEntertainmentHUB
 
 https://github.com/GareBear99/PaintMask_Free-JUCE-Plugin
 
-https://github.com/GareBear99/Therum_JUCE-Plugin
-
 https://github.com/GareBear99/WURP_Toxic-Motion-Engine_JUCE
 
 https://github.com/GareBear99/WhisperGate_Free-JUCE-Plugin
@@ -572,6 +570,8 @@ https://github.com/GareBear99/WhisperGate_Free-JUCE-Plugin
 https://github.com/GareBear99/RiftWaveSuite_RiftSynth_WaveForm_Lite
 
 https://github.com/GareBear99/AETHER_Choir-Atmosphere-Designer
+
+https://github.com/GareBear99/Therum_JUCE-Plugin
 
 https://github.com/GareBear99/MixMaid
 
