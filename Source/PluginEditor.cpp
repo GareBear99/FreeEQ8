@@ -219,6 +219,15 @@ FreeEQ8AudioProcessorEditor::FreeEQ8AudioProcessorEditor(FreeEQ8AudioProcessor& 
     if (proc.licenseValidator.isActivated())
         licenseBtn.setButtonText("Licensed");
     addAndMakeVisible(licenseBtn);
+
+    // ── Background license re-verification (every 7 days, 30-day grace offline) ──
+    if (proc.licenseValidator.needsPeriodicReverify())
+    {
+        auto& validator = proc.licenseValidator;
+        std::thread([&validator]() {
+            validator.reverifyWithServer();
+        }).detach();
+    }
 #endif
 
     // ── Update checker ──

@@ -53,6 +53,11 @@ export default {
       return corsResponse(await handleDeactivate(request, env));
     }
 
+    // ── POST /verify ──────────────────────────────────────────────
+    if (url.pathname === "/verify" && request.method === "POST") {
+      return corsResponse(await handleVerify(request, env));
+    }
+
     // ── POST /webhook/stripe ─────────────────────────────────────
     if (url.pathname === "/webhook/stripe" && request.method === "POST") {
       return await handleStripeWebhook(request, env);
@@ -270,6 +275,62 @@ async function handleDeactivate(request, env) {
   return jsonResponse({
     ok: true,
     message: "Device deactivated",
+    used: record.used,
+    max: record.max_uses,
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  VERIFY ENDPOINT (periodic client re-validation)
+// ═══════════════════════════════════════════════════════════════════
+
+async function handleVerify(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: "Invalid JSON body" }, 400);
+  }
+
+  const { license_key, device_id } = body;
+  if (!license_key || !device_id) {
+    return jsonResponse({ error: "Missing license_key or device_id" }, 400);
+  }
+
+  // Validate signature
+  const payload = await validateLicenseSignature(license_key, env.LICENSE_SIGNING_SECRET);
+  if (!payload) {
+    return jsonResponse({ ok: false, error: "Invalid license key" }, 401);
+  }
+
+  // Check expiration
+  if (payload.expires) {
+    const expiry = new Date(payload.expires + "T23:59:59Z");
+    if (expiry < new Date()) {
+      return jsonResponse({ ok: false, error: "License expired" }, 401);
+    }
+  }
+
+  const licenseId = payload.license_id;
+  if (!licenseId) {
+    return jsonResponse({ ok: false, error: "Invalid key format" }, 400);
+  }
+
+  const recordStr = await env.LICENSES.get(licenseId);
+  if (!recordStr) {
+    return jsonResponse({ ok: false, error: "License not found" }, 404);
+  }
+
+  const record = JSON.parse(recordStr);
+
+  // Check if this device is still in the activated list
+  if (!record.devices.includes(device_id)) {
+    return jsonResponse({ ok: false, error: "Device not activated" }, 403);
+  }
+
+  return jsonResponse({
+    ok: true,
+    message: "Device verified",
     used: record.used,
     max: record.max_uses,
   });

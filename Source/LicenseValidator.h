@@ -58,6 +58,7 @@ public:
     }
 
     bool isActivated() const { return activated.load(); }
+    bool needsPeriodicReverify() const { return needsReverify; }
     juce::String getEmail() const { return licensedEmail; }
     juce::String getDeviceId() const { return deviceId; }
 
@@ -109,16 +110,35 @@ public:
 
 private:
     std::atomic<bool> activated { false };
+    bool needsReverify = false;
     juce::String licensedEmail;
     juce::String parsedEmail;
     juce::String deviceId;
     int64_t demoSampleCounter = 0;
 
     // HMAC signing secret — must match LICENSE_SIGNING_SECRET on the server.
-    // IMPORTANT: Replace this with your actual secret before shipping.
-    // In a production build, obfuscate or derive this at compile time.
-    static constexpr const char* licenseSigningSecret =
-        "REPLACE_WITH_YOUR_LICENSE_SIGNING_SECRET";
+    // XOR-obfuscated at compile time so it's not a plain string in the binary.
+    // To generate a new secret: pick a random 48+ char string, XOR each byte
+    // with 0x5A, store the result below, and set the same plaintext string
+    // as LICENSE_SIGNING_SECRET in your Cloudflare Worker secrets.
+    static juce::String getSigningSecret()
+    {
+        // Obfuscated bytes (XOR 0x5A) of the actual secret.
+        // Replace these with your own secret XOR'd with 0x5A.
+        static constexpr uint8_t enc[] = {
+            0x2a, 0x3b, 0x29, 0x2c, 0x3b, 0x36, 0x28, 0x3b,
+            0x31, 0x6e, 0x0b, 0x39, 0x3c, 0x22, 0x3b, 0x31,
+            0x6e, 0x09, 0x31, 0x2c, 0x29, 0x32, 0x2c, 0x2b,
+            0x3a, 0x31, 0x2c, 0x31, 0x2b, 0x6e, 0x15, 0x3b,
+            0x25, 0x38, 0x3e, 0x2c, 0x6e, 0x3c, 0x29, 0x6e,
+            0x2c, 0x3a, 0x32, 0x2c, 0x2b, 0x2c, 0x3c, 0x36
+        };
+        char buf[sizeof(enc) + 1];
+        for (size_t i = 0; i < sizeof(enc); ++i)
+            buf[i] = (char)(enc[i] ^ 0x5A);
+        buf[sizeof(enc)] = 0;
+        return juce::String::fromUTF8(buf, (int)sizeof(enc));
+    }
 
     // ── Device Fingerprint ───────────────────────────────────────
 
@@ -239,7 +259,7 @@ private:
         auto signatureB64 = licenseKey.substring(dotIdx + 1);
 
         // Verify HMAC-SHA256 signature
-        auto expectedHmac = hmacSha256(juce::String(licenseSigningSecret), payloadB64);
+        auto expectedHmac = hmacSha256(getSigningSecret(), payloadB64);
         auto expectedB64  = expectedHmac.toBase64Encoding().trim();
         auto receivedSig  = signatureB64.trim();
 
@@ -366,6 +386,9 @@ private:
         if (props)
         {
             props->getUserSettings()->setValue("license_key", key);
+            props->getUserSettings()->setValue("license_device_id", deviceId);
+            props->getUserSettings()->setValue("license_last_verified",
+                juce::String(juce::Time::currentTimeMillis()));
             props->getUserSettings()->saveIfNeeded();
         }
     }
@@ -376,24 +399,106 @@ private:
         if (props)
         {
             props->getUserSettings()->removeValue("license_key");
+            props->getUserSettings()->removeValue("license_device_id");
+            props->getUserSettings()->removeValue("license_last_verified");
             props->getUserSettings()->saveIfNeeded();
         }
     }
 
+    // Re-verification interval: 7 days.  Grace period: 30 days offline max.
+    static constexpr int64_t kRecheckIntervalMs = 7LL * 24 * 60 * 60 * 1000;   // 7 days
+    static constexpr int64_t kGracePeriodMs     = 30LL * 24 * 60 * 60 * 1000;  // 30 days
+
     void loadStoredLicense()
     {
         auto props = getAppProperties();
-        if (props)
+        if (!props) return;
+
+        auto key      = props->getUserSettings()->getValue("license_key", "");
+        auto storedId = props->getUserSettings()->getValue("license_device_id", "");
+        auto lastCheck = props->getUserSettings()->getValue("license_last_verified", "0").getLargeIntValue();
+
+        if (key.isEmpty()) return;
+
+        // ── Device binding: reject if stored device doesn't match this machine ──
+        if (storedId.isNotEmpty() && storedId != deviceId)
         {
-            auto key = props->getUserSettings()->getValue("license_key", "");
-            if (key.isNotEmpty() && validateKeyOffline(key))
-            {
-                // Key is valid offline — mark as activated.
-                // We trust locally stored keys (they were validated online at first activation).
-                activated.store(true);
-                licensedEmail = parsedEmail;
-            }
+            // Settings file was copied from another machine → invalid
+            clearStoredLicense();
+            return;
         }
+
+        // ── Offline HMAC check ──
+        if (!validateKeyOffline(key))
+        {
+            clearStoredLicense();
+            return;
+        }
+
+        // ── Check if periodic re-verification is due ──
+        auto now = juce::Time::currentTimeMillis();
+        auto elapsed = now - lastCheck;
+
+        if (elapsed > kGracePeriodMs)
+        {
+            // Been offline too long → force re-activation
+            clearStoredLicense();
+            return;
+        }
+
+        // Mark as activated (will re-verify in background if overdue)
+        activated.store(true);
+        licensedEmail = parsedEmail;
+        needsReverify = (elapsed > kRecheckIntervalMs);
+    }
+
+public:
+    /** Call from a background thread to periodically re-verify with the server. */
+    bool reverifyWithServer()
+    {
+        auto key = getStoredKey();
+        if (key.isEmpty()) return false;
+
+        auto serverUrl = juce::String(kActivationServerURL) + "/verify";
+
+        auto* jsonBody = new juce::DynamicObject();
+        jsonBody->setProperty("license_key", key);
+        jsonBody->setProperty("device_id", deviceId);
+        auto bodyStr = juce::JSON::toString(juce::var(jsonBody));
+
+        juce::URL url(serverUrl);
+        url = url.withPOSTData(bodyStr);
+
+        auto options = juce::URL::InputStreamOptions(juce::URL::ParameterHandling::inPostData)
+                           .withConnectionTimeoutMs(10000)
+                           .withExtraHeaders("Content-Type: application/json");
+
+        std::unique_ptr<juce::InputStream> stream(url.createInputStream(options));
+        if (!stream)
+            return false;  // Network failure → keep grace period
+
+        auto responseText = stream->readEntireStreamAsString();
+        auto response = juce::JSON::parse(responseText);
+
+        if (response.isObject() && (bool)response.getProperty("ok", false))
+        {
+            // Verified — update timestamp
+            auto props = getAppProperties();
+            if (props)
+            {
+                props->getUserSettings()->setValue("license_last_verified",
+                    juce::String(juce::Time::currentTimeMillis()));
+                props->getUserSettings()->saveIfNeeded();
+            }
+            needsReverify = false;
+            return true;
+        }
+
+        // Server explicitly rejected → deactivate
+        activated.store(false);
+        clearStoredLicense();
+        needsReverify = false;
+        return false;
     }
 
     static juce::ApplicationProperties* getAppProperties()
