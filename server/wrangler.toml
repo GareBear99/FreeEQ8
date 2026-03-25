@@ -6,6 +6,14 @@ compatibility_date = "2024-01-01"
 [vars]
 SUCCESS_URL = "https://github.com/GareBear99/FreeEQ8?purchase=success"
 CANCEL_URL  = "https://github.com/GareBear99/FreeEQ8?purchase=cancelled"
+MAX_DEVICES_PER_LICENSE = "2"
+
+# KV namespace for license activation tracking.
+# Create with: wrangler kv:namespace create LICENSES
+# Then paste the id below.
+[[kv_namespaces]]
+binding = "LICENSES"
+id = "86877ac372ca4fd694fb7b81092e857a"
 
 # Set SECRETS via `wrangler secret put <NAME>`:
 # - STRIPE_WEBHOOK_SECRET  (whsec_... from Stripe dashboard)

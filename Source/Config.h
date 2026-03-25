@@ -15,8 +15,13 @@
     static constexpr const char* kProductTag   = "8-Band Parametric EQ";
 #endif
 
-static constexpr const char* kVersion = "1.1.0";
+static constexpr const char* kVersion = "2.0.0";
 
 // GitHub repo for update checking
 static constexpr const char* kGitHubOwner = "GareBear99";
 static constexpr const char* kGitHubRepo  = "FreeEQ8";
+
+// License activation server URL (Cloudflare Worker)
+// Replace with your deployed worker URL before shipping.
+static constexpr const char* kActivationServerURL =
+    "https://proeq8-license-server.admension.workers.dev";

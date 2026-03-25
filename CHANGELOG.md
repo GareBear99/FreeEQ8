@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] — 2026-03-25
+
+### Added
+- **Online license activation** — 2-device-per-purchase enforcement via Cloudflare Worker + KV
+- **Device fingerprinting** — stable SHA-256 device ID (macOS hardware UUID, Windows MachineGuid, Linux machine-id)
+- **`/activate` endpoint** — server-side activation with device tracking (max 2 per license)
+- **`/deactivate` endpoint** — release a device slot for transfer to a new machine
+- **Webhook idempotency** — duplicate Stripe `checkout.session.completed` events are detected via KV
+- **Timing-safe comparisons** — all HMAC signature checks use constant-time XOR comparison
+- **`ActivationResult` enum** — typed activation results with user-friendly error messages
+- **Async activation dialog** — network call runs on background thread, shows "Activating..." state
+- **Integration test suite** — 13 tests / 35 assertions for the activation server (`server/test-activation.js`)
+
+### Fixed
+- **Spectrum analyzer blank in Reaper** (#10) — reset spectrum FIFOs in `prepareToPlay()` so analyzer recovers after offline/online cycle
+- **SpectrumFIFO thread safety** — `fifoWriteIndex` changed from `int` to `std::atomic<int>`
+- **Linear phase silently disables features** (#12) — drive, dynamic EQ, M/S, oversampling, and saturation mode controls are now greyed out when linear phase is active
+- **CORS preflight** — `/activate` and `/deactivate` handle OPTIONS requests properly
+
+### Changed
+- `LicenseValidator::activate()` now returns `ActivationResult` (was `bool`), performs online activation
+- `LicenseValidator::deactivate()` now POSTs to server to release device slot
+- License payload includes `license_id` field linking to KV activation record
+- ProEQ8 CMake target enables `JUCE_USE_CURL=1` for HTTP support
+- License email now mentions 2-device limit and deactivation instructions
+- Server version bumped to 2.0.0
+
 ## [1.1.0] — 2026-03-13
 
 ### Added
