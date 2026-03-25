@@ -32,7 +32,7 @@ juce_add_plugin(FreeEQ8
     COPY_PLUGIN_AFTER_BUILD TRUE
     PLUGIN_MANUFACTURER_CODE TzWd
     PLUGIN_CODE FEQ8
-    FORMATS VST3 AU
+    FORMATS VST3 AU Standalone
     PRODUCT_NAME "FreeEQ8"
     BUNDLE_ID "com.tizwildinentertainment.freeeq8"
     COMPANY_URL "https://github.com/GareBear99/FreeEQ8"
