@@ -53,3 +53,4 @@ Desktop.ini
 *.pkg
 *.zip
 *.tar.gz
+node_modules/

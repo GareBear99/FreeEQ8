@@ -287,6 +287,10 @@ void FreeEQ8AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
     const bool linPhase = apvts.getRawParameterValue("linear_phase")->load() > 0.5f;
     setLatencySamples(linPhase ? LinearPhaseEngine::latency : 0);
 
+    // Reset spectrum FIFOs (fixes blank analyzer after DAW offline/online cycle)
+    spectrumFifo.reset();
+    preSpectrumFifo.reset();
+
     // Prime coefficients from current params
     syncBandsFromParams();
 

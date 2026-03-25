@@ -24,31 +24,44 @@ public:
         std::fill(outputMagnitudes.begin(), outputMagnitudes.end(), -100.0f);
     }
 
+    // Reset the FIFO state (call from prepareToPlay or when going offline/online).
+    void reset()
+    {
+        fifoWriteIndex.store(0, std::memory_order_relaxed);
+        dataReady.store(false, std::memory_order_relaxed);
+        std::fill(fifoBuffer.begin(), fifoBuffer.end(), 0.0f);
+        std::fill(outputMagnitudes.begin(), outputMagnitudes.end(), -100.0f);
+    }
+
     // Call from audio thread: push interleaved mono samples (sum L+R).
     void pushSamples(const float* data, int numSamples)
     {
+        int idx = fifoWriteIndex.load(std::memory_order_relaxed);
         for (int i = 0; i < numSamples; ++i)
         {
-            fifoBuffer[(size_t)fifoWriteIndex] = data[i];
-            fifoWriteIndex = (fifoWriteIndex + 1) % fftSize;
+            fifoBuffer[(size_t)idx] = data[i];
+            idx = (idx + 1) % fftSize;
 
-            if (fifoWriteIndex == 0)
+            if (idx == 0)
                 dataReady.store(true, std::memory_order_release);
         }
+        fifoWriteIndex.store(idx, std::memory_order_relaxed);
     }
 
     // Call from audio thread: push a stereo buffer (will sum to mono).
     void pushBlock(const float* L, const float* R, int numSamples)
     {
+        int idx = fifoWriteIndex.load(std::memory_order_relaxed);
         for (int i = 0; i < numSamples; ++i)
         {
             const float mono = (L[i] + R[i]) * 0.5f;
-            fifoBuffer[(size_t)fifoWriteIndex] = mono;
-            fifoWriteIndex = (fifoWriteIndex + 1) % fftSize;
+            fifoBuffer[(size_t)idx] = mono;
+            idx = (idx + 1) % fftSize;
 
-            if (fifoWriteIndex == 0)
+            if (idx == 0)
                 dataReady.store(true, std::memory_order_release);
         }
+        fifoWriteIndex.store(idx, std::memory_order_relaxed);
     }
 
     // Call from UI thread: returns true if new data was processed.
@@ -93,6 +106,6 @@ private:
     std::array<float, fftSize * 2>  fftData {};
     std::array<float, numBins>      outputMagnitudes {};
 
-    int fifoWriteIndex = 0;
+    std::atomic<int> fifoWriteIndex { 0 };
     std::atomic<bool> dataReady { false };
 };

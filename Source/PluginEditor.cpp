@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include <thread>
 
 static juce::String bandId(int idx, const char* suffix)
 {
@@ -314,6 +315,34 @@ void FreeEQ8AudioProcessorEditor::timerCallback()
         bool on = proc.apvts.getRawParameterValue(bandId(i + 1, "on"))->load() > 0.5f;
         bandBtns[(size_t)i].setAlpha(on ? 1.0f : 0.4f);
     }
+
+    // ── Linear phase incompatibility: grey out unsupported controls ──
+    // When linear phase is on, drive, dynamic EQ, M/S, and oversampling
+    // are silently ignored by the DSP path. Disable the controls to
+    // make this visible to the user (fixes #12).
+    const bool linPhaseOn = proc.apvts.getRawParameterValue("linear_phase")->load() > 0.5f;
+    const float linAlpha = linPhaseOn ? 0.35f : 1.0f;
+    const bool linEnabled = !linPhaseOn;
+
+    driveKnob.setEnabled(linEnabled);
+    driveKnob.setAlpha(linAlpha);
+    dynOn.setEnabled(linEnabled);
+    dynThreshKnob.setEnabled(linEnabled);
+    dynThreshKnob.setAlpha(linAlpha);
+    dynRatioKnob.setEnabled(linEnabled);
+    dynRatioKnob.setAlpha(linAlpha);
+    dynAttackKnob.setEnabled(linEnabled);
+    dynAttackKnob.setAlpha(linAlpha);
+    dynReleaseKnob.setEnabled(linEnabled);
+    dynReleaseKnob.setAlpha(linAlpha);
+    procModeBox.setEnabled(linEnabled);
+    procModeBox.setAlpha(linAlpha);
+    oversamplingBox.setEnabled(linEnabled);
+    oversamplingBox.setAlpha(linAlpha);
+#if PROEQ8
+    satModeBox.setEnabled(linEnabled);
+    satModeBox.setAlpha(linAlpha);
+#endif
 }
 
 // ── Paint ──────────────────────────────────────────────────────────
@@ -613,8 +642,18 @@ void FreeEQ8AudioProcessorEditor::showActivationDialog()
             [this, dlg](int result) {
                 if (result == 1)
                 {
-                    proc.licenseValidator.deactivate();
-                    licenseBtn.setButtonText("Activate");
+                    // Run deactivation on a background thread
+                    licenseBtn.setButtonText("...");
+                    licenseBtn.setEnabled(false);
+
+                    auto& validator = proc.licenseValidator;
+                    std::thread([this, &validator]() {
+                        validator.deactivate();
+                        juce::MessageManager::callAsync([this]() {
+                            licenseBtn.setButtonText("Activate");
+                            licenseBtn.setEnabled(true);
+                        });
+                    }).detach();
                 }
                 delete dlg;
             }), true);
@@ -622,7 +661,8 @@ void FreeEQ8AudioProcessorEditor::showActivationDialog()
     }
 
     auto* dlg = new juce::AlertWindow("Activate ProEQ8",
-        "Enter your license key:", juce::AlertWindow::NoIcon);
+        "Enter your license key:\n(Requires internet connection)",
+        juce::AlertWindow::NoIcon);
     dlg->addTextEditor("key", "", "License Key:");
     dlg->addButton("Activate", 1);
     dlg->addButton("Cancel", 0);
@@ -632,13 +672,42 @@ void FreeEQ8AudioProcessorEditor::showActivationDialog()
             if (result == 1)
             {
                 auto key = dlg->getTextEditorContents("key");
-                if (proc.licenseValidator.activate(key))
-                    licenseBtn.setButtonText("Licensed");
-                else
-                    juce::AlertWindow::showMessageBoxAsync(
-                        juce::AlertWindow::WarningIcon,
-                        "Activation Failed",
-                        "Invalid or expired license key.");
+                if (key.isEmpty())
+                {
+                    delete dlg;
+                    return;
+                }
+
+                // Run activation on a background thread (blocks on HTTP)
+                licenseBtn.setButtonText("Activating...");
+                licenseBtn.setEnabled(false);
+
+                auto& validator = proc.licenseValidator;
+                auto keyCopy = key;  // capture by value for thread safety
+                std::thread([this, &validator, keyCopy]() {
+                    auto activationResult = validator.activate(keyCopy);
+
+                    juce::MessageManager::callAsync([this, activationResult]() {
+                        licenseBtn.setEnabled(true);
+
+                        if (activationResult == ActivationResult::Success)
+                        {
+                            licenseBtn.setButtonText("Licensed");
+                            juce::AlertWindow::showMessageBoxAsync(
+                                juce::AlertWindow::InfoIcon,
+                                "ProEQ8 Activated",
+                                "Activation successful! Enjoy ProEQ8.");
+                        }
+                        else
+                        {
+                            licenseBtn.setButtonText("Activate");
+                            juce::AlertWindow::showMessageBoxAsync(
+                                juce::AlertWindow::WarningIcon,
+                                "Activation Failed",
+                                LicenseValidator::getResultMessage(activationResult));
+                        }
+                    });
+                }).detach();
             }
             delete dlg;
         }), true);

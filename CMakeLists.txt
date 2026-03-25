@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(FreeEQ8 VERSION 1.1.0)
+project(FreeEQ8 VERSION 2.0.0)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -113,7 +113,7 @@ target_sources(ProEQ8 PRIVATE
 target_compile_definitions(ProEQ8 PRIVATE
     PROEQ8=1
     JUCE_WEB_BROWSER=0
-    JUCE_USE_CURL=0
+    JUCE_USE_CURL=1
     JUCE_VST3_CAN_REPLACE_VST2=0
 )
 

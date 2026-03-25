@@ -4,38 +4,62 @@
 #include "Config.h"
 #include <atomic>
 
-// Offline license validation for ProEQ8.
+// License validation for ProEQ8 with online activation.
+//
 // License keys are HMAC-SHA256-signed JSON payloads (Base64-encoded).
 // Format: "<base64_payload>.<base64_signature>"
+// Payload: { "product": "ProEQ8", "email": "...", "license_id": "...", "expires": "..." }
 //
-// Payload JSON: { "product": "ProEQ8", "email": "...", "expires": "2099-12-31" }
+// Activation flow:
+//   1. Client validates HMAC signature offline (quick reject of bad keys).
+//   2. Client POSTs { license_key, device_id } to the activation server.
+//   3. Server checks activation count (max 2 devices per license).
+//   4. On success, client stores the key locally.
 //
-// The signing secret is shared between the server (Stripe webhook) and the client.
-// In demo mode: audio mutes for 30 seconds every 5 minutes.
+// In demo mode (ProEQ8 only, unactivated): audio mutes 30s every 5min.
+
+enum class ActivationResult
+{
+    Success,
+    InvalidKey,
+    Expired,
+    LimitReached,
+    NetworkError,
+    ServerError
+};
 
 class LicenseValidator
 {
 public:
     LicenseValidator()
     {
+        deviceId = computeDeviceId();
         loadStoredLicense();
     }
 
-    // Attempt to activate with a license key string
-    bool activate(const juce::String& licenseKey)
+    // Attempt to activate with a license key string.
+    // This performs an online activation request.
+    // Must be called from a background thread (blocks on HTTP).
+    ActivationResult activate(const juce::String& licenseKey)
     {
-        if (validateKey(licenseKey))
+        // 1. Offline HMAC check (quick rejection)
+        if (!validateKeyOffline(licenseKey))
+            return ActivationResult::InvalidKey;
+
+        // 2. Online activation
+        auto result = activateOnline(licenseKey);
+        if (result == ActivationResult::Success)
         {
             storeLicense(licenseKey);
             activated.store(true);
             licensedEmail = parsedEmail;
-            return true;
         }
-        return false;
+        return result;
     }
 
     bool isActivated() const { return activated.load(); }
     juce::String getEmail() const { return licensedEmail; }
+    juce::String getDeviceId() const { return deviceId; }
 
     // Demo mode: returns true when audio should be muted
     // Mutes for 30 seconds every 5 minutes (300 seconds)
@@ -55,30 +79,100 @@ public:
     // Reset demo counter (call from prepareToPlay)
     void resetDemoCounter() { demoSampleCounter = 0; }
 
+    // Deactivate and release the device slot on the server.
+    // Must be called from a background thread.
     void deactivate()
     {
+        auto key = getStoredKey();
+        if (key.isNotEmpty())
+            deactivateOnline(key);
+
         activated.store(false);
         licensedEmail.clear();
         clearStoredLicense();
+    }
+
+    // Get the activation result message for UI display.
+    static juce::String getResultMessage(ActivationResult result)
+    {
+        switch (result)
+        {
+            case ActivationResult::Success:      return "Activation successful!";
+            case ActivationResult::InvalidKey:    return "Invalid or expired license key.";
+            case ActivationResult::Expired:       return "This license has expired.";
+            case ActivationResult::LimitReached:  return "Activation limit reached (2 devices). Deactivate another device first.";
+            case ActivationResult::NetworkError:  return "Could not reach activation server. Check your internet connection.";
+            case ActivationResult::ServerError:   return "Server error. Please try again later.";
+        }
+        return "Unknown error.";
     }
 
 private:
     std::atomic<bool> activated { false };
     juce::String licensedEmail;
     juce::String parsedEmail;
+    juce::String deviceId;
     int64_t demoSampleCounter = 0;
 
     // HMAC signing secret — must match LICENSE_SIGNING_SECRET on the server.
     // IMPORTANT: Replace this with your actual secret before shipping.
-    // In a real production build, obfuscate or derive this at compile time.
+    // In a production build, obfuscate or derive this at compile time.
     static constexpr const char* licenseSigningSecret =
         "REPLACE_WITH_YOUR_LICENSE_SIGNING_SECRET";
 
-    // Compute HMAC-SHA256 using a simple implementation (no external crypto dependency).
-    // This matches the server's crypto.subtle.sign("HMAC", key, payload) output.
+    // ── Device Fingerprint ───────────────────────────────────────
+
+    static juce::String computeDeviceId()
+    {
+        // Build a stable, non-PII device identifier by hashing system info.
+        juce::String raw;
+        raw << juce::SystemStats::getComputerName();
+
+        // Add platform-specific machine IDs for stability
+#if JUCE_MAC
+        // macOS: IOPlatformSerialNumber via system_profiler is stable
+        // Fall back to computer name + OS name if unavailable
+        raw << juce::SystemStats::getOperatingSystemName();
+        raw << juce::File("/etc/machine-id").loadFileAsString().trim();
+
+        // Try the macOS hardware UUID
+        juce::ChildProcess proc;
+        if (proc.start("ioreg -rd1 -c IOPlatformExpertDevice"))
+        {
+            auto output = proc.readAllProcessOutput();
+            // Extract IOPlatformUUID from output
+            auto uuidIdx = output.indexOf("IOPlatformUUID");
+            if (uuidIdx >= 0)
+            {
+                auto lineEnd = output.indexOf(uuidIdx, "\n");
+                if (lineEnd > uuidIdx)
+                    raw << output.substring(uuidIdx, lineEnd);
+            }
+        }
+#elif JUCE_WINDOWS
+        raw << juce::SystemStats::getOperatingSystemName();
+        // Windows: MachineGuid from registry
+        raw << juce::WindowsRegistry::getValue(
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Cryptography\\MachineGuid", "");
+#elif JUCE_LINUX
+        raw << juce::File("/etc/machine-id").loadFileAsString().trim();
+        if (raw.isEmpty())
+            raw << juce::File("/var/lib/dbus/machine-id").loadFileAsString().trim();
+#endif
+
+        // Namespace by product name so FreeEQ8 and ProEQ8 get different IDs
+        raw << kProductName;
+
+        // SHA-256 hash → hex string
+        juce::SHA256 hash(raw.toUTF8(), (size_t)raw.length());
+        return hash.toHexString().replace(" ", "");
+    }
+
+    // ── Offline HMAC Validation ──────────────────────────────────
+
+    // Compute HMAC-SHA256.
     static juce::MemoryBlock hmacSha256(const juce::String& key, const juce::String& message)
     {
-        // SHA-256 block size = 64 bytes
         constexpr int blockSize = 64;
         constexpr int hashSize  = 32;
 
@@ -97,7 +191,6 @@ private:
         auto keyBytes = key.toUTF8();
         auto msgBytes = message.toUTF8();
 
-        // If key > block size, hash it
         juce::MemoryBlock keyBlock;
         if ((int)strlen(keyBytes) > blockSize)
         {
@@ -110,7 +203,6 @@ private:
             memcpy(keyBlock.getData(), keyBytes, strlen(keyBytes));
         }
 
-        // Ensure key is padded to blockSize
         if ((int)keyBlock.getSize() < blockSize)
         {
             auto oldSize = keyBlock.getSize();
@@ -120,7 +212,6 @@ private:
 
         auto* kp = static_cast<const uint8_t*>(keyBlock.getData());
 
-        // ipad = key XOR 0x36, opad = key XOR 0x5c
         uint8_t ipad[blockSize], opad[blockSize];
         for (int i = 0; i < blockSize; ++i)
         {
@@ -128,22 +219,19 @@ private:
             opad[i] = kp[i] ^ 0x5c;
         }
 
-        // inner = SHA256(ipad || message)
         juce::MemoryBlock innerInput;
         innerInput.append(ipad, blockSize);
         innerInput.append(msgBytes, strlen(msgBytes));
         auto innerHash = sha256(innerInput.getData(), innerInput.getSize());
 
-        // outer = SHA256(opad || inner)
         juce::MemoryBlock outerInput;
         outerInput.append(opad, blockSize);
         outerInput.append(innerHash.getData(), innerHash.getSize());
         return sha256(outerInput.getData(), outerInput.getSize());
     }
 
-    bool validateKey(const juce::String& licenseKey)
+    bool validateKeyOffline(const juce::String& licenseKey)
     {
-        // Format: "<base64_payload>.<base64_signature>"
         const int dotIdx = licenseKey.indexOf(".");
         if (dotIdx < 0) return false;
 
@@ -152,13 +240,18 @@ private:
 
         // Verify HMAC-SHA256 signature
         auto expectedHmac = hmacSha256(juce::String(licenseSigningSecret), payloadB64);
-        auto expectedB64  = expectedHmac.toBase64Encoding();
+        auto expectedB64  = expectedHmac.toBase64Encoding().trim();
+        auto receivedSig  = signatureB64.trim();
 
-        // Trim trailing whitespace/newlines from base64
-        expectedB64 = expectedB64.trim();
-        auto receivedSig = signatureB64.trim();
+        // Constant-time comparison
+        if (expectedB64.length() != receivedSig.length())
+            return false;
 
-        if (expectedB64 != receivedSig)
+        int mismatch = 0;
+        for (int i = 0; i < expectedB64.length(); ++i)
+            mismatch |= expectedB64[i] ^ receivedSig[i];
+
+        if (mismatch != 0)
             return false;
 
         // Decode payload
@@ -166,7 +259,6 @@ private:
         if (!payloadData.fromBase64Encoding(payloadB64))
             return false;
 
-        // Parse JSON payload
         auto payloadStr = payloadData.toString();
         auto json = juce::JSON::parse(payloadStr);
         if (!json.isObject()) return false;
@@ -175,7 +267,6 @@ private:
         auto email   = json.getProperty("email", "").toString();
         auto expires = json.getProperty("expires", "").toString();
 
-        // Verify product matches
         if (product != "ProEQ8") return false;
 
         // Check expiration
@@ -184,6 +275,89 @@ private:
 
         parsedEmail = email;
         return true;
+    }
+
+    // ── Online Activation ────────────────────────────────────────
+
+    ActivationResult activateOnline(const juce::String& licenseKey)
+    {
+        auto serverUrl = juce::String(kActivationServerURL) + "/activate";
+
+        // Build JSON body
+        auto* jsonBody = new juce::DynamicObject();
+        jsonBody->setProperty("license_key", licenseKey);
+        jsonBody->setProperty("device_id", deviceId);
+        auto bodyStr = juce::JSON::toString(juce::var(jsonBody));
+
+        // POST request
+        juce::URL url(serverUrl);
+        url = url.withPOSTData(bodyStr);
+
+        auto options = juce::URL::InputStreamOptions(juce::URL::ParameterHandling::inPostBody)
+                           .withConnectionTimeoutMs(10000)
+                           .withExtraHeaders("Content-Type: application/json");
+
+        std::unique_ptr<juce::InputStream> stream(url.createInputStream(options));
+
+        if (!stream)
+            return ActivationResult::NetworkError;
+
+        auto responseText = stream->readEntireStreamAsString();
+        if (responseText.isEmpty())
+            return ActivationResult::NetworkError;
+
+        auto response = juce::JSON::parse(responseText);
+        if (!response.isObject())
+            return ActivationResult::ServerError;
+
+        // Check response
+        if (response.hasProperty("ok") && (bool)response.getProperty("ok", false))
+            return ActivationResult::Success;
+
+        auto error = response.getProperty("error", "").toString();
+        if (error.contains("limit") || error.contains("Limit"))
+            return ActivationResult::LimitReached;
+        if (error.contains("expired") || error.contains("Expired"))
+            return ActivationResult::Expired;
+        if (error.contains("Invalid") || error.contains("invalid"))
+            return ActivationResult::InvalidKey;
+
+        return ActivationResult::ServerError;
+    }
+
+    void deactivateOnline(const juce::String& licenseKey)
+    {
+        auto serverUrl = juce::String(kActivationServerURL) + "/deactivate";
+
+        auto* jsonBody = new juce::DynamicObject();
+        jsonBody->setProperty("license_key", licenseKey);
+        jsonBody->setProperty("device_id", deviceId);
+        auto bodyStr = juce::JSON::toString(juce::var(jsonBody));
+
+        juce::URL url(serverUrl);
+        url = url.withPOSTData(bodyStr);
+
+        auto options = juce::URL::InputStreamOptions(juce::URL::ParameterHandling::inPostBody)
+                           .withConnectionTimeoutMs(10000)
+                           .withExtraHeaders("Content-Type: application/json");
+
+        // Fire and forget — deactivation is best-effort
+        std::unique_ptr<juce::InputStream> stream(url.createInputStream(options));
+        if (stream)
+        {
+            auto responseText = stream->readEntireStreamAsString();
+            DBG("Deactivation response: " + responseText);
+        }
+    }
+
+    // ── License Storage ──────────────────────────────────────────
+
+    juce::String getStoredKey() const
+    {
+        auto props = getAppProperties();
+        if (props)
+            return props->getUserSettings()->getValue("license_key", "");
+        return {};
     }
 
     void storeLicense(const juce::String& key)
@@ -212,8 +386,10 @@ private:
         if (props)
         {
             auto key = props->getUserSettings()->getValue("license_key", "");
-            if (key.isNotEmpty() && validateKey(key))
+            if (key.isNotEmpty() && validateKeyOffline(key))
             {
+                // Key is valid offline — mark as activated.
+                // We trust locally stored keys (they were validated online at first activation).
                 activated.store(true);
                 licensedEmail = parsedEmail;
             }
