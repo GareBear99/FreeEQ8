@@ -82,7 +82,7 @@ FreeEQ8 is a professional-grade, free and open-source 8-band parametric EQ plugi
 
 [![Buy ProEQ8](https://img.shields.io/badge/Buy%20ProEQ8-%2420-brightgreen?style=for-the-badge&logo=stripe&logoColor=white)](https://github.com/GareBear99/FreeEQ8/releases/latest)
 
-ProEQ8 is the commercial big brother of FreeEQ8 — same rock-solid DSP engine, massively expanded. Included in the [v1.1.0 release download](https://github.com/GareBear99/FreeEQ8/releases/latest).
+ProEQ8 is the commercial big brother of FreeEQ8 — same rock-solid DSP engine, massively expanded. Included in the [v2.1.0 release download](https://github.com/GareBear99/FreeEQ8/releases/tag/v2.1.0).
 
 | | **FreeEQ8** (Free) | **ProEQ8** ($20) |
 |---|:---:|:---:|
@@ -150,7 +150,7 @@ ProEQ8 is the commercial big brother of FreeEQ8 — same rock-solid DSP engine, 
 - **Linux**: Debian/Ubuntu 20.04+ (VST3 only; see build instructions for dependencies)
 - **Windows**: 10 and later (64-bit)
 - **DAWs tested**: Ableton Live 10+, Logic Pro, FL Studio, Bitwig, REAPER
-- **Formats**: VST3, AU (macOS only)
+- **Formats**: VST3, AU (macOS), Standalone (all platforms)
 
 ## 🚀 Quick Start
 
@@ -413,7 +413,20 @@ FreeEQ8/
 - [x] Band solo/audition mode
 - [x] Preset management system
 
-### v1.0.0 (Current Release)
+### v2.1.0 (Current Release)
+- [x] Standalone app included in all platform packages
+- [x] Hardened ProEQ8 license: device-bound activation, 7-day re-verify, 30-day offline grace
+- [x] Server /verify endpoint for periodic re-validation
+- [x] Obfuscated signing secret in binary
+- [x] Fixed JUCE 7.0.12 API compatibility
+
+### v2.0.0
+- [x] Online license activation (2 devices per key) with Stripe checkout
+- [x] ProEQ8 commercial target (24 bands, 4 saturation modes, A/B, auto-gain)
+- [x] Cloudflare Worker license server + Resend email delivery
+- [x] Demo mode for unactivated ProEQ8 (mutes 30s every 5min)
+
+### v1.0.0
 - [x] Linear phase mode (FIR convolution via overlap-add FFT)
 - [x] Dynamic EQ capabilities (per-band envelope follower with threshold/ratio/attack/release)
 - [x] Band linking (link groups A/B with delta-based freq/gain/Q propagation)
@@ -446,6 +459,23 @@ Contributions are welcome! Here's how you can help:
 - 🧪 Unit tests
 
 ## 📝 Changelog
+
+### v2.1.0 (2026-03-25)
+- ✅ Standalone app now included in macOS DMG, Windows ZIP, Linux tar.gz
+- ✅ Hardened ProEQ8 license system: device-bound activation (2 systems per key)
+- ✅ Periodic server re-verification every 7 days (30-day offline grace period)
+- ✅ XOR-obfuscated signing secret in binary
+- ✅ Server `/verify` endpoint for client re-validation
+- ✅ Background license re-verify on ProEQ8 editor open when overdue
+- ✅ Fixed `inPostBody` → `inPostData` for JUCE 7.0.12 API
+- ✅ Added `workflow_dispatch` trigger for manual CI runs
+
+### v2.0.0 (2026-03-25)
+- ✅ Online license activation for ProEQ8 (2-device limit per key)
+- ✅ Stripe Checkout → Cloudflare Worker webhook → HMAC-signed license key → email via Resend
+- ✅ Device fingerprinting (hardware UUID on macOS, MachineGuid on Windows, machine-id on Linux)
+- ✅ Demo mode for unactivated ProEQ8 (mutes 30s every 5min)
+- ✅ Deactivation support to free device slots
 
 ### v1.1.0 (ProEQ8 + Enhancements)
 - ✅ ProEQ8 commercial target: 24-band parametric EQ (same source, PROEQ8=1 compile flag)
