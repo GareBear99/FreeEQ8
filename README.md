@@ -397,14 +397,6 @@ FreeEQ8/
 
 ## 🛣️ Roadmap
 
-### v0.5.0
-- [x] Multiple filter slopes (12/24/48 dB/oct) via cascaded biquads
-- [x] Mid/Side processing mode with M/S encode/decode
-- [x] Per-band channel routing (Both / L-Mid / R-Side)
-- [x] Oversampling options (1x, 2x, 4x, 8x)
-- [x] Output metering with peak hold and RMS
-- [x] Resizable UI (700×500 to 1400×900)
-
 ### v0.4.0
 - [x] Real-time spectrum analyzer
 - [x] Interactive frequency response curve display
@@ -413,18 +405,13 @@ FreeEQ8/
 - [x] Band solo/audition mode
 - [x] Preset management system
 
-### v2.1.0 (Current Release)
-- [x] Standalone app included in all platform packages
-- [x] Hardened ProEQ8 license: device-bound activation, 7-day re-verify, 30-day offline grace
-- [x] Server /verify endpoint for periodic re-validation
-- [x] Obfuscated signing secret in binary
-- [x] Fixed JUCE 7.0.12 API compatibility
-
-### v2.0.0
-- [x] Online license activation (2 devices per key) with Stripe checkout
-- [x] ProEQ8 commercial target (24 bands, 4 saturation modes, A/B, auto-gain)
-- [x] Cloudflare Worker license server + Resend email delivery
-- [x] Demo mode for unactivated ProEQ8 (mutes 30s every 5min)
+### v0.5.0
+- [x] Multiple filter slopes (12/24/48 dB/oct) via cascaded biquads
+- [x] Mid/Side processing mode with M/S encode/decode
+- [x] Per-band channel routing (Both / L-Mid / R-Side)
+- [x] Oversampling options (1x, 2x, 4x, 8x)
+- [x] Output metering with peak hold and RMS
+- [x] Resizable UI (700×500 to 1400×900)
 
 ### v1.0.0
 - [x] Linear phase mode (FIR convolution via overlap-add FFT)
@@ -433,6 +420,21 @@ FreeEQ8/
 - [x] Per-band saturation/drive (gain-compensated tanh waveshaper)
 - [x] Undo/Redo system (integrated with APVTS UndoManager)
 - [x] Match EQ functionality (capture reference spectrum, compute & apply correction)
+
+### v2.0.0
+- [x] Online license activation (2 devices per key) with Stripe checkout
+- [x] ProEQ8 commercial target (24 bands, 4 saturation modes, A/B, auto-gain)
+- [x] Cloudflare Worker license server + Resend email delivery
+- [x] Demo mode for unactivated ProEQ8 (mutes 30s every 5min)
+
+### v2.1.0 (Current Release)
+- [x] Standalone app included in all platform packages
+- [x] Hardened ProEQ8 license: device-bound activation, 7-day re-verify, 30-day offline grace
+- [x] Server /verify endpoint for periodic re-validation
+- [x] Obfuscated signing secret in binary
+- [x] Fixed JUCE 7.0.12 API compatibility
+
+
 
 
 ## 🤝 Contributing
