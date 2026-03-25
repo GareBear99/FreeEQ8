@@ -293,7 +293,7 @@ private:
         juce::URL url(serverUrl);
         url = url.withPOSTData(bodyStr);
 
-        auto options = juce::URL::InputStreamOptions(juce::URL::ParameterHandling::inPostBody)
+        auto options = juce::URL::InputStreamOptions(juce::URL::ParameterHandling::inPostData)
                            .withConnectionTimeoutMs(10000)
                            .withExtraHeaders("Content-Type: application/json");
 
@@ -337,7 +337,7 @@ private:
         juce::URL url(serverUrl);
         url = url.withPOSTData(bodyStr);
 
-        auto options = juce::URL::InputStreamOptions(juce::URL::ParameterHandling::inPostBody)
+        auto options = juce::URL::InputStreamOptions(juce::URL::ParameterHandling::inPostData)
                            .withConnectionTimeoutMs(10000)
                            .withExtraHeaders("Content-Type: application/json");
 
