@@ -1,25 +1,32 @@
-# FreeEQ8 - Professional 8-Band Parametric EQ Plugin
+<div align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&height=200&color=0:0a0b12,50:1e2754,100:6c7bbd&text=FreeEQ8&fontSize=52&fontColor=e8eaf0&animation=fadeIn&fontAlignY=36&desc=Professional%208-Band%20Parametric%20EQ&descSize=18&descColor=a0a6bc&descAlignY=58" width="100%">
+</div>
 
+<div align="center">
+  <a href="https://git.io/typing-svg"><img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&duration=3800&pause=900&color=6C7BBD&center=true&vCenter=true&width=900&lines=Linear+Phase+%E2%80%A2+Dynamic+EQ+%E2%80%A2+Match+EQ;Per-Band+Drive+%E2%80%A2+M%2FS+%E2%80%A2+Oversampling;Spectrum+Analyzer+%E2%80%A2+Band+Linking+%E2%80%A2+Presets;Free+%26+Open+Source+for+macOS+%2F+Windows+%2F+Linux" alt="Typing SVG" /></a>
+  <br><br>
+  <a href="https://github.com/GareBear99/FreeEQ8/releases/latest"><img src="https://img.shields.io/badge/📥_Download_Latest_Release-22c55e?style=for-the-badge&logo=github&logoColor=white" alt="Download latest release" /></a>
+  <a href="https://github.com/GareBear99/FreeEQ8/actions"><img src="https://img.shields.io/github/actions/workflow/status/GareBear99/FreeEQ8/release.yml?label=Build&style=for-the-badge&logo=github" alt="Build status" /></a>
+  <br><br>
+  <img src="https://img.shields.io/badge/License-GPL--3.0-3b82f6?style=flat&logo=gnu&logoColor=white" alt="GPL-3.0" />
+  <img src="https://img.shields.io/badge/Formats-VST3%20%7C%20AU%20%7C%20Standalone-6c7bbd?style=flat" alt="Formats" />
+  <img src="https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux-94a3b8?style=flat" alt="Platform" />
+  <img src="https://img.shields.io/badge/JUCE-7.0.12-f59e0b?style=flat" alt="JUCE 7.0.12" />
+  <img src="https://img.shields.io/badge/Tested-Ableton%20Live%2010%2B-22c55e?style=flat" alt="Tested in Ableton Live 10+" />
+  <a href="https://github.com/GareBear99/FreeEQ8"><img src="https://img.shields.io/github/stars/GareBear99/FreeEQ8?style=flat&label=Stars&color=eab308" alt="GitHub stars" /></a>
+</div>
+
+<br>
 
 > 🎛️ **Part of the [TizWildin Plugin Ecosystem](https://garebear99.github.io/TizWildinEntertainmentHUB/)** — 14 free audio plugins with a live update dashboard.
 >
 > [FreeEQ8](https://github.com/GareBear99/FreeEQ8) · [Instrudio](https://github.com/GareBear99/Instrudio) · [BassMaid](https://github.com/GareBear99/BassMaid) · [SpaceMaid](https://github.com/GareBear99/SpaceMaid) · [GlueMaid](https://github.com/GareBear99/GlueMaid) · [MixMaid](https://github.com/GareBear99/MixMaid) · [ChainMaid](https://github.com/GareBear99/ChainMaid) · [PaintMask](https://github.com/GareBear99/PaintMask_Free-JUCE-Plugin) · [WURP](https://github.com/GareBear99/WURP_Toxic-Motion-Engine_JUCE) · [AETHER](https://github.com/GareBear99/AETHER_Choir-Atmosphere-Designer) · [WhisperGate](https://github.com/GareBear99/WhisperGate_Free-JUCE-Plugin) · [Therum](https://github.com/GareBear99/Therum_JUCE-Plugin) · [RiftWave](https://github.com/GareBear99/RiftWaveSuite_RiftSynth_WaveForm_Lite) · [FreeSampler](https://github.com/GareBear99/FreeSampler_v0.3)
 
-
-> **📥 [Download the latest release (macOS DMG & Windows ZIP)](https://github.com/GareBear99/FreeEQ8/releases/latest)**
-
-[![Build](https://img.shields.io/github/actions/workflow/status/GareBear99/FreeEQ8/release.yml?label=build&logo=github)](https://github.com/GareBear99/FreeEQ8/actions)
-[![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey.svg)]()
-[![macOS](https://img.shields.io/badge/macOS-10.13%20High%20Sierra%2B-blue.svg)]()
-[![Tested](https://img.shields.io/badge/tested-Ableton%20Live%2010+-green.svg)]()
-[![Stars](https://img.shields.io/github/stars/GareBear99/FreeEQ8?style=social)](https://github.com/GareBear99/FreeEQ8)
-[![JUCE](https://img.shields.io/badge/JUCE-7.0.12-orange.svg)](https://juce.com/)
-[![Release](https://img.shields.io/github/v/release/GareBear99/FreeEQ8?label=Download&style=for-the-badge&color=brightgreen)](https://github.com/GareBear99/FreeEQ8/releases/latest)
-
-[![Sponsor](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-ea4aaa?logo=githubsponsors)](https://github.com/sponsors/GareBear99)
-[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/garebear99)
-[![Ko-fi](https://img.shields.io/badge/Ko--fi-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/luciferai)
+<div align="center">
+  <a href="https://github.com/sponsors/GareBear99"><img src="https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?style=flat&logo=githubsponsors&logoColor=white" alt="Sponsor" /></a>
+  <a href="https://buymeacoffee.com/garebear99"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=flat&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me a Coffee" /></a>
+  <a href="https://ko-fi.com/luciferai"><img src="https://img.shields.io/badge/Ko--fi-ff5e5b?style=flat&logo=ko-fi&logoColor=white" alt="Ko-fi" /></a>
+</div>
 
 FreeEQ8 is a professional-grade, free and open-source 8-band parametric EQ plugin for macOS, Linux, and Windows. Linear phase, dynamic EQ, match EQ, per-band drive, band linking, M/S processing, oversampling, and a real-time spectrum analyzer — all in a single, zero-cost plugin. Built with JUCE for VST3 and AU.
 
