@@ -38,6 +38,9 @@ jobs:
           echo "=== FreeEQ8 AU ==="
           file build/FreeEQ8_artefacts/Release/AU/FreeEQ8.component/Contents/MacOS/FreeEQ8
           lipo -info build/FreeEQ8_artefacts/Release/AU/FreeEQ8.component/Contents/MacOS/FreeEQ8
+          echo "=== FreeEQ8 Standalone ==="
+          file build/FreeEQ8_artefacts/Release/Standalone/FreeEQ8.app/Contents/MacOS/FreeEQ8
+          lipo -info build/FreeEQ8_artefacts/Release/Standalone/FreeEQ8.app/Contents/MacOS/FreeEQ8
           echo "=== ProEQ8 VST3 ==="
           file build/ProEQ8_artefacts/Release/VST3/ProEQ8.vst3/Contents/MacOS/ProEQ8
           lipo -info build/ProEQ8_artefacts/Release/VST3/ProEQ8.vst3/Contents/MacOS/ProEQ8
@@ -87,6 +90,11 @@ jobs:
           DIR="FreeEQ8-v${VERSION}-Linux"
           mkdir -p "build/${DIR}"
           cp -r build/FreeEQ8_artefacts/Release/VST3/FreeEQ8.vst3 "build/${DIR}/"
+          # Include Standalone binary if built
+          STANDALONE="build/FreeEQ8_artefacts/Release/Standalone/FreeEQ8"
+          if [ -f "$STANDALONE" ]; then
+            cp "$STANDALONE" "build/${DIR}/FreeEQ8-Standalone"
+          fi
           tar czf "build/${DIR}.tar.gz" -C build "${DIR}"
 
       - name: Upload Linux artifact
@@ -121,6 +129,12 @@ jobs:
           $vst3 = "build\FreeEQ8_artefacts\Release\VST3\FreeEQ8.vst3"
           if (Test-Path $vst3) {
             Copy-Item -Recurse $vst3 "$staging\"
+          }
+
+          # Copy Standalone
+          $standalone = "build\FreeEQ8_artefacts\Release\Standalone\FreeEQ8.exe"
+          if (Test-Path $standalone) {
+            Copy-Item $standalone "$staging\"
           }
 
           # Create install instructions

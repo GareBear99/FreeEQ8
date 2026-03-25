@@ -38,6 +38,13 @@ if [ -d "$FREE_AU" ]; then
     cp -R "$FREE_AU" "$STAGING/FreeEQ8/"
 fi
 
+# Copy FreeEQ8 Standalone app (if built)
+FREE_APP="$FREE_ARTEFACTS/Standalone/FreeEQ8.app"
+if [ -d "$FREE_APP" ]; then
+    cp -R "$FREE_APP" "$STAGING/FreeEQ8/"
+    echo "  + FreeEQ8 Standalone app included"
+fi
+
 # Copy ProEQ8 plugins (if built)
 if [ -d "$PRO_VST3" ]; then
     cp -R "$PRO_VST3" "$STAGING/ProEQ8/"
