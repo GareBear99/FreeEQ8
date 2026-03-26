@@ -618,6 +618,8 @@ Other ways to help:
 
 https://github.com/GareBear99/TizWildinEntertainmentHUB
 
+https://github.com/GareBear99/awesome-audio-plugins-dev
+
 https://github.com/GareBear99/PaintMask_Free-JUCE-Plugin
 
 https://github.com/GareBear99/WURP_Toxic-Motion-Engine_JUCE
