@@ -30,7 +30,7 @@
 
 FreeEQ8 is a professional-grade, free and open-source 8-band parametric EQ plugin for macOS, Linux, and Windows. Linear phase, dynamic EQ, match EQ, per-band drive, band linking, M/S processing, oversampling, and a real-time spectrum analyzer — all in a single, zero-cost plugin. Built with JUCE for VST3 and AU.
 
-FreeEQ8 is one of the most advanced free EQs available, competing directly with top tools like ZL EQ and TDR Nova.
+FreeEQ8/ProEQ8 is one of the most advanced free EQs available, competing directly with top tools like ZL EQ and TDR Nova.
 
 <div align="center">
 
