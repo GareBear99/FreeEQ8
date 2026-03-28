@@ -30,7 +30,7 @@
 
 FreeEQ8 is a professional-grade, free and open-source 8-band parametric EQ plugin for macOS, Linux, and Windows. Linear phase, dynamic EQ, match EQ, per-band drive, band linking, M/S processing, oversampling, and a real-time spectrum analyzer — all in a single, zero-cost plugin. Built with JUCE for VST3 and AU.
 
-FreeEQ8 is one of the most advanced free EQs available, competing directly with top tools like ZL EQ and TDR Nova. ProEQ8 is included.
+FreeEQ8 is one of the most advanced free EQs available, competing directly with top tools like ZL EQ and TDR Nova.
 
 <div align="center">
 
@@ -41,6 +41,7 @@ FreeEQ8 is one of the most advanced free EQs available, competing directly with 
 <a href="https://github.com/GareBear99/FreeEQ8/releases/tag/v2.1.0"><img src="https://img.shields.io/badge/⬇_Linux_tar.gz_(VST3)-eab308?style=for-the-badge&logo=linux&logoColor=white" alt="Download Linux" /></a>
 
 FabFilter Pro-Q alternative for $0–$20
+ProEQ8 is included!
 
 **[All releases →](https://github.com/GareBear99/FreeEQ8/releases)**
 
