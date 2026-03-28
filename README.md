@@ -41,6 +41,7 @@ FreeEQ8 is one of the most advanced free EQs available, competing directly with 
 <a href="https://github.com/GareBear99/FreeEQ8/releases/tag/v2.1.0"><img src="https://img.shields.io/badge/⬇_Linux_tar.gz_(VST3)-eab308?style=for-the-badge&logo=linux&logoColor=white" alt="Download Linux" /></a>
 
 FabFilter Pro-Q alternative for $0–$20
+
 ProEQ8 is included!
 
 **[All releases →](https://github.com/GareBear99/FreeEQ8/releases)**
