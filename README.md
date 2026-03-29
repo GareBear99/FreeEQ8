@@ -45,7 +45,7 @@ ProEQ8 is one of the most advanced EQs available, competing directly with top to
 
 FabFilter Pro-Q alternative for $0–$20
 
-ProEQ8 is included!
+5min Demo ProEQ8 is included!
 
 **[All releases →](https://github.com/GareBear99/FreeEQ8/releases)**
 
