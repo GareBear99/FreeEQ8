@@ -8,6 +8,7 @@
   <a href="https://github.com/GareBear99/FreeEQ8/actions"><img src="https://img.shields.io/github/actions/workflow/status/GareBear99/FreeEQ8/release.yml?label=Build&style=for-the-badge&logo=github" alt="Build status" /></a>
   <br><br>
   <a href="https://github.com/GareBear99/FreeEQ8/releases/latest"><img src="https://img.shields.io/badge/📥_Download_Latest_Release-22c55e?style=for-the-badge&logo=github&logoColor=white" alt="Download latest release" /></a>
+  
   <img src="https://img.shields.io/badge/License-GPL--3.0-3b82f6?style=flat&logo=gnu&logoColor=white" alt="GPL-3.0" />
   <img src="https://img.shields.io/badge/Formats-VST3%20%7C%20AU%20%7C%20Standalone-6c7bbd?style=flat" alt="Formats" />
   <img src="https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux-94a3b8?style=flat" alt="Platform" />
