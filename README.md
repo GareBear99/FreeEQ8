@@ -648,6 +648,8 @@ https://github.com/GareBear99/SpaceMaid
 
 https://github.com/GareBear99/GlueMaid
 
+https://github.com/GareBear99/XyloCore
+
 **Built with ❤️ by Gary Doman (GareBear99/TizWildin)**
 
 *"Great sound shouldn't cost anything"*
