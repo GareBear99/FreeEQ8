@@ -4,11 +4,12 @@
 
 <div align="center">
   <a href="https://git.io/typing-svg"><img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&duration=3800&pause=900&color=6C7BBD&center=true&vCenter=true&width=900&lines=Linear+Phase+%E2%80%A2+Dynamic+EQ+%E2%80%A2+Match+EQ;Per-Band+Drive+%E2%80%A2+M%2FS+%E2%80%A2+Oversampling;Spectrum+Analyzer+%E2%80%A2+Band+Linking+%E2%80%A2+Presets;Free+%26+Open+Source+for+macOS+%2F+Windows+%2F+Linux" alt="Typing SVG" /></a>
-  
-  <a href="https://github.com/GareBear99/FreeEQ8/releases/latest"><img src="https://img.shields.io/badge/📥_Download_Latest_Release-22c55e?style=for-the-badge&logo=github&logoColor=white" alt="Download latest release" /></a>
-  <br><br>
+
   <a href="https://github.com/GareBear99/FreeEQ8/actions"><img src="https://img.shields.io/github/actions/workflow/status/GareBear99/FreeEQ8/release.yml?label=Build&style=for-the-badge&logo=github" alt="Build status" /></a>
   <br><br>
+  <a href="https://github.com/GareBear99/FreeEQ8/releases/latest"><img src="https://img.shields.io/badge/📥_Download_Latest_Release-22c55e?style=for-the-badge&logo=github&logoColor=white" alt="Download latest release" /></a>
+  <br><br>
+  
   <img src="https://img.shields.io/badge/License-GPL--3.0-3b82f6?style=flat&logo=gnu&logoColor=white" alt="GPL-3.0" />
   <img src="https://img.shields.io/badge/Formats-VST3%20%7C%20AU%20%7C%20Standalone-6c7bbd?style=flat" alt="Formats" />
   <img src="https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux-94a3b8?style=flat" alt="Platform" />
