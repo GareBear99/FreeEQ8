@@ -654,3 +654,6 @@ https://github.com/GareBear99/XyloCore
 **Built with ❤️ by Gary Doman (GareBear99/TizWildin)**
 
 *"Great sound shouldn't cost anything"*
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&section=footer&height=140" alt="footer banner" />
+</p>
