@@ -656,15 +656,17 @@ https://github.com/GareBear99/XyloCore
 
 **Built with ❤️ by Gary Doman (GareBear99/TizWildin)**
 
+
 ### TizWildin FREE sample packs
 
-| Pack | Summary |
-|------|---------|
-| [**Free 808 Producer Kit**](https://github.com/GareBear99/Free-808-Producer-Kit) | 94 hand-crafted 808 bass samples tuned across the chromatic range |
-| [**Free Riser Producer Kit**](https://github.com/GareBear99/Free-Riser-Producer-Kit) | 115 riser samples spanning noise, synth, drum, FX, and cinematic categories |
-| [**Phonk Producer Toolkit**](https://github.com/GareBear99/Phonk_Producer_Toolkit) | Drift phonk starter kit with 808s, cowbells, drums, MIDI patterns, and templates |
-|| [**Free Future Bass Producer Kit**](https://github.com/GareBear99/Free-Future-Bass-Producer-Kit) | Free future bass sample pack with loops, fills, drums, bass, synths, pads, and FX |
-|| [**Free Dark Piano Sound Kit**](https://github.com/GareBear99/Free-Dark-Piano-Sound-Kit) | Dark and cinematic piano loops and one-shots for trap, drill, R&B, and film scoring |
+| Pack | Description |
+|------|-------------|
+| [**Free Dark Piano Sound Kit**](https://github.com/GareBear99/Free-Dark-Piano-Sound-Kit) | 88 piano notes + dark/cinematic loops and MIDI |
+| [**Free 808 Producer Kit**](https://github.com/GareBear99/Free-808-Producer-Kit) | 94 hand-crafted 808 bass samples tuned to every chromatic key |
+| [**Free Riser Producer Kit**](https://github.com/GareBear99/Free-Riser-Producer-Kit) | 115+ risers and 63 downlifters — noise, synth, drum, FX, cinematic |
+| [**Phonk Producer Toolkit**](https://github.com/GareBear99/Phonk_Producer_Toolkit) | Drift phonk starter kit — 808s, cowbells, drums, MIDI, templates |
+| [**Free Future Bass Producer Kit**](https://github.com/GareBear99/Free-Future-Bass-Producer-Kit) | Loops, fills, drums, bass, synths, pads, and FX |
+
 
 *"Great sound shouldn't cost anything"*
 <p align="center">
