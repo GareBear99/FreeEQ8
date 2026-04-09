@@ -625,6 +625,7 @@ Other ways to help:
 - **Email**: neovectr.inc@gmail.com
 
 ---
+
 **Other Projects by Me!**
 
 https://github.com/GareBear99/TizWildinEntertainmentHUB
@@ -654,6 +655,16 @@ https://github.com/GareBear99/GlueMaid
 https://github.com/GareBear99/XyloCore
 
 **Built with ❤️ by Gary Doman (GareBear99/TizWildin)**
+
+### TizWildin FREE sample packs
+
+| Pack | Summary |
+|------|---------|
+| [**Free 808 Producer Kit**](https://github.com/GareBear99/Free-808-Producer-Kit) | 94 hand-crafted 808 bass samples tuned across the chromatic range |
+| [**Free Riser Producer Kit**](https://github.com/GareBear99/Free-Riser-Producer-Kit) | 115 riser samples spanning noise, synth, drum, FX, and cinematic categories |
+| [**Phonk Producer Toolkit**](https://github.com/GareBear99/Phonk_Producer_Toolkit) | Drift phonk starter kit with 808s, cowbells, drums, MIDI patterns, and templates |
+|| [**Free Future Bass Producer Kit**](https://github.com/GareBear99/Free-Future-Bass-Producer-Kit) | Free future bass sample pack with loops, fills, drums, bass, synths, pads, and FX |
+|| [**Free Dark Piano Sound Kit**](https://github.com/GareBear99/Free-Dark-Piano-Sound-Kit) | Dark and cinematic piano loops and one-shots for trap, drill, R&B, and film scoring |
 
 *"Great sound shouldn't cost anything"*
 <p align="center">
