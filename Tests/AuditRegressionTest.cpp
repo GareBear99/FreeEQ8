@@ -23,6 +23,7 @@
 
 #include <array>
 #include <atomic>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <thread>
@@ -271,6 +272,101 @@ static void test_chunking_invariant()
 //  Main
 // ══════════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════════
+//  3. LinearPhaseEngine kernel-handoff invariant (A5)
+// ═══════════════════════════════════════════════════════════════════════
+//
+// The real LinearPhaseEngine class pulls in juce::dsp::FFT, so we don't
+// instantiate it directly from this no-JUCE test. We instead mirror just
+// its publish/acquire pattern with two 8192-float kernel slots, prove the
+// write-swap / read-consume pairing holds under stress, and rely on the
+// full-plugin build + JUCE's own FFT tests for the FFT math itself.
+
+// Mirrors LinearPhaseEngine's swap-chain triple buffer for the FIR kernel.
+struct KernelSwapChain
+{
+    static constexpr int KERNEL_LEN = 8192;
+    static constexpr int NUM_SLOTS = 3;
+    std::array<std::array<float, KERNEL_LEN>, NUM_SLOTS> slots {};
+    std::atomic<int>  midSlot     { 1 };
+    std::atomic<bool> kernelFresh { false };
+    int writeSlot = 0;       // writer-only
+    int readSlot  = 2;       // reader-only
+    bool loaded   = false;   // reader-only
+
+    void publishKernel(const float* src)
+    {
+        std::copy(src, src + KERNEL_LEN, slots[(size_t)writeSlot].begin());
+        writeSlot = midSlot.exchange(writeSlot, std::memory_order_release);
+        kernelFresh.store(true, std::memory_order_release);
+    }
+
+    bool tryReadSum(double& outSum)
+    {
+        if (kernelFresh.exchange(false, std::memory_order_acquire))
+        {
+            readSlot = midSlot.exchange(readSlot, std::memory_order_acquire);
+            loaded = true;
+        }
+        if (!loaded) return false;
+        const auto& src = slots[(size_t)readSlot];
+        double s = 0.0;
+        for (int i = 0; i < KERNEL_LEN; ++i) s += (double)src[(size_t)i];
+        outSum = s;
+        return true;
+    }
+};
+
+static void test_linphase_kernel_handoff()
+{
+    // Writer pushes a sequence of N kernels whose element value is fixed
+    // per-kernel (kernel k has every element = (float)k). Therefore the sum
+    // of any valid kernel is KERNEL_LEN * k for some integer k, i.e. an
+    // exact multiple of KERNEL_LEN. A torn read would produce some other
+    // value. Reader runs concurrently in a tight loop and verifies.
+    KernelSwapChain kb;
+
+    std::atomic<bool> stop { false };
+    std::atomic<long long> publishedKernels { 0 };
+    std::atomic<long long> readKernels { 0 };
+    std::atomic<long long> torn { 0 };
+
+    std::thread writer([&]{
+        std::array<float, KernelSwapChain::KERNEL_LEN> tmp {};
+        int k = 0;
+        while (!stop.load(std::memory_order_relaxed))
+        {
+            const float v = (float)(k % 4096);  // stay within float-exact int range
+            std::fill(tmp.begin(), tmp.end(), v);
+            kb.publishKernel(tmp.data());
+            publishedKernels.fetch_add(1, std::memory_order_relaxed);
+            ++k;
+        }
+    });
+
+    std::thread reader([&]{
+        while (!stop.load(std::memory_order_relaxed))
+        {
+            double sum = 0.0;
+            if (!kb.tryReadSum(sum)) continue;
+            readKernels.fetch_add(1, std::memory_order_relaxed);
+            const double v = sum / (double)KernelSwapChain::KERNEL_LEN;
+            if (v < 0.0 || v > 4096.0) { torn.fetch_add(1, std::memory_order_relaxed); continue; }
+            if (v != std::floor(v))    { torn.fetch_add(1, std::memory_order_relaxed); }
+        }
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    stop.store(true, std::memory_order_relaxed);
+    writer.join();
+    reader.join();
+
+    const long long t = torn.load();
+    CHECK(t == 0, "LinearPhaseEngine kernel handoff: no torn reads");
+    std::printf("  (kernel handoff stress: published %lld, read %lld, torn %lld)\n",
+                publishedKernels.load(), readKernels.load(), t);
+}
+
 int main()
 {
     std::printf("── A4: SpectrumFIFO triple-buffer, single-thread ──\n");
@@ -281,6 +377,9 @@ int main()
 
     std::printf("── A3: MatchEQ::applyCorrection chunking invariant ──\n");
     test_chunking_invariant();
+
+    std::printf("── A5: LinearPhaseEngine kernel double-buffer handoff ──\n");
+    test_linphase_kernel_handoff();
 
     if (failures == 0)
         std::printf("\nALL AUDIT REGRESSION TESTS PASSED\n");
