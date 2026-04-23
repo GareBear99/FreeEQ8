@@ -88,5 +88,20 @@ private:
     // Tooltip window — auto-shows tooltips for any child component with setTooltip()
     juce::TooltipWindow tooltipWindow { this, 500 };
 
+    // ── A2: lifetime-safe modal dialogs + async callbacks ─────────────
+    // activeDialog is non-null while a modal AlertWindow is up; it's cleared
+    // from the ModalCallbackFunction. Using a unique_ptr instead of
+    // `new ... + delete dlg` eliminates the prior latent double-free risk
+    // (the old code called `delete dlg` inside a callback registered with
+    // `deleteWhenDismissed = true`).
+    std::unique_ptr<juce::AlertWindow> activeDialog;
+
+    // Background jobs (license activate/deactivate/reverify) capture a weak
+    // reference to this editor. If the editor is destroyed before the HTTP
+    // round-trip finishes, the posted MessageManager::callAsync lambda sees
+    // weak.get() == nullptr and does nothing instead of dereferencing a
+    // dangling this pointer.
+    JUCE_DECLARE_WEAK_REFERENCEABLE (FreeEQ8AudioProcessorEditor)
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FreeEQ8AudioProcessorEditor)
 };

@@ -221,12 +221,13 @@ FreeEQ8AudioProcessorEditor::FreeEQ8AudioProcessorEditor(FreeEQ8AudioProcessor& 
     addAndMakeVisible(licenseBtn);
 
     // ── Background license re-verification (every 7 days, 30-day grace offline) ──
+    // A2: this HTTP call doesn't touch the editor on completion, so only the
+    //     thread itself needs to be detached safely. The call is idempotent
+    //     and on failure keeps the cached license within the grace window.
     if (proc.licenseValidator.needsPeriodicReverify())
     {
         auto& validator = proc.licenseValidator;
-        std::thread([&validator]() {
-            validator.reverifyWithServer();
-        }).detach();
+        std::thread([&validator] { validator.reverifyWithServer(); }).detach();
     }
 #endif
 
@@ -607,23 +608,36 @@ void FreeEQ8AudioProcessorEditor::onPresetSelected()
 
 void FreeEQ8AudioProcessorEditor::onSaveClicked()
 {
+    // A2: own the AlertWindow via unique_ptr. No more `new ... + delete dlg`
+    //     inside a `deleteWhenDismissed=true` callback (previously a latent
+    //     double-free).
+    if (activeDialog) return;   // one modal dialog at a time
     auto name = proc.presetManager ? proc.presetManager->getCurrentPreset() : juce::String();
-    auto* dlg = new juce::AlertWindow("Save Preset", "Enter preset name:", juce::AlertWindow::NoIcon);
-    dlg->addTextEditor("name", name, "Preset Name:");
-    dlg->addButton("Save", 1);
-    dlg->addButton("Cancel", 0);
+    activeDialog = std::make_unique<juce::AlertWindow>("Save Preset", "Enter preset name:",
+                                                        juce::AlertWindow::NoIcon);
+    activeDialog->addTextEditor("name", name, "Preset Name:");
+    activeDialog->addButton("Save", 1);
+    activeDialog->addButton("Cancel", 0);
 
-    dlg->enterModalState(true, juce::ModalCallbackFunction::create(
-        [this, dlg](int result) {
-            if (result == 1) {
-                auto presetName = dlg->getTextEditorContents("name");
-                if (presetName.isNotEmpty() && proc.presetManager) {
-                    proc.presetManager->savePreset(presetName);
-                    refreshPresetList();
+    activeDialog->enterModalState(
+        true,
+        juce::ModalCallbackFunction::create(
+            [weak = juce::WeakReference<FreeEQ8AudioProcessorEditor>(this)](int result)
+            {
+                auto* editor = weak.get();
+                if (editor == nullptr) return;
+                if (result == 1 && editor->activeDialog)
+                {
+                    auto presetName = editor->activeDialog->getTextEditorContents("name");
+                    if (presetName.isNotEmpty() && editor->proc.presetManager)
+                    {
+                        editor->proc.presetManager->savePreset(presetName);
+                        editor->refreshPresetList();
+                    }
                 }
-            }
-            delete dlg;
-        }), true);
+                editor->activeDialog.reset();
+            }),
+        /* deleteWhenDismissed */ false);
 }
 
 void FreeEQ8AudioProcessorEditor::onDeleteClicked()
@@ -639,87 +653,116 @@ void FreeEQ8AudioProcessorEditor::onDeleteClicked()
 #if PROEQ8
 void FreeEQ8AudioProcessorEditor::showActivationDialog()
 {
+    if (activeDialog) return;   // one modal dialog at a time
+
     if (proc.licenseValidator.isActivated())
     {
         // Already activated — show deactivation option
-        auto* dlg = new juce::AlertWindow("ProEQ8 License",
+        activeDialog = std::make_unique<juce::AlertWindow>(
+            "ProEQ8 License",
             "Licensed to: " + proc.licenseValidator.getEmail(),
             juce::AlertWindow::InfoIcon);
-        dlg->addButton("OK", 0);
-        dlg->addButton("Deactivate", 1);
-        dlg->enterModalState(true, juce::ModalCallbackFunction::create(
-            [this, dlg](int result) {
-                if (result == 1)
-                {
-                    // Run deactivation on a background thread
-                    licenseBtn.setButtonText("...");
-                    licenseBtn.setEnabled(false);
+        activeDialog->addButton("OK", 0);
+        activeDialog->addButton("Deactivate", 1);
 
-                    auto& validator = proc.licenseValidator;
-                    std::thread([this, &validator]() {
-                        validator.deactivate();
-                        juce::MessageManager::callAsync([this]() {
-                            licenseBtn.setButtonText("Activate");
-                            licenseBtn.setEnabled(true);
-                        });
-                    }).detach();
-                }
-                delete dlg;
-            }), true);
+        activeDialog->enterModalState(
+            true,
+            juce::ModalCallbackFunction::create(
+                [weak = juce::WeakReference<FreeEQ8AudioProcessorEditor>(this)](int result)
+                {
+                    auto* editor = weak.get();
+                    if (editor == nullptr) return;
+                    editor->activeDialog.reset();
+
+                    if (result != 1) return;
+
+                    // Run deactivation on a background thread. The callback
+                    // back to the UI is guarded by the same weak reference,
+                    // so closing the editor mid-HTTP cannot dereference
+                    // dangling `this`.
+                    editor->licenseBtn.setButtonText("...");
+                    editor->licenseBtn.setEnabled(false);
+
+                    auto& validator = editor->proc.licenseValidator;
+                    std::thread(
+                        [weakInner = juce::WeakReference<FreeEQ8AudioProcessorEditor>(editor),
+                         &validator]()
+                        {
+                            validator.deactivate();
+                            juce::MessageManager::callAsync(
+                                [weakInner]()
+                                {
+                                    if (auto* e = weakInner.get())
+                                    {
+                                        e->licenseBtn.setButtonText("Activate");
+                                        e->licenseBtn.setEnabled(true);
+                                    }
+                                });
+                        }).detach();
+                }),
+            /* deleteWhenDismissed */ false);
         return;
     }
 
-    auto* dlg = new juce::AlertWindow("Activate ProEQ8",
+    activeDialog = std::make_unique<juce::AlertWindow>(
+        "Activate ProEQ8",
         "Enter your license key:\n(Requires internet connection)",
         juce::AlertWindow::NoIcon);
-    dlg->addTextEditor("key", "", "License Key:");
-    dlg->addButton("Activate", 1);
-    dlg->addButton("Cancel", 0);
+    activeDialog->addTextEditor("key", "", "License Key:");
+    activeDialog->addButton("Activate", 1);
+    activeDialog->addButton("Cancel", 0);
 
-    dlg->enterModalState(true, juce::ModalCallbackFunction::create(
-        [this, dlg](int result) {
-            if (result == 1)
+    activeDialog->enterModalState(
+        true,
+        juce::ModalCallbackFunction::create(
+            [weak = juce::WeakReference<FreeEQ8AudioProcessorEditor>(this)](int result)
             {
-                auto key = dlg->getTextEditorContents("key");
-                if (key.isEmpty())
-                {
-                    delete dlg;
-                    return;
-                }
+                auto* editor = weak.get();
+                if (editor == nullptr) return;
+                juce::String key;
+                if (result == 1 && editor->activeDialog)
+                    key = editor->activeDialog->getTextEditorContents("key");
+                editor->activeDialog.reset();
 
-                // Run activation on a background thread (blocks on HTTP)
-                licenseBtn.setButtonText("Activating...");
-                licenseBtn.setEnabled(false);
+                if (result != 1 || key.isEmpty()) return;
 
-                auto& validator = proc.licenseValidator;
-                auto keyCopy = key;  // capture by value for thread safety
-                std::thread([this, &validator, keyCopy]() {
-                    auto activationResult = validator.activate(keyCopy);
+                editor->licenseBtn.setButtonText("Activating...");
+                editor->licenseBtn.setEnabled(false);
 
-                    juce::MessageManager::callAsync([this, activationResult]() {
-                        licenseBtn.setEnabled(true);
+                auto& validator = editor->proc.licenseValidator;
+                std::thread(
+                    [weakInner = juce::WeakReference<FreeEQ8AudioProcessorEditor>(editor),
+                     &validator, key]()
+                    {
+                        auto activationResult = validator.activate(key);
 
-                        if (activationResult == ActivationResult::Success)
-                        {
-                            licenseBtn.setButtonText("Licensed");
-                            juce::AlertWindow::showMessageBoxAsync(
-                                juce::AlertWindow::InfoIcon,
-                                "ProEQ8 Activated",
-                                "Activation successful! Enjoy ProEQ8.");
-                        }
-                        else
-                        {
-                            licenseBtn.setButtonText("Activate");
-                            juce::AlertWindow::showMessageBoxAsync(
-                                juce::AlertWindow::WarningIcon,
-                                "Activation Failed",
-                                LicenseValidator::getResultMessage(activationResult));
-                        }
-                    });
-                }).detach();
-            }
-            delete dlg;
-        }), true);
+                        juce::MessageManager::callAsync(
+                            [weakInner, activationResult]()
+                            {
+                                auto* e = weakInner.get();
+                                if (e == nullptr) return;
+                                e->licenseBtn.setEnabled(true);
+
+                                if (activationResult == ActivationResult::Success)
+                                {
+                                    e->licenseBtn.setButtonText("Licensed");
+                                    juce::AlertWindow::showMessageBoxAsync(
+                                        juce::AlertWindow::InfoIcon,
+                                        "ProEQ8 Activated",
+                                        "Activation successful! Enjoy ProEQ8.");
+                                }
+                                else
+                                {
+                                    e->licenseBtn.setButtonText("Activate");
+                                    juce::AlertWindow::showMessageBoxAsync(
+                                        juce::AlertWindow::WarningIcon,
+                                        "Activation Failed",
+                                        LicenseValidator::getResultMessage(activationResult));
+                                }
+                            });
+                    }).detach();
+            }),
+        /* deleteWhenDismissed */ false);
 }
 
 void FreeEQ8AudioProcessorEditor::toggleAB()

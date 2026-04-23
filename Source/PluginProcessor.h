@@ -8,7 +8,9 @@
 #include "DSP/MatchEQ.h"
 #include "Presets/PresetManager.h"
 #include "LicenseValidator.h"
+#include <array>
 #include <atomic>
+#include <memory>
 
 class FreeEQ8AudioProcessor : public juce::AudioProcessor,
                                public juce::AudioProcessorValueTreeState::Listener
@@ -100,10 +102,14 @@ private:
     double sr = 44100.0;
     int maxBlockSize = 512;
 
-    // Oversampling
-    std::unique_ptr<juce::dsp::Oversampling<float>> oversampler;
+    // ── Oversampling pool (A1) ────────────────────────────────────
+    // All four orders (0=1x, 1=2x, 2=4x, 3=8x) are built in prepareToPlay;
+    // processBlock just indexes into the pool. Zero heap allocation on the
+    // audio thread when the user changes the oversampling factor.
+    // oversamplers[i] covers order (i+1); order 0 (1x) uses the direct path.
+    static constexpr int kNumOversamplingOrders = 3;
+    std::array<std::unique_ptr<juce::dsp::Oversampling<float>>, kNumOversamplingOrders> oversamplers;
     int currentOversamplingOrder = 0;
-    std::atomic<int> pendingOversamplingOrder { -1 };  // -1 = no pending change
 
     // Pre-allocated buffer for buildLinearPhaseMagnitude (avoids heap alloc on audio thread)
     std::vector<float> linPhaseMagBuf;
@@ -111,9 +117,20 @@ private:
     // Linear phase dirty flag — only rebuild the FIR when params actually change
     std::atomic<bool> linPhaseDirty { true };
 
+    // ── Linear-phase rebuild worker (A5) ──────────────────────────
+    // buildLinearPhaseMagnitude + rebuildFromMagnitude used to run on the
+    // audio thread when linPhaseDirty was seen; at 24 bands it was a ~2k-bin
+    // magnitude evaluation plus an 8192-pt FFT per dirty block. Now a
+    // dedicated background juce::Thread owns the rebuild, writes into the
+    // engine's inactive kernel buffer, and atomically swaps activeKernelIdx.
+    class LinPhaseRebuildThread;
+    std::unique_ptr<LinPhaseRebuildThread> linPhaseRebuildThread;
+    void requestLinearPhaseRebuild();
+
     void syncBandsFromParams();
-    void rebuildOversampler(int order, double sampleRate, int samplesPerBlock);
-    void buildLinearPhaseMagnitude();
+    void buildAllOversamplers(double sampleRate, int samplesPerBlock);
+    juce::dsp::Oversampling<float>* currentOversamplerPtr() const noexcept;
+    void buildLinearPhaseMagnitude();        // runs on background thread only
 
     // Band linking
     void parameterChanged(const juce::String& parameterID, float newValue) override;

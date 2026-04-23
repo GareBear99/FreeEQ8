@@ -55,3 +55,4 @@ Desktop.ini
 *.tar.gz
 node_modules/
 build-tests/
+build/

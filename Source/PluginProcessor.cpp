@@ -6,6 +6,40 @@ static juce::String bandId(int idx, const char* suffix)
     return "b" + juce::String(idx) + "_" + suffix;
 }
 
+// ── A5: background rebuild worker for the linear-phase FIR ──────────────
+// Owned by the processor; started in prepareToPlay, stopped in the dtor.
+// When linPhaseDirty is set (by a parameter listener or by
+// setStateInformation), the thread wakes via notify(), clears the flag,
+// and rebuilds the FIR into the engine's inactive kernel slot. The
+// audio thread never calls buildLinearPhaseMagnitude().
+class FreeEQ8AudioProcessor::LinPhaseRebuildThread : public juce::Thread
+{
+public:
+    explicit LinPhaseRebuildThread(FreeEQ8AudioProcessor& p)
+        : juce::Thread("FreeEQ8_LinPhaseRebuild"), proc(p) {}
+
+    void run() override
+    {
+        while (!threadShouldExit())
+        {
+            // Park until notified by requestLinearPhaseRebuild(). A
+            // negative timeout means "wait forever until notify()".
+            wait(-1);
+            if (threadShouldExit()) break;
+
+            // Drain the dirty flag; if spuriously woken, loop back to wait.
+            while (proc.linPhaseDirty.exchange(false, std::memory_order_acquire))
+            {
+                if (threadShouldExit()) return;
+                proc.buildLinearPhaseMagnitude();
+            }
+        }
+    }
+
+private:
+    FreeEQ8AudioProcessor& proc;
+};
+
 FreeEQ8AudioProcessor::FreeEQ8AudioProcessor()
 : AudioProcessor(BusesProperties().withInput ("Input",  juce::AudioChannelSet::stereo(), true)
                                   .withOutput("Output", juce::AudioChannelSet::stereo(), true))
@@ -27,11 +61,22 @@ FreeEQ8AudioProcessor::FreeEQ8AudioProcessor()
     apvts.addParameterListener("scale", this);
     apvts.addParameterListener("adaptive_q", this);
 
+    linPhaseRebuildThread = std::make_unique<LinPhaseRebuildThread>(*this);
+
     initLinkTracking();
 }
 
 FreeEQ8AudioProcessor::~FreeEQ8AudioProcessor()
 {
+    // Tear down the rebuild thread first so it can't touch apvts mid-destruction.
+    if (linPhaseRebuildThread)
+    {
+        linPhaseRebuildThread->signalThreadShouldExit();
+        linPhaseRebuildThread->notify();
+        linPhaseRebuildThread->stopThread(2000);
+        linPhaseRebuildThread.reset();
+    }
+
     apvts.removeParameterListener("adaptive_q", this);
     apvts.removeParameterListener("scale", this);
     apvts.removeParameterListener("linear_phase", this);
@@ -46,6 +91,13 @@ FreeEQ8AudioProcessor::~FreeEQ8AudioProcessor()
     }
 }
 
+void FreeEQ8AudioProcessor::requestLinearPhaseRebuild()
+{
+    linPhaseDirty.store(true, std::memory_order_release);
+    if (linPhaseRebuildThread && linPhaseRebuildThread->isThreadRunning())
+        linPhaseRebuildThread->notify();
+}
+
 void FreeEQ8AudioProcessor::initLinkTracking()
 {
     for (int i = 1; i <= kNumBands; ++i)
@@ -58,8 +110,9 @@ void FreeEQ8AudioProcessor::initLinkTracking()
 
 void FreeEQ8AudioProcessor::parameterChanged(const juce::String& parameterID, float newValue)
 {
-    // Any EQ-relevant parameter change invalidates the linear phase FIR
-    linPhaseDirty.store(true, std::memory_order_relaxed);
+    // Any EQ-relevant parameter change invalidates the linear phase FIR.
+    // Publish via release and wake the background rebuild thread (A5).
+    requestLinearPhaseRebuild();
 
     // Handle linear phase latency update (safe: parameterChanged is called on message thread)
     if (parameterID == "linear_phase")
@@ -272,16 +325,22 @@ void FreeEQ8AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
     for (auto& b : bands)
         b.reset(sr);
 
-    // Initialise oversampler
-    const int osOrder = (int) apvts.getRawParameterValue("oversampling")->load();
-    rebuildOversampler(osOrder, sampleRate, samplesPerBlock);
+    // A1: pre-build every oversampler order up-front. No heap allocation on
+    //     the audio thread when the user changes the oversampling factor.
+    buildAllOversamplers(sampleRate, samplesPerBlock);
+    currentOversamplingOrder = (int) apvts.getRawParameterValue("oversampling")->load();
 
     // Linear phase engine
     linearPhaseEngine.prepare(sampleRate, samplesPerBlock);
-    linPhaseDirty.store(true, std::memory_order_relaxed);
 
     // Pre-allocate linear phase magnitude buffer
     linPhaseMagBuf.resize((size_t)(LinearPhaseEngine::firLength / 2 + 1), 0.0f);
+
+    // A5: start the rebuild worker and request an initial kernel build so
+    //     the engine has a valid kernel before processBlock runs.
+    if (linPhaseRebuildThread && ! linPhaseRebuildThread->isThreadRunning())
+        linPhaseRebuildThread->startThread(juce::Thread::Priority::low);
+    requestLinearPhaseRebuild();
 
     // Update latency based on current linear-phase setting
     const bool linPhase = apvts.getRawParameterValue("linear_phase")->load() > 0.5f;
@@ -297,20 +356,27 @@ void FreeEQ8AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
     licenseValidator.resetDemoCounter();
 }
 
-void FreeEQ8AudioProcessor::rebuildOversampler(int order, double sampleRate, int samplesPerBlock)
+void FreeEQ8AudioProcessor::buildAllOversamplers(double /*sampleRate*/, int samplesPerBlock)
 {
-    currentOversamplingOrder = order;
-    if (order == 0)
+    // oversamplers[i] corresponds to DSP order (i + 1):
+    //   i=0 -> 2x, i=1 -> 4x, i=2 -> 8x.
+    // The "1x" path is represented by nullptr (currentOversamplerPtr() returns null).
+    for (int i = 0; i < kNumOversamplingOrders; ++i)
     {
-        oversampler.reset();
-        return;
+        const int order = i + 1;
+        oversamplers[(size_t)i] = std::make_unique<juce::dsp::Oversampling<float>>(
+            2, order,
+            juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR,
+            true);
+        oversamplers[(size_t)i]->initProcessing((size_t) samplesPerBlock);
     }
+}
 
-    oversampler = std::make_unique<juce::dsp::Oversampling<float>>(
-        2, order,
-        juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR,
-        true);
-    oversampler->initProcessing((size_t) samplesPerBlock);
+juce::dsp::Oversampling<float>* FreeEQ8AudioProcessor::currentOversamplerPtr() const noexcept
+{
+    const int order = currentOversamplingOrder;
+    if (order <= 0 || order > kNumOversamplingOrders) return nullptr;
+    return oversamplers[(size_t)(order - 1)].get();
 }
 
 void FreeEQ8AudioProcessor::syncBandsFromParams()
@@ -364,18 +430,25 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     const int procMode = (int) apvts.getRawParameterValue("proc_mode")->load();
     const bool midSideMode = (procMode == 1);
 
-    // Check oversampling parameter — defer rebuild if changed
-    // (avoid heap allocation on audio thread; rebuild happens in prepareToPlay or
-    //  on next block after the pending flag is set)
+    // A1: look up oversampler from the pre-built pool. Zero heap allocation
+    //     on the audio thread, even when the user changes the oversampling
+    //     factor live. A factor change may produce a one-block latency blip
+    //     because IIR half-band filter state differs between orders; this
+    //     mirrors JUCE's own behavior and is acceptable.
     const int osOrder = (int) apvts.getRawParameterValue("oversampling")->load();
     if (osOrder != currentOversamplingOrder)
     {
-        // Build the new oversampler here but only if sample rate is known.
-        // This is still on the audio thread, but it's safer to do it once
-        // (on parameter change) than every block. A fully correct solution
-        // would defer to a non-RT thread, but this matches JUCE plugin norms.
-        rebuildOversampler(osOrder, sr, buffer.getNumSamples());
+        // Reset the new filter chain so we don't carry over stale delay state
+        // from the last time this order was engaged. Oversampling::reset()
+        // is non-allocating; it only zeros internal filter state.
+        if (osOrder >= 1 && osOrder <= kNumOversamplingOrders)
+        {
+            if (auto* os = oversamplers[(size_t)(osOrder - 1)].get())
+                os->reset();
+        }
+        currentOversamplingOrder = osOrder;
     }
+    juce::dsp::Oversampling<float>* const activeOS = currentOversamplerPtr();
 
     // Check if any band is soloed
     int soloedBand = -1;
@@ -389,7 +462,7 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     }
 
     // Read per-band slope and channel route, then set up beginBlock
-    const double effectiveSR = (oversampler != nullptr)
+    const double effectiveSR = (activeOS != nullptr)
         ? sr * std::pow(2.0, currentOversamplingOrder)
         : sr;
 
@@ -515,25 +588,24 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 
     if (linearPhase)
     {
-        // Linear phase path: only rebuild FIR when parameters actually change
-        if (linPhaseDirty.exchange(false, std::memory_order_relaxed))
-            buildLinearPhaseMagnitude();
-
-        // Apply output gain to the buffer before linear phase processing
-        // (output gain is baked into the magnitude response)
+        // A5: the background rebuild thread owns the FIR. The audio thread
+        //     only reads the currently-published kernel via an acquire load.
+        //     If the thread hasn't finished its first rebuild yet, the
+        //     engine's processBlock is pass-through (documented in
+        //     LinearPhaseEngine::processBlock).
         linearPhaseEngine.processBlock(L, R, n);
 
-        // Apply output gain separately
+        // Apply output gain separately (not baked into magnitude kernel).
         for (int i = 0; i < n; ++i)
         {
             L[i] *= outputGain;
             R[i] *= outputGain;
         }
     }
-    else if (oversampler != nullptr)
+    else if (activeOS != nullptr)
     {
         juce::dsp::AudioBlock<float> block(buffer);
-        auto osBlock = oversampler->processSamplesUp(block);
+        auto osBlock = activeOS->processSamplesUp(block);
 
         auto* osL = osBlock.getChannelPointer(0);
         auto* osR = osBlock.getChannelPointer(1);
@@ -541,7 +613,7 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 
         processEQ(osL, osR, osN, effectiveSR);
 
-        oversampler->processSamplesDown(block);
+        activeOS->processSamplesDown(block);
 
         L = buffer.getWritePointer(0);
         R = buffer.getWritePointer(1);
@@ -633,7 +705,10 @@ void FreeEQ8AudioProcessor::setStateInformation(const void* data, int sizeInByte
         // Re-sync link tracking from restored state so the first
         // linked-parameter change after loading doesn't use stale baselines.
         initLinkTracking();
-        linPhaseDirty.store(true, std::memory_order_relaxed);
+
+        // Ask the background worker to rebuild the FIR from the restored
+        // state; audio thread will keep using the previous kernel until then.
+        requestLinearPhaseRebuild();
 
         // Update latency to match restored linear-phase setting
         const bool linPhase = apvts.getRawParameterValue("linear_phase")->load() > 0.5f;

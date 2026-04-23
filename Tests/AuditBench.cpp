@@ -145,11 +145,76 @@ static void bench_chunking_overhead()
     (void)sink;
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// A1: pooled-oversampler lookup cost (audio-thread path)
+// ═══════════════════════════════════════════════════════════════════════
+// Before (audio-thread rebuild on change): creates a new
+//   juce::dsp::Oversampling<float> and calls initProcessing(). Benchmarking
+//   that requires JUCE. The heap allocation + DSP filter init is documented
+//   in JUCE's source to be several-kilobyte allocs + internal state init.
+// After: indexes into a pre-built std::array of 3 ptrs and optionally calls
+//   .reset() (non-allocating). That's what this benchmark measures.
+static void bench_pool_lookup()
+{
+    constexpr long long ITERS = 100000000;   // 100M lookups
+    std::array<int, 4> pool { 0, 1, 2, 3 };
+    int currentOrder = 0;
+    volatile long long sink = 0;
+    auto t0 = clk::now();
+    for (long long it = 0; it < ITERS; ++it)
+    {
+        const int desired = (int)(it & 3);  // rotate 0,1,2,3
+        if (desired != currentOrder)
+        {
+            // This branch mirrors the audio-thread path after A1: no alloc,
+            // just an index check + (in real code) Oversampling::reset().
+            currentOrder = desired;
+        }
+        if (currentOrder > 0 && currentOrder <= 3)
+            sink += pool[(size_t)(currentOrder - 1)];
+    }
+    auto t1 = clk::now();
+    auto dt = std::chrono::duration_cast<ns>(t1 - t0);
+    std::printf("pooled lookup (change every block): %.2f ns/iter\n",
+                ns_per(dt, ITERS));
+    (void)sink;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// A5: audio-thread kernel handoff cost (swap + acquire)
+// ═══════════════════════════════════════════════════════════════════════
+static void bench_kernel_handoff()
+{
+    // Measure the per-block audio-thread cost of checking for and picking up
+    // a new kernel: two atomic ops (exchange + exchange) in the fresh case,
+    // one atomic load in the steady case.
+    std::atomic<bool> fresh { false };
+    std::atomic<int>  mid   { 1 };
+    int readSlot = 2;
+    volatile int sink = 0;
+
+    constexpr long long ITERS = 100000000;
+    auto t0 = clk::now();
+    for (long long it = 0; it < ITERS; ++it)
+    {
+        if (fresh.exchange(false, std::memory_order_acquire))
+            readSlot = mid.exchange(readSlot, std::memory_order_acquire);
+        sink += readSlot;
+    }
+    auto t1 = clk::now();
+    auto dt = std::chrono::duration_cast<ns>(t1 - t0);
+    std::printf("audio-thread kernel check (steady, no rebuild pending): %.2f ns/block\n",
+                ns_per(dt, ITERS));
+    (void)sink;
+}
+
 int main()
 {
     std::printf("── Milestone-A micro-benchmarks ──\n");
     bench_push_throughput();
     bench_consume_latency();
     bench_chunking_overhead();
+    bench_pool_lookup();
+    bench_kernel_handoff();
     return 0;
 }
