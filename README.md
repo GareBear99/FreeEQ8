@@ -123,6 +123,25 @@ ProEQ8 is the commercial big brother of FreeEQ8 — same rock-solid DSP engine, 
 
 **ProEQ8 is included in the macOS DMG download.** A license key is required to unlock it — purchase through the link above to receive your key via email. Without a license, ProEQ8 runs in demo mode: 2 minutes of clean playback, then a 30-second mute window (repeats).
 
+## 🧠 Smart EQ Layer (v2.3 foundation)
+
+FreeEQ8 is adding a real-time decision layer on top of the existing 8-band engine — not to replace surgical control, but to make getting to a clean mix faster than most paid EQs.
+
+**Shipped now (v2.3 DSP foundation, no UI wiring yet):**
+- `Source/DSP/ResonanceDetector.h` — log-frequency peak finder that produces up to 4 ranked suggestion bands with recommended frequency, cut-gain, Q, confidence score, and a semantic label ("mud", "boxiness", "harshness", "sibilance" …).
+- `Source/DSP/IntentMode.h` — behavioural biasing: `None` / `Vocal Clean` / `Drum Punch` / `Guitar Space` / `Master Polish`. Each mode shifts the detector's scoring curve toward the frequency zones that matter for that source, without forcing preset bands.
+- `Source/DSP/FrequencyExplainer.h` — static frequency → semantic description map powering the Explain-on-hover UX ("Cutting mud (320 Hz)" / "Adding air (12 kHz)").
+- Deterministic, allocation-free, UI-thread safe — piggybacks on the existing triple-buffered `SpectrumFIFO`.
+
+**Coming next (UI surfacing, tracked in [`docs/SMART_EQ_LAYER.md`](docs/SMART_EQ_LAYER.md)):**
+- glowing suggestion-node overlay on the response curve
+- one-click “apply suggestion” that drops a peak into the next unused band
+- Explain-on-hover popup when mousing over any band
+- `intent_mode` APVTS parameter + small editor dropdown
+- Zero-Lag auto-switch between linear-phase (precision) and minimum-phase (real-time)
+
+No other free open-source 8-band EQ currently combines intent-aware resonance detection + explain-on-hover + one-click apply. See [`docs/SMART_EQ_LAYER.md`](docs/SMART_EQ_LAYER.md) for the full algorithm, status matrix, and next-commit plan.
+
 ## 📊 Benchmarks & RT-safety
 
 FreeEQ8 / ProEQ8 v2.2.0 ships with a proven real-time-safe DSP engine:
@@ -468,6 +487,16 @@ FreeEQ8/
 - [x] Obfuscated signing secret in binary
 - [x] Fixed JUCE 7.0.12 API compatibility
 
+### v2.3.0 (In Progress) — Smart EQ Layer
+- [x] Resonance detector (log-frequency, intent-weighted peak finder)
+- [x] Intent Mode weighting curves (None / Vocal Clean / Drum Punch / Guitar Space / Master Polish)
+- [x] Frequency Explainer semantic map
+- [ ] `intent_mode` APVTS parameter + editor dropdown
+- [ ] Response-curve overlay with glowing suggestion nodes
+- [ ] Explain-on-hover popup on band nodes
+- [ ] One-click “apply suggestion” into next unused band
+- [ ] Zero-Lag auto-switch between linear-phase and minimum-phase modes
+
 ### v2.2.0 (Current Release)
 - [x] Real-time safety: zero heap allocation on the audio thread for any user action (Milestone A / A1)
 - [x] `SpectrumFIFO` + `LinearPhaseEngine` kernel on canonical swap-chain triple-buffer (A4 / A5)
@@ -502,6 +531,11 @@ Contributions are welcome! Here's how you can help:
 - 🧪 Unit tests
 
 ## 📝 Changelog
+
+### v2.3.0-dev (2026-04-23)
+- ✅ Smart EQ Layer DSP foundation: `ResonanceDetector`, `IntentMode`, `FrequencyExplainer` shipped as standalone headers with zero wiring into `processBlock` (no risk to existing users).
+- ✅ Design + roadmap documented in `docs/SMART_EQ_LAYER.md`; status matrix tracks what's shipped vs. pending UI surfacing.
+- Next cut will wire the `intent_mode` parameter, detector instance, and UI overlay.
 
 ### v2.2.0 (2026-04-23)
 - ✅ Milestone A real-time safety + correctness pass: oversampler pool, triple-buffered SPSC for spectrum FIFO + linear-phase kernel, off-audio-thread FIR rebuild, MatchEQ chunking for oversized blocks, editor lifetime safety
