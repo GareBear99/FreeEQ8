@@ -487,16 +487,6 @@ FreeEQ8/
 - [x] Obfuscated signing secret in binary
 - [x] Fixed JUCE 7.0.12 API compatibility
 
-### v2.3.0 (In Progress) — Smart EQ Layer
-- [x] Resonance detector (log-frequency, intent-weighted peak finder)
-- [x] Intent Mode weighting curves (None / Vocal Clean / Drum Punch / Guitar Space / Master Polish)
-- [x] Frequency Explainer semantic map
-- [ ] `intent_mode` APVTS parameter + editor dropdown
-- [ ] Response-curve overlay with glowing suggestion nodes
-- [ ] Explain-on-hover popup on band nodes
-- [ ] One-click “apply suggestion” into next unused band
-- [ ] Zero-Lag auto-switch between linear-phase and minimum-phase modes
-
 ### v2.2.0 (Current Release)
 - [x] Real-time safety: zero heap allocation on the audio thread for any user action (Milestone A / A1)
 - [x] `SpectrumFIFO` + `LinearPhaseEngine` kernel on canonical swap-chain triple-buffer (A4 / A5)
@@ -506,6 +496,15 @@ FreeEQ8/
 - [x] Demo cadence: 2 minutes of clean playback + 30-second mute window
 - [x] `getTailLengthSeconds` reports the MatchEQ overlap-add tail for offline renders (A7)
 
+### v2.3.0 (In Progress) — Smart EQ Layer
+- [x] Resonance detector (log-frequency, intent-weighted peak finder)
+- [x] Intent Mode weighting curves (None / Vocal Clean / Drum Punch / Guitar Space / Master Polish)
+- [x] Frequency Explainer semantic map
+- [ ] `intent_mode` APVTS parameter + editor dropdown
+- [ ] Response-curve overlay with glowing suggestion nodes
+- [ ] Explain-on-hover popup on band nodes
+- [ ] One-click “apply suggestion” into next unused band
+- [ ] Zero-Lag auto-switch between linear-phase and minimum-phase modes
 
 ## 🤝 Contributing
 
