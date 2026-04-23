@@ -13,9 +13,18 @@ as of the last audit on this page.
 ## Pending submissions
 | List | Stars | Status | Entry |
 |------|------:|--------|-------|
-| [**sudara / awesome-juce**](https://github.com/sudara/awesome-juce) | 1.2k ⭐ | ⏳ PR open | [PR #61](https://github.com/sudara/awesome-juce/pull/61), submitted 2026-02-26, awaiting maintainer review |
-| [**notthetup / awesome-webaudio**](https://github.com/notthetup/awesome-webaudio) | 1.3k ⭐ | ⏳ Issue open | [Issue #83](https://github.com/notthetup/awesome-webaudio/issues/83), submitted 2026-03-27 |
+| [**olilarkin / awesome-musicdsp**](https://github.com/olilarkin/awesome-musicdsp) | 2.9k ⭐ | ⏳ PR open | [PR #11](https://github.com/olilarkin/awesome-musicdsp/pull/11), submitted 2026-04-23 — FreeEQ8 under *Exemplary open source audio plug-in projects* |
 | [**noteflakes / awesome-music**](https://github.com/noteflakes/awesome-music) | 2.3k ⭐ | ⏳ Issue open | [Issue #101](https://github.com/noteflakes/awesome-music/issues/101), submitted 2026-04-15 |
+| [**notthetup / awesome-webaudio**](https://github.com/notthetup/awesome-webaudio) | 1.3k ⭐ | ⏳ Issue open | [Issue #83](https://github.com/notthetup/awesome-webaudio/issues/83), submitted 2026-03-27 |
+| [**sudara / awesome-juce**](https://github.com/sudara/awesome-juce) | 1.2k ⭐ | ⏳ PR open | [PR #61](https://github.com/sudara/awesome-juce/pull/61), submitted 2026-02-26, awaiting maintainer review |
+| [**dreikanter / awesome-vst**](https://github.com/dreikanter/awesome-vst) | 15 ⭐ | ⏳ PR open | [PR #18](https://github.com/dreikanter/awesome-vst/pull/18), submitted 2026-04-23 — FreeEQ8 under *Mixing and Mastering* |
+
+## Reviewed but intentionally not submitted
+| List | Reason |
+|------|--------|
+| [**BillyDM / awesome-audio-dsp**](https://github.com/BillyDM/awesome-audio-dsp) (1.3k ⭐) | Moved to Codeberg; contribution rules exclude self-promotion with financial incentive (ProEQ8 is $20) |
+| [**matthewamend / awesome-audio-plugins**](https://github.com/matthewamend/awesome-audio-plugins) (1 ⭐) | List is scoped to plugin APIs / libraries / dev tools, not end-user plugins |
+| [**DolbyIO / awesome-audio**](https://github.com/DolbyIO/awesome-audio) (323 ⭐) | List is scoped to developer APIs (Dolby.io, AWS, Google STT) and DAWs, not individual plugins; no fitting section |
 
 ## Ecosystem listings (maintainer-controlled)
 | List | Role |
