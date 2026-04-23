@@ -112,7 +112,7 @@ ProEQ8 is the commercial big brother of FreeEQ8 — same rock-solid DSP engine, 
 | Band Linking | ✓ | ✓ |
 | Formats | VST3, AU | VST3, AU |
 
-**ProEQ8 is included in the macOS DMG download.** A license key is required to unlock it — purchase through the link above to receive your key via email. Without a license, ProEQ8 runs in demo mode (mutes for 30 seconds every 5 minutes).
+**ProEQ8 is included in the macOS DMG download.** A license key is required to unlock it — purchase through the link above to receive your key via email. Without a license, ProEQ8 runs in demo mode: 2 minutes of clean playback, then a 30-second mute window (repeats).
 
 ## ✨ Features
 
