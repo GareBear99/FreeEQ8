@@ -142,13 +142,30 @@ public:
     int getNumBins() const { return numBins; }
 
     // Apply match EQ correction via FFT with overlap-add (call from audio thread).
+    //
+    // Overlap-add safety: the correction is a per-bin gain on a 4096-point FFT,
+    // so the equivalent time-domain impulse response has support up to fftSize.
+    // To avoid circular aliasing we must satisfy (chunkSize + impulseLen) <= fftSize.
+    // Since we have no formal bound on impulseLen < fftSize, we conservatively cap
+    // the per-FFT chunk at fftSize/2 = 2048 samples, which matches the largest
+    // numSamples that the previous single-pass code produced correct output for.
+    // Any larger host buffer is now processed as a sequence of <=2048-sample chunks
+    // instead of being silently dropped (previous behavior: early-return on
+    // numSamples > fftSize).
     void applyCorrection(float* L, float* R, int numSamples, double /*sampleRate*/)
     {
         if (!matchActive.load(std::memory_order_acquire)) return;
-        if (numSamples > fftSize) return;
+        if (numSamples <= 0) return;
 
-        applyToChannel(L, numSamples, overlapL);
-        applyToChannel(R, numSamples, overlapR);
+        constexpr int kMaxChunk = fftSize / 2;
+        int offset = 0;
+        while (offset < numSamples)
+        {
+            const int chunk = std::min(kMaxChunk, numSamples - offset);
+            applyToChannel(L + offset, chunk, overlapL);
+            applyToChannel(R + offset, chunk, overlapR);
+            offset += chunk;
+        }
     }
 
 private:
