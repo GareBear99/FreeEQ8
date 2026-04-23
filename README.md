@@ -461,6 +461,13 @@ FreeEQ8/
 - [x] Cloudflare Worker license server + Resend email delivery
 - [x] Demo mode for unactivated ProEQ8 (mutes 30s every 5min)
 
+### v2.1.0
+- [x] Standalone app included in all platform packages
+- [x] Hardened ProEQ8 license: device-bound activation, 7-day re-verify, 30-day offline grace
+- [x] Server /verify endpoint for periodic re-validation
+- [x] Obfuscated signing secret in binary
+- [x] Fixed JUCE 7.0.12 API compatibility
+
 ### v2.2.0 (Current Release)
 - [x] Real-time safety: zero heap allocation on the audio thread for any user action (Milestone A / A1)
 - [x] `SpectrumFIFO` + `LinearPhaseEngine` kernel on canonical swap-chain triple-buffer (A4 / A5)
@@ -469,15 +476,6 @@ FreeEQ8/
 - [x] Editor modal dialogs + license HTTP callbacks are lifetime-safe via `juce::WeakReference` (A2)
 - [x] Demo cadence: 2 minutes of clean playback + 30-second mute window
 - [x] `getTailLengthSeconds` reports the MatchEQ overlap-add tail for offline renders (A7)
-
-### v2.1.0
-- [x] Standalone app included in all platform packages
-- [x] Hardened ProEQ8 license: device-bound activation, 7-day re-verify, 30-day offline grace
-- [x] Server /verify endpoint for periodic re-validation
-- [x] Obfuscated signing secret in binary
-- [x] Fixed JUCE 7.0.12 API compatibility
-
-
 
 
 ## 🤝 Contributing
