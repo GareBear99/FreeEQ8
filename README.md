@@ -43,9 +43,9 @@ ProEQ8 is one of the most advanced EQs available, competing directly with top to
 
 ### ⬇️ Download Now — Free
 
-<a href="https://github.com/GareBear99/FreeEQ8/releases/tag/v2.1.0"><img src="https://img.shields.io/badge/⬇_macOS_DMG_(VST3_%2F_AU_%2F_Standalone)-22c55e?style=for-the-badge&logo=apple&logoColor=white" alt="Download macOS" /></a>
-<a href="https://github.com/GareBear99/FreeEQ8/releases/tag/v2.1.0"><img src="https://img.shields.io/badge/⬇_Windows_ZIP_(VST3)-6c7bbd?style=for-the-badge&logo=windows&logoColor=white" alt="Download Windows" /></a>
-<a href="https://github.com/GareBear99/FreeEQ8/releases/tag/v2.1.0"><img src="https://img.shields.io/badge/⬇_Linux_tar.gz_(VST3)-eab308?style=for-the-badge&logo=linux&logoColor=white" alt="Download Linux" /></a>
+<a href="https://github.com/GareBear99/FreeEQ8/releases/latest"><img src="https://img.shields.io/badge/⬇_macOS_DMG_(VST3_%2F_AU_%2F_Standalone)-22c55e?style=for-the-badge&logo=apple&logoColor=white" alt="Download macOS" /></a>
+<a href="https://github.com/GareBear99/FreeEQ8/releases/latest"><img src="https://img.shields.io/badge/⬇_Windows_ZIP_(VST3)-6c7bbd?style=for-the-badge&logo=windows&logoColor=white" alt="Download Windows" /></a>
+<a href="https://github.com/GareBear99/FreeEQ8/releases/latest"><img src="https://img.shields.io/badge/⬇_Linux_tar.gz_(VST3)-eab308?style=for-the-badge&logo=linux&logoColor=white" alt="Download Linux" /></a>
 
 FabFilter Pro-Q alternative for $0–$20
 
@@ -95,7 +95,7 @@ FabFilter Pro-Q alternative for $0–$20
 
 [![Buy ProEQ8](https://img.shields.io/badge/Buy%20ProEQ8-%2420-brightgreen?style=for-the-badge&logo=stripe&logoColor=white)](https://github.com/GareBear99/FreeEQ8/releases/latest)
 
-ProEQ8 is the commercial big brother of FreeEQ8 — same rock-solid DSP engine, massively expanded. Included in the [v2.1.0 release download](https://github.com/GareBear99/FreeEQ8/releases/tag/v2.1.0).
+ProEQ8 is the commercial big brother of FreeEQ8 — same rock-solid DSP engine, massively expanded. Included in the [latest release download](https://github.com/GareBear99/FreeEQ8/releases/latest).
 
 | | **FreeEQ8** (Free) | **ProEQ8** ($20) |
 |---|:---:|:---:|
@@ -440,7 +440,16 @@ FreeEQ8/
 - [x] Cloudflare Worker license server + Resend email delivery
 - [x] Demo mode for unactivated ProEQ8 (mutes 30s every 5min)
 
-### v2.1.0 (Current Release)
+### v2.2.0 (Current Release)
+- [x] Real-time safety: zero heap allocation on the audio thread for any user action (Milestone A / A1)
+- [x] `SpectrumFIFO` + `LinearPhaseEngine` kernel on canonical swap-chain triple-buffer (A4 / A5)
+- [x] Linear-phase FIR rebuild moved to a dedicated `juce::Thread` worker (A5)
+- [x] `MatchEQ::applyCorrection` handles arbitrarily large DAW blocks instead of silent early-return (A3)
+- [x] Editor modal dialogs + license HTTP callbacks are lifetime-safe via `juce::WeakReference` (A2)
+- [x] Demo cadence: 2 minutes of clean playback + 30-second mute window
+- [x] `getTailLengthSeconds` reports the MatchEQ overlap-add tail for offline renders (A7)
+
+### v2.1.0
 - [x] Standalone app included in all platform packages
 - [x] Hardened ProEQ8 license: device-bound activation, 7-day re-verify, 30-day offline grace
 - [x] Server /verify endpoint for periodic re-validation
@@ -474,6 +483,12 @@ Contributions are welcome! Here's how you can help:
 - 🧪 Unit tests
 
 ## 📝 Changelog
+
+### v2.2.0 (2026-04-23)
+- ✅ Milestone A real-time safety + correctness pass: oversampler pool, triple-buffered SPSC for spectrum FIFO + linear-phase kernel, off-audio-thread FIR rebuild, MatchEQ chunking for oversized blocks, editor lifetime safety
+- ✅ Demo cadence: 2 min clean + 30 s mute (was 4:30 / 30 s)
+- ✅ `getTailLengthSeconds` covers MatchEQ tail (offline render correctness)
+- ✅ See `docs/MILESTONE_A_REPORT.md` for proofs, benchmarks, and stress-test evidence
 
 ### v2.1.0 (2026-03-25)
 - ✅ Standalone app now included in macOS DMG, Windows ZIP, Linux tar.gz
