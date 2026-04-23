@@ -643,12 +643,20 @@ void FreeEQ8AudioProcessor::setStateInformation(const void* data, int sizeInByte
 
 double FreeEQ8AudioProcessor::getTailLengthSeconds() const
 {
-    // Linear phase FIR convolution produces a tail equal to the FIR length.
-    // Match EQ overlap-add also contributes but its tail is shorter.
-    const bool linPhase = apvts.getRawParameterValue("linear_phase")->load() > 0.5f;
-    if (linPhase && sr > 0)
-        return (double)LinearPhaseEngine::firLength / sr;
-    return 0.0;
+    // Two independent convolutions can produce energy past the input boundary:
+    //   1. Linear-phase FIR convolution → tail up to firLength samples.
+    //   2. Match-EQ overlap-add        → tail up to MatchEQ::fftSize samples.
+    // Report the maximum so offline renders don't truncate either contribution.
+    if (sr <= 0.0)
+        return 0.0;
+
+    const bool linPhase    = apvts.getRawParameterValue("linear_phase")->load() > 0.5f;
+    const bool matchActive = matchEQ.isMatchActive();
+
+    const double linTail   = linPhase    ? (double)LinearPhaseEngine::firLength / sr : 0.0;
+    const double matchTail = matchActive ? (double)MatchEQ::fftSize             / sr : 0.0;
+
+    return std::max(linTail, matchTail);
 }
 
 juce::AudioProcessorEditor* FreeEQ8AudioProcessor::createEditor()

@@ -54,3 +54,4 @@ Desktop.ini
 *.zip
 *.tar.gz
 node_modules/
+build-tests/
