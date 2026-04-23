@@ -13,6 +13,12 @@
 <div align="center">
   <a href="https://git.io/typing-svg"><img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&duration=3800&pause=900&color=6C7BBD&center=true&vCenter=true&width=900&lines=Linear+Phase+%E2%80%A2+Dynamic+EQ+%E2%80%A2+Match+EQ;Per-Band+Drive+%E2%80%A2+M%2FS+%E2%80%A2+Oversampling;Spectrum+Analyzer+%E2%80%A2+Band+Linking+%E2%80%A2+Presets;Free+%26+Open+Source+for+macOS+%2F+Windows+%2F+Linux" alt="Typing SVG" /></a>
 
+  <br><br>
+  <sub><b>⭐ Featured on</b></sub><br>
+  <a href="https://github.com/GareBear99/awesome-audio-plugins-dev#equalizers"><img src="https://img.shields.io/badge/Awesome_Audio_Dev_List-6C7BBD?style=for-the-badge&logo=awesomelists&logoColor=white" alt="Listed on Awesome Audio Plugins Dev List" /></a>
+  <a href="https://github.com/ad-si/awesome-music-production#plugins"><img src="https://img.shields.io/badge/Awesome_Music_Production-fc6d26?style=for-the-badge&logo=awesomelists&logoColor=white" alt="Listed on ad-si/awesome-music-production" /></a>
+  <br><br>
+
   <a href="https://github.com/GareBear99/FreeEQ8/actions"><img src="https://img.shields.io/github/actions/workflow/status/GareBear99/FreeEQ8/release.yml?label=Build&style=for-the-badge&logo=github" alt="Build status" /></a>
   <br><br>
   <a href="https://github.com/GareBear99/FreeEQ8/releases/latest"><img src="https://img.shields.io/badge/📥_Download_Latest_Release-22c55e?style=for-the-badge&logo=github&logoColor=white" alt="Download latest release" /></a>
