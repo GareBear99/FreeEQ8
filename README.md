@@ -7,17 +7,18 @@
 > 🎵 [Awesome Audio](https://github.com/GareBear99/awesome-audio-plugins-dev) — (FREE) Awesome Audio Dev List
 
 <div align="center">
+  <a href="docs/FEATURED_ON.md"><sub><b>⭐ Featured on</b> — full list →</sub></a><br>
+  <a href="https://github.com/GareBear99/awesome-audio-plugins-dev#equalizers"><img src="https://img.shields.io/badge/Awesome_Audio_Dev_List-6C7BBD?style=for-the-badge&logo=awesomelists&logoColor=white" alt="Listed on Awesome Audio Plugins Dev List" /></a>
+  <a href="https://github.com/webprofusion/OpenAudio"><img src="https://img.shields.io/badge/OpenAudio-1f6feb?style=for-the-badge&logo=awesomelists&logoColor=white" alt="Listed on webprofusion/OpenAudio" /></a>
+  <a href="https://github.com/ad-si/awesome-music-production#plugins"><img src="https://img.shields.io/badge/Awesome_Music_Production-fc6d26?style=for-the-badge&logo=awesomelists&logoColor=white" alt="Listed on ad-si/awesome-music-production" /></a>
+</div>
+
+<div align="center">
   <img src="https://capsule-render.vercel.app/api?type=waving&height=200&color=0:0a0b12,50:1e2754,100:6c7bbd&text=FreeEQ8&fontSize=52&fontColor=e8eaf0&animation=fadeIn&fontAlignY=36&desc=Professional%208-Band%20Parametric%20EQ&descSize=18&descColor=a0a6bc&descAlignY=58" width="100%">
 </div>
 
 <div align="center">
   <a href="https://git.io/typing-svg"><img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&duration=3800&pause=900&color=6C7BBD&center=true&vCenter=true&width=900&lines=Linear+Phase+%E2%80%A2+Dynamic+EQ+%E2%80%A2+Match+EQ;Per-Band+Drive+%E2%80%A2+M%2FS+%E2%80%A2+Oversampling;Spectrum+Analyzer+%E2%80%A2+Band+Linking+%E2%80%A2+Presets;Free+%26+Open+Source+for+macOS+%2F+Windows+%2F+Linux" alt="Typing SVG" /></a>
-
-  <br><br>
-  <sub><b>⭐ Featured on</b></sub><br>
-  <a href="https://github.com/GareBear99/awesome-audio-plugins-dev#equalizers"><img src="https://img.shields.io/badge/Awesome_Audio_Dev_List-6C7BBD?style=for-the-badge&logo=awesomelists&logoColor=white" alt="Listed on Awesome Audio Plugins Dev List" /></a>
-  <a href="https://github.com/ad-si/awesome-music-production#plugins"><img src="https://img.shields.io/badge/Awesome_Music_Production-fc6d26?style=for-the-badge&logo=awesomelists&logoColor=white" alt="Listed on ad-si/awesome-music-production" /></a>
-  <br><br>
 
   <a href="https://github.com/GareBear99/FreeEQ8/actions"><img src="https://img.shields.io/github/actions/workflow/status/GareBear99/FreeEQ8/release.yml?label=Build&style=for-the-badge&logo=github" alt="Build status" /></a>
   <br><br>
@@ -121,6 +122,20 @@ ProEQ8 is the commercial big brother of FreeEQ8 — same rock-solid DSP engine, 
 | Formats | VST3, AU | VST3, AU |
 
 **ProEQ8 is included in the macOS DMG download.** A license key is required to unlock it — purchase through the link above to receive your key via email. Without a license, ProEQ8 runs in demo mode: 2 minutes of clean playback, then a 30-second mute window (repeats).
+
+## 📊 Benchmarks & RT-safety
+
+FreeEQ8 / ProEQ8 v2.2.0 ships with a proven real-time-safe DSP engine:
+- **Zero heap allocation on the audio thread** for any user action (pooled oversamplers).
+- **Canonical swap-chain triple-buffer** for both the spectrum FIFO and the linear-phase FIR kernel — verified under concurrent stress (3 runs × 400 ms, ~600 M samples, 0 tears).
+- **Linear-phase FIR rebuild on a dedicated `juce::Thread`** — no FFT work on the audio thread.
+- **MatchEQ chunking** handles DAW blocks of any size (previously dropped on `n > fftSize`).
+
+Full evidence and numbers:
+- [**Milestone A report**](docs/MILESTONE_A_REPORT.md) — math, benchmarks, stress-test results, sonic-impact analysis.
+- [**v2.2.0 release readiness**](docs/RELEASE_v2.2.0.md) — what's verified green/yellow/red.
+- [**`Tests/AuditBench.cpp`**](Tests/AuditBench.cpp) — reproducible micro-benchmarks (`clang -O3 -DNDEBUG -pthread`).
+- [**`Tests/AuditRegressionTest.cpp`**](Tests/AuditRegressionTest.cpp) — concurrent-stress invariants for the triple-buffer + chunking patterns.
 
 ## ✨ Features
 
