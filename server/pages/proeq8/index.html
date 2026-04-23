@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ProEQ8 — Upgrade · TizWildin Entertainment</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Upgrade to ProEQ8 — the 24-band commercial edition of FreeEQ8. One-time $20 USD. Instant license key by email.">
+<link rel="canonical" href="https://proeq8.tizwildin.com/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="ProEQ8 — $20 USD upgrade">
+<meta property="og:description" content="24-band professional EQ with A/B, auto-gain, linear phase, match EQ, Smart EQ layer. Instant license by email.">
+<meta name="theme-color" content="#08101b">
+<link rel="stylesheet" href="styles.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body class="page-landing">
+<header class="topbar">
+  <div class="container nav">
+    <a class="brand" href="/">
+      <span class="brand-mark" aria-hidden="true">◆</span>
+      <span class="brand-text">TizWildin · ProEQ8</span>
+    </a>
+    <nav class="navlinks">
+      <a href="https://github.com/GareBear99/FreeEQ8">FreeEQ8 (free)</a>
+      <a href="https://garebear99.github.io/TizWildinEntertainmentHUB/">TizWildin Hub</a>
+      <a href="https://github.com/GareBear99/FreeEQ8/issues">Support</a>
+    </nav>
+  </div>
+</header>
+
+<main class="hero">
+  <div class="container hero-inner">
+    <div class="hero-copy">
+      <div class="kicker">24-band professional EQ · one-time purchase</div>
+      <h1>ProEQ8 — the commercial edition of FreeEQ8.</h1>
+      <p class="lede">Everything the free plugin gives you, plus 24 bands, Tube/Tape/Transistor saturation, A/B snapshot toggle, auto-gain matched listening, and the Smart EQ target radar. One flat payment. No subscription. Lifetime updates.</p>
+
+      <div class="price-row">
+        <span class="price">$20 <span class="price-unit">USD</span></span>
+        <span class="price-sub">one-time · instant email delivery · 2 devices per key · 30-day offline grace</span>
+      </div>
+
+      <div id="signin-region" class="cta-block">
+        <p class="cta-hint">Sign in with Google to continue to secure checkout. Your email is used to deliver the license key — nothing else is stored.</p>
+        <div id="g_id_onload"
+             data-client_id="__GOOGLE_CLIENT_ID__"
+             data-context="signin"
+             data-ux_mode="popup"
+             data-callback="onGoogleSignIn"
+             data-auto_prompt="false">
+        </div>
+        <div class="g_id_signin"
+             data-type="standard"
+             data-shape="pill"
+             data-theme="filled_black"
+             data-text="continue_with"
+             data-size="large"
+             data-logo_alignment="left">
+        </div>
+        <div class="secondary-link">
+          <a href="#details">What do I get for $20?</a>
+        </div>
+      </div>
+    </div>
+
+    <aside class="hero-card" aria-hidden="false">
+      <div class="card-badge">Pro</div>
+      <h2 class="card-title">ProEQ8 v2.3</h2>
+      <ul class="card-list">
+        <li><strong>24 bands</strong> parametric with dynamic EQ, linear phase, and match EQ</li>
+        <li><strong>4 saturation modes</strong> — Tube · Tape · Transistor · Tanh</li>
+        <li><strong>A/B comparison</strong> with instant snapshot toggle + Copy A↔B</li>
+        <li><strong>Auto-gain bypass</strong> — RMS-matched honest listening</li>
+        <li><strong>Smart EQ target radar</strong> — intent-aware resonance detection</li>
+        <li><strong>Piano roll + collision detection</strong> on the response curve</li>
+        <li><strong>30+ factory presets</strong> across genre categories</li>
+      </ul>
+      <div class="card-foot">Lifetime updates · 2 devices per key · 30-day offline grace window</div>
+    </aside>
+  </div>
+</main>
+
+<section id="details" class="section">
+  <div class="container">
+    <h2>How the purchase works</h2>
+    <ol class="flow-list">
+      <li>Sign in with Google above. We use Google only to get your email for license delivery.</li>
+      <li>You're redirected to <strong>Stripe Checkout</strong> — the only place your card details ever live.</li>
+      <li>On payment success, a Cloudflare Worker generates a license key, emails it to you from <code>noreply@tizwildin.com</code> via Resend, and records a cryptographic proof-of-purchase hash in the public <a href="https://github.com/GareBear99/TizWildinEntertainmentHUB/blob/main/transparency/licenses.ndjson">TizWildin Hub transparency log</a>.</li>
+      <li>Open ProEQ8, paste the key, and you're running the 24-band edition. 2 devices per key.</li>
+    </ol>
+    <div class="trust-row">
+      <div class="trust-item">
+        <div class="trust-label">Payment processor</div>
+        <div class="trust-value">Stripe</div>
+      </div>
+      <div class="trust-item">
+        <div class="trust-label">Card data</div>
+        <div class="trust-value">Never touches our servers</div>
+      </div>
+      <div class="trust-item">
+        <div class="trust-label">License emails</div>
+        <div class="trust-value">Resend · noreply@tizwildin.com</div>
+      </div>
+      <div class="trust-item">
+        <div class="trust-label">Audit log</div>
+        <div class="trust-value">Public hash-only ledger</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div>© TizWildin Entertainment · MIT + commercial license</div>
+    <div class="footer-links">
+      <a href="https://github.com/GareBear99/FreeEQ8">Free edition</a>
+      <a href="https://github.com/GareBear99/FreeEQ8/blob/main/STRIPE_SETUP.md">Checkout setup</a>
+      <a href="https://github.com/GareBear99/TizWildinEntertainmentHUB/blob/main/transparency/licenses.ndjson">Transparency log</a>
+    </div>
+  </div>
+</footer>
+
+<script src="checkout.js"></script>
+</body>
+</html>

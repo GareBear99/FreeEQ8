@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ProEQ8 — Payment successful</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="styles.css">
+<meta name="theme-color" content="#08101b">
+</head>
+<body class="page-success">
+<header class="topbar">
+  <div class="container nav">
+    <a class="brand" href="/">
+      <span class="brand-mark">◆</span>
+      <span class="brand-text">TizWildin · ProEQ8</span>
+    </a>
+    <nav class="navlinks">
+      <a href="https://github.com/GareBear99/FreeEQ8">FreeEQ8 (free)</a>
+      <a href="https://github.com/GareBear99/FreeEQ8/issues">Support</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="success-card">
+    <h1><span class="success-ok">✓</span> Payment confirmed.</h1>
+    <p id="subtitle">We're generating your license key now — this usually takes less than 30 seconds.</p>
+
+    <div class="license-key" id="license-key">Waiting for Stripe confirmation…</div>
+
+    <p class="muted" id="instructions" style="color:var(--muted);font-size:13px;margin-top:12px;">
+      A copy has also been sent to your email. Keep it safe — one key activates up to <strong>2 devices</strong>. If you need to move to a third device, deactivate one first from inside ProEQ8's License dialog.
+    </p>
+
+    <a class="btn-primary" id="back-to-plugin" href="https://github.com/GareBear99/FreeEQ8/releases/latest">Download ProEQ8</a>
+    <a class="btn-ghost" href="/">← back to the ProEQ8 upgrade page</a>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <div>© TizWildin Entertainment</div>
+    <div class="footer-links">
+      <a href="https://github.com/GareBear99/TizWildinEntertainmentHUB/blob/main/transparency/licenses.ndjson">Transparency log</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  const WORKER_ORIGIN = "https://proeq8-checkout.tizwildin.workers.dev";
+  const keyEl  = document.getElementById("license-key");
+  const subEl  = document.getElementById("subtitle");
+
+  const params = new URLSearchParams(window.location.search);
+  const sessionId = params.get("session_id");
+  if (!sessionId) {
+    keyEl.textContent = "No session_id on URL — this page expects to be reached from Stripe's return_url.";
+    return;
+  }
+
+  async function poll(attempt) {
+    try {
+      const r = await fetch(WORKER_ORIGIN + "/api/license-for-session?session_id=" + encodeURIComponent(sessionId));
+      if (r.status === 202) {
+        // not issued yet — try again
+        if (attempt > 30) {
+          keyEl.textContent = "Still working on it. Check your email in a few minutes. If nothing arrives, open an issue at github.com/GareBear99/FreeEQ8/issues with your Stripe receipt and we'll resend.";
+          subEl.textContent = "Payment confirmed. License issuance is taking longer than usual.";
+          return;
+        }
+        setTimeout(() => poll(attempt + 1), 2000);
+        return;
+      }
+      if (!r.ok) {
+        keyEl.textContent = "Could not retrieve the license (" + r.status + "). Your payment was captured — check your email; if nothing arrives, open an issue with your Stripe receipt.";
+        return;
+      }
+      const data = await r.json();
+      if (data && data.license_key) {
+        keyEl.textContent = data.license_key;
+        subEl.innerHTML = "Your ProEQ8 license key is ready. It's also been emailed to <strong>" + (data.email || "your Google-auth address") + "</strong>.";
+      } else {
+        keyEl.textContent = "License issued, but the server returned no key. Check your email.";
+      }
+    } catch (e) {
+      keyEl.textContent = "Network error while fetching the license. Your payment was captured — check your email.";
+    }
+  }
+  poll(0);
+})();
+</script>
+</body>
+</html>
