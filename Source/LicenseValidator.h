@@ -62,18 +62,26 @@ public:
     juce::String getEmail() const { return licensedEmail; }
     juce::String getDeviceId() const { return deviceId; }
 
-    // Demo mode: returns true when audio should be muted
-    // Mutes for 30 seconds every 5 minutes (300 seconds)
+    // Demo mode: returns true when audio should be muted.
+    //
+    // Cycle: 2 minutes of clean playback, then a 30-second mute window,
+    // for a 2:30 period. Honor-system demo: determined users can trivially
+    // slice output into 2-minute segments, so this is a nag, not a DRM.
+    // Fully disabled in FreeEQ8 (free, GPL-3).
     bool shouldMuteDemo(double sampleRate, int numSamples)
     {
         if (activated.load()) return false;
         if (!kIsProVersion) return false;  // FreeEQ8 never mutes
 
         demoSampleCounter += numSamples;
-        const double cycleSamples = 300.0 * sampleRate;  // 5-minute cycle
-        const double muteSamples  = 30.0 * sampleRate;   // 30-second mute window
+        const double cleanSeconds = 120.0;                            // 2 min clean
+        const double muteSeconds  = 30.0;                             // 30 s mute
+        const double cycleSamples = (cleanSeconds + muteSeconds) * sampleRate;
+        const double muteSamples  = muteSeconds * sampleRate;
         const double pos = std::fmod((double)demoSampleCounter, cycleSamples);
 
+        // Muted during the final muteSamples of each cycle, i.e. from
+        // pos = cleanSeconds*sr onward.
         return pos >= (cycleSamples - muteSamples);
     }
 

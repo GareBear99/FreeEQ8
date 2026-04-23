@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] — 2026-04-23
+
+### Added
+- **Audit regression test suite** (`Tests/AuditRegressionTest.cpp`) proving
+  the triple-buffer SPSC invariants for `SpectrumFIFO` and
+  `LinearPhaseEngine` under concurrent stress (0 tears across ~600M
+  samples per run).
+- **Audit micro-benchmarks** (`Tests/AuditBench.cpp`) reporting
+  push/consume/chunk/pool/kernel-handoff timings.
+- **Milestone-A report** (`docs/MILESTONE_A_REPORT.md`) documenting every
+  change with math, benchmarks, and sonic-impact analysis.
+
+### Changed — real-time safety & correctness (Milestone A)
+- **A1**: oversamplers are pre-built in `prepareToPlay()` and looked up
+  from a `std::array<unique_ptr<Oversampling>, 3>` in `processBlock()`.
+  Order changes call only `Oversampling::reset()` (non-allocating).
+  Eliminates heap allocation on the audio thread.
+- **A2**: editor modal dialogs own a `std::unique_ptr<AlertWindow>`
+  (ends the latent double-free with `deleteWhenDismissed = true` +
+  `delete dlg` in callback). Background HTTP callbacks are guarded by
+  `juce::WeakReference<FreeEQ8AudioProcessorEditor>`; closing the editor
+  mid-activation no longer dereferences a dangling `this`.
+- **A3**: `MatchEQ::applyCorrection` now chunks blocks >4096 samples
+  into `<= fftSize/2` pieces instead of silently returning. Output is
+  bit-identical to previous code for `n ≤ 2048`; the
+  previously-dropped large-block case is now handled correctly.
+- **A4**: `SpectrumFIFO` upgraded from a racey single-ring-buffer to a
+  canonical swap-chain triple buffer (`writeSlot`/`midSlot`/`readSlot`
+  permutation of {0,1,2}). Audio thread never writes to the slot the UI
+  thread is reading.
+- **A5**: linear-phase FIR rebuild moved off the audio thread. A
+  dedicated `juce::Thread` worker (`LinPhaseRebuildThread`) is parked on
+  `wait(-1)` and drains the `linPhaseDirty` flag on `notify()`.
+  `LinearPhaseEngine` kernel handoff upgraded to the same swap-chain
+  triple buffer.
+- **A7**: `getTailLengthSeconds()` now returns `max(linPhaseTail,
+  matchActive ? MatchEQ::fftSize/sr : 0)` so offline renders don't
+  truncate the match-EQ overlap-add tail.
+- **Demo cadence** (ProEQ8 only, unactivated): now 2 minutes of clean
+  playback followed by 30 seconds of mute (was 4:30 / 30 s). Full
+  activation removes the mute entirely.
+
+### Notes
+- Net audio-path impact: **none** for A2/A4/A6/A7; strictly additive
+  correctness for A1/A3/A5.
+- Cold-start for linear-phase mode: the engine pass-throughs audio for
+  the (~sub-millisecond) window between `prepareToPlay()` and the
+  background thread's first published kernel, instead of applying a
+  zero-kernel.
+- All seven Milestone-A items verified via full builds of
+  `FreeEQ8_All` + `ProEQ8_All` (VST3 + AU + Standalone) with zero
+  errors and zero warnings.
+
 ## [2.0.0] — 2026-03-25
 
 ### Added
