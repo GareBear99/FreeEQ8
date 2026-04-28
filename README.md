@@ -5,7 +5,14 @@
 > 🎁 [Free Packs & Samples](#tizwildin-free-sample-packs) — jump to free packs & samples
 >
 > 🎵 [Awesome Audio](https://github.com/GareBear99/awesome-audio-plugins-dev) — (FREE) Awesome Audio Dev List
+> My Page:
+> - https://www.facebook.com/profile.php?id=61564485196765
+  
+> Youtube:
+> - https://www.youtube.com/@gfgfvmhj
 
+> Voxel Audio FREE RGB Visualizer Waverform:
+> - https://github.com/GareBear99/Voxel_Audio
 <div align="center">
   <a href="docs/FEATURED_ON.md"><sub><b>⭐ Featured on</b> — full list →</sub></a><br>
   <a href="https://github.com/GareBear99/awesome-audio-plugins-dev#equalizers"><img src="https://img.shields.io/badge/Awesome_Audio_Dev_List-6C7BBD?style=for-the-badge&logo=awesomelists&logoColor=white" alt="Listed on Awesome Audio Plugins Dev List" /></a>
@@ -47,15 +54,6 @@ FreeEQ8 is a professional-grade EQ8 / EQ Eight inspired parametric equalizer, fr
 ProEQ8 is one of the most advanced EQs available, competing directly with top tools like ZL EQ and TDR Nova.
 
 Works with Reaper!
-
-My Page:
-- https://www.facebook.com/profile.php?id=61564485196765
-  
-Youtube:
-- https://www.youtube.com/@gfgfvmhj
-
-Voxel Audio FREE RGB Visualizer Waverform:
-- https://github.com/GareBear99/Voxel_Audio
 
 <div align="center">
 
