@@ -7,7 +7,7 @@
 > 🎵 [Awesome Audio](https://github.com/GareBear99/awesome-audio-plugins-dev) — (FREE) Awesome Audio Dev List
 
 > ▶️ **[YouTube](https://www.youtube.com/@gfgfvmhj)** — music, visuals, demos, and releases  
-> 🌊 **[Voxel Audio](https://github.com/GareBear99/Voxel_Audio)** — free RGB waveform visualizer and audio export tool
+> 🌊 **[Voxel Audio](https://github.com/GareBear99/Voxel_Audio)** — free RGB waveform visualizer and audio export tool  
 > 📘 **[Facebook Page](https://www.facebook.com/profile.php?id=61564485196765)** — TizWildin / GareBearProductionz updates  
 
 <div align="center">
