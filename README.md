@@ -46,6 +46,17 @@ FreeEQ8 is a professional-grade EQ8 / EQ Eight inspired parametric equalizer, fr
 
 ProEQ8 is one of the most advanced EQs available, competing directly with top tools like ZL EQ and TDR Nova.
 
+Works with Reaper!
+
+My Page:
+- https://www.facebook.com/profile.php?id=61564485196765
+  
+Youtube:
+- https://www.youtube.com/@gfgfvmhj
+
+Voxel Audio FREE RGB Visualizer Waverform:
+- https://github.com/GareBear99/Voxel_Audio
+
 <div align="center">
 
 ### ⬇️ Download Now — Free
