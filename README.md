@@ -5,15 +5,10 @@
 > 🎁 [Free Packs & Samples](#tizwildin-free-sample-packs) — jump to free packs & samples
 >
 > 🎵 [Awesome Audio](https://github.com/GareBear99/awesome-audio-plugins-dev) — (FREE) Awesome Audio Dev List
+> 📘 **[Facebook Page](https://www.facebook.com/profile.php?id=61564485196765)** — TizWildin / GareBearProductionz updates  
+> ▶️ **[YouTube](https://www.youtube.com/@gfgfvmhj)** — music, visuals, demos, and releases  
+> 🌊 **[Voxel Audio](https://github.com/GareBear99/Voxel_Audio)** — free RGB waveform visualizer and audio export tool
 
-> My Page:
-> - https://www.facebook.com/profile.php?id=61564485196765
-  
-> Youtube:
-> - https://www.youtube.com/@gfgfvmhj
-
-> Voxel Audio FREE RGB Visualizer Waverform:
-> - https://github.com/GareBear99/Voxel_Audio
 <div align="center">
   <a href="docs/FEATURED_ON.md"><sub><b>⭐ Featured on</b> — full list →</sub></a><br>
   <a href="https://github.com/GareBear99/awesome-audio-plugins-dev#equalizers"><img src="https://img.shields.io/badge/Awesome_Audio_Dev_List-6C7BBD?style=for-the-badge&logo=awesomelists&logoColor=white" alt="Listed on Awesome Audio Plugins Dev List" /></a>
