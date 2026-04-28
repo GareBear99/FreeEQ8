@@ -53,7 +53,7 @@ FreeEQ8 is a professional-grade EQ8 / EQ Eight inspired parametric equalizer, fr
 
 ProEQ8 is one of the most advanced EQs available, competing directly with top tools like ZL EQ and TDR Nova.
 
-Works with Reaper!
+Works with Reaper! Tested on Ableton 10+
 
 <div align="center">
 
