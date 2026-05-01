@@ -71,6 +71,11 @@ FabFilter Pro-Q alternative for $0–$20
 
 **[All releases →](https://github.com/GareBear99/FreeEQ8/releases)**
 
+> 🗂️ **[Release Vault](https://garebear99.github.io/TizWildin-Release-Vault/)** — official monetized releases, distributed tracks, and catalog proof
+
+> 🗂️ **Release Vault Repo:** [https://github.com/GareBear99/TizWildin-Release-Vault](https://github.com/GareBear99/TizWildin-Release-Vault)
+
+
 </div>
 
 ## FreeEQ8 in Ableton Live
