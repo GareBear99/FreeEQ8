@@ -1,6 +1,3 @@
-**FreeEQ8**
-
-is the only free EQ combining linear phase + dynamic EQ + match EQ + per-band saturation + band linking.
 
 > 🎛️ Part of the [TizWildin Plugin Ecosystem](https://garebear99.github.io/TizWildinEntertainmentHUB/) — 19 free audio plugins with a live update dashboard.
 >
@@ -15,9 +12,6 @@ is the only free EQ combining linear phase + dynamic EQ + match EQ + per-band sa
 > ▶️ **[YouTube](https://www.youtube.com/@gfgfvmhj)** — music, visuals, demos, and releases  
 > 🌊 **[Voxel Audio](https://github.com/GareBear99/Voxel_Audio)** — free RGB waveform visualizer and audio export tool  
 > 📘 **[Facebook Page](https://www.facebook.com/profile.php?id=61564485196765)** — TizWildin / GareBearProductionz updates and Media  
-> 🗂️ **[Release Vault](https://garebear99.github.io/TizWildin-Release-Vault/)** — official monetized releases, distributed tracks, and catalog proof
-
-> 🗂️ **Release Vault Repo:** [https://github.com/GareBear99/TizWildin-Release-Vault](https://github.com/GareBear99/TizWildin-Release-Vault)
 
 
 <div align="center">
@@ -61,26 +55,6 @@ FreeEQ8 is a professional-grade EQ8 / EQ Eight inspired parametric equalizer, fr
 ProEQ8 is one of the most advanced EQs available, competing directly with top tools like ZL EQ and TDR Nova.
 
 Works with Reaper! Tested and built on Ableton 10+
-
-
-is the only free EQ combining linear phase + dynamic EQ + match EQ + per-band saturation + band linking.
-
-> 🎛️ Part of the [TizWildin Plugin Ecosystem](https://garebear99.github.io/TizWildinEntertainmentHUB/) — 19 free audio plugins with a live update dashboard.
->
-> [FreeEQ8](https://github.com/GareBear99/FreeEQ8) · [XyloCore](https://github.com/GareBear99/XyloCore) · [Instrudio](https://github.com/GareBear99/Instrudio) · [Therum](https://github.com/GareBear99/Therum_JUCE-Plugin) · [BassMaid](https://github.com/GareBear99/BassMaid) · [SpaceMaid](https://github.com/GareBear99/SpaceMaid) · [GlueMaid](https://github.com/GareBear99/GlueMaid) · [MixMaid](https://github.com/GareBear99/MixMaid) · [MultiMaid](https://github.com/GareBear99/MultiMaid) · [MeterMaid](https://github.com/GareBear99/MeterMaid) · [ChainMaid](https://github.com/GareBear99/ChainMaid) · [PaintMask](https://github.com/GareBear99/PaintMask_Free-JUCE-Plugin) · [WURP](https://github.com/GareBear99/WURP_Toxic-Motion-Engine_JUCE) · [AETHER](https://github.com/GareBear99/AETHER_Choir-Atmosphere-Designer) · [WhisperGate](https://github.com/GareBear99/WhisperGate_Free-JUCE-Plugin) · [RiftWave](https://github.com/GareBear99/RiftWaveSuite_RiftSynth_WaveForm_Lite) · [FreeSampler](https://github.com/GareBear99/FreeSampler_v0.3) · [VF-PlexLab](https://github.com/GareBear99/VF-PlexLab) · [PAP-Forge-Audio](https://github.com/GareBear99/PAP-Forge-Audio)
->
-> 🎧 **SoundCloud:** [TizWildin on SoundCloud](https://soundcloud.com/tizwildin) — original music, remixes, VIP mixes, experimental drops, and underground releases.
->
-> 🎁 [Free Packs & Samples](#tizwildin-free-sample-packs) — jump to free packs & samples
->
-> 🎵 [Awesome Audio](https://github.com/GareBear99/awesome-audio-plugins-dev) — My (FREE) Awesome Audio Dev List
->
-> ▶️ **[YouTube](https://www.youtube.com/@gfgfvmhj)** — music, visuals, demos, and releases  
-> 🌊 **[Voxel Audio](https://github.com/GareBear99/Voxel_Audio)** — free RGB waveform visualizer and audio export tool  
-> 📘 **[Facebook Page](https://www.facebook.com/profile.php?id=61564485196765)** — TizWildin / GareBearProductionz updates and Media  
-> 🗂️ **[Release Vault](https://garebear99.github.io/TizWildin-Release-Vault/)** — official monetized releases, distributed tracks, and catalog proof
-
-> 🗂️ **Release Vault Repo:** [https://github.com/GareBear99/TizWildin-Release-Vault](https://github.com/GareBear99/TizWildin-Release-Vault)
 
 
 <div align="center">
