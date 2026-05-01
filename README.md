@@ -1,4 +1,4 @@
-**FreeEQ8 is the only free EQ that combines linear phase + dynamic EQ + match EQ + per-band saturation + band linking in one plugin.**
+**FreeEQ8 is the only free EQ combining linear phase + dynamic EQ + match EQ + per-band saturation + band linking.**
 
 > 🎛️ Part of the [TizWildin Plugin Ecosystem](https://garebear99.github.io/TizWildinEntertainmentHUB/) — 19 free audio plugins with a live update dashboard.
 >
