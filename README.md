@@ -56,6 +56,8 @@ ProEQ8 is one of the most advanced EQs available, competing directly with top to
 
 Works with Reaper! Tested and built on Ableton 10+
 
+> 🗂️ **[Release Vault](https://garebear99.github.io/TizWildin-Release-Vault/)** — official monetized releases, distributed tracks, and catalog proof
+> 🗂️ **Release Vault Repo:** [https://github.com/GareBear99/TizWildin-Release-Vault](https://github.com/GareBear99/TizWildin-Release-Vault)
 
 <div align="center">
 
@@ -70,10 +72,6 @@ FabFilter Pro-Q alternative for $0–$20
 2min Demo ProEQ8 is included!
 
 **[All releases →](https://github.com/GareBear99/FreeEQ8/releases)**
-
-> 🗂️ **[Release Vault](https://garebear99.github.io/TizWildin-Release-Vault/)** — official monetized releases, distributed tracks, and catalog proof
-
-> 🗂️ **Release Vault Repo:** [https://github.com/GareBear99/TizWildin-Release-Vault](https://github.com/GareBear99/TizWildin-Release-Vault)
 
 
 </div>
