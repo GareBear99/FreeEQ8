@@ -15,14 +15,6 @@
 
 > 🗂️ **Release Vault Repo:** [https://github.com/GareBear99/TizWildin-Release-Vault](https://github.com/GareBear99/TizWildin-Release-Vault)
 
-
-#  👾 Awesome Audio Plugins & Dev
-
-<a href="https://github.com/sponsors/GareBear99"><img src="https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa?style=flat&logo=githubsponsors&logoColor=white" alt="Sponsor" /></a>
-<a href="https://buymeacoffee.com/garebear99"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=flat&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me a Coffee" /></a>
-<a href="https://ko-fi.com/luciferai"><img src="https://img.shields.io/badge/Ko--fi-ff5e5b?style=flat&logo=ko-fi&logoColor=white" alt="Ko-fi" /></a>
-[![Awesome](https://awesome.re/badge.svg)](https://awesome.re)
-
 🎧 [Awesome Audio Lists](https://github.com/GareBear99/awesome-audio-lists) — even more audio lists, submission routes, and promotional directories
 
 <div align="center">
