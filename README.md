@@ -1,4 +1,4 @@
-> 🎛️ Part of the [TizWildin Plugin Ecosystem](https://garebear99.github.io/TizWildinEntertainmentHUB/) — 20+ free audio plugins, creator tools, lists, deconstructed-loop routers, and release surfaces.
+> 🎛️ Part of the [TizWildin Plugin Ecosystem](https://garebear99.github.io/TizWildinEntertainmentHUB/) — audio plugins, creator tools, curated audio lists, sample packs, and release surfaces.
 >
 > [FreeEQ8](https://github.com/GareBear99/FreeEQ8) · [FreeVox8](https://github.com/GareBear99/FreeVox8) · [XyloCore](https://github.com/GareBear99/XyloCore) · [Instrudio](https://github.com/GareBear99/Instrudio) · [Therum](https://github.com/GareBear99/Therum_JUCE-Plugin) · [BassMaid](https://github.com/GareBear99/BassMaid) · [SpaceMaid](https://github.com/GareBear99/SpaceMaid) · [GlueMaid](https://github.com/GareBear99/GlueMaid) · [MixMaid](https://github.com/GareBear99/MixMaid) · [MultiMaid](https://github.com/GareBear99/MultiMaid) · [MeterMaid](https://github.com/GareBear99/MeterMaid) · [ChainMaid](https://github.com/GareBear99/ChainMaid) · [PaintMask](https://github.com/GareBear99/PaintMask_Free-JUCE-Plugin) · [WURP](https://github.com/GareBear99/WURP_Toxic-Motion-Engine_JUCE) · [AETHER](https://github.com/GareBear99/AETHER_Choir-Atmosphere-Designer) · [WhisperGate](https://github.com/GareBear99/WhisperGate_Free-JUCE-Plugin) · [RiftWave](https://github.com/GareBear99/RiftWaveSuite_RiftSynth_WaveForm_Lite) · [FreeSampler](https://github.com/GareBear99/FreeSampler_v0.3) · [VF-PlexLab](https://github.com/GareBear99/VF-PlexLab) · [PAP-Forge-Audio](https://github.com/GareBear99/PAP-Forge-Audio)
 >
@@ -50,14 +50,11 @@
   <a href="https://ko-fi.com/luciferai"><img src="https://img.shields.io/badge/Ko--fi-ff5e5b?style=flat&logo=ko-fi&logoColor=white" alt="Ko-fi" /></a>
 </div>
 
-FreeEQ8 is a professional-grade EQ8 / EQ Eight inspired parametric equalizer, free and open-source 8-band parametric EQ plugin for macOS, Linux, and Windows. Linear phase, dynamic EQ, match EQ, per-band drive, band linking, M/S processing, oversampling, and a real-time spectrum analyzer — all in a single, zero-cost plugin. Built with JUCE for VST3 and AU.
+FreeEQ8 is a free, GPL-3.0, 8-band parametric EQ plugin for macOS, Windows, and Linux. It is built with JUCE and ships as VST3, AU where supported, and a standalone target. The core feature set includes linear-phase mode, dynamic EQ controls, match EQ, per-band drive, band linking, M/S processing, oversampling, and a real-time spectrum analyzer.
 
-ProEQ8 is one of the most advanced EQs available, competing directly with top tools like ZL EQ and TDR Nova.
+ProEQ8 is the optional 24-band commercial build from the same repository and DSP foundation. It adds expanded band count and workflow features while keeping the crawler-facing product story separate from the free FreeEQ8 build.
 
-Works with Reaper! Tested and built on Ableton 10+
-
-> 🗂️ **[Release Vault](https://ffm.bio/no4km87)** — official monetized releases, distributed tracks, and catalog proof  
-> 🗂️ **Release Vault Repo:** [https://github.com/GareBear99/TizWildin-Release-Vault](https://github.com/GareBear99/TizWildin-Release-Vault)
+Compatibility target: Ableton Live 10+, REAPER, Logic Pro, FL Studio, Bitwig, and other VST3/AU-capable DAWs. Reports and fixes are tracked in GitHub Issues.
 
 <div align="center">
 
@@ -67,9 +64,7 @@ Works with Reaper! Tested and built on Ableton 10+
 <a href="https://github.com/GareBear99/FreeEQ8/releases/latest"><img src="https://img.shields.io/badge/⬇_Windows_ZIP_(VST3)-6c7bbd?style=for-the-badge&logo=windows&logoColor=white" alt="Download Windows" /></a>
 <a href="https://github.com/GareBear99/FreeEQ8/releases/latest"><img src="https://img.shields.io/badge/⬇_Linux_tar.gz_(VST3)-eab308?style=for-the-badge&logo=linux&logoColor=white" alt="Download Linux" /></a>
 
-FabFilter Pro-Q alternative for $0–$20
-
-2min Demo ProEQ8 is included!
+Free open-source 8-band parametric EQ plugin. Optional ProEQ8 demo/build is documented below.
 
 **[All releases →](https://github.com/GareBear99/FreeEQ8/releases)**
 
@@ -86,39 +81,39 @@ FabFilter Pro-Q alternative for $0–$20
 
 
 
-## 🆚 How FreeEQ8 Compares
+## 🆚 Feature Positioning
 
-| Feature | **FreeEQ8** | FabFilter Pro-Q 4 | ZL Equalizer 2 | TDR Nova |
-|---------|:-----------:|:------------------:|:--------------:|:--------:|
-| **Price** | **Free** | $199 | Free | Free |
-| **Open Source** | **GPL-3.0** | — | AGPL-3.0 | — |
-| Bands | 8 | 24 | 24 | 4 + HP/LP |
-| Dynamic EQ | **✓** (thresh / ratio / atk / rel) | ✓ | ✓ | ✓ |
-| Linear Phase | **✓** | ✓ | ✓ | — |
-| Match EQ | **✓** | ✓ | ✓ (WIP) | — |
-| Mid/Side | **✓** (per-band) | ✓ | ✓ | — (free) |
-| Per-Band Drive | **✓** (tanh saturation) | — | — | — |
-| Band Linking | **✓** (groups A/B) | — | — | — |
-| Oversampling | **✓** (1×–8×) | internal | — | — |
-| Adaptive Q | **✓** | — | — | — |
-| Spectrum Analyzer | **✓** (4096-pt FFT) | ✓ | ✓ | ✓ |
-| Level Meter | **✓** (peak + RMS) | — | — | — |
-| Undo / Redo | **✓** | ✓ | ✓ | — |
-| Collision Detection | ✓ (Pro) | ✓ | ✓ | — |
-| Surround / Atmos | — | ✓ | — | — |
-| Formats | VST3, AU | VST3, AU, AAX, CLAP | VST3, AU, LV2 | VST3, AU, AAX |
+| Feature | **FreeEQ8** | Typical commercial EQ | Typical free EQ | Notes |
+|---------|:-----------:|:-------------------:|:---------------:|-------|
+| **Price** | **Free** | Paid | Free | FreeEQ8 source is GPL-3.0 |
+| **Open Source** | **GPL-3.0** | Usually closed | Varies | Check each project license |
+| Bands | 8 | Often 8–24+ | Often 4–24 | FreeEQ8 focuses on an 8-band workflow |
+| Dynamic EQ | **✓** (thresh / ratio / atk / rel) | Common in pro EQs | Varies | Per-band controls in FreeEQ8 |
+| Linear Phase | **✓** | Common in pro EQs | Varies | Adds latency as documented |
+| Match EQ | **✓** | Common in pro EQs | Rare/varies | Capture/reference correction path |
+| Mid/Side | **✓** (per-band) | Common in pro EQs | Varies | Stereo workflow support |
+| Per-Band Drive | **✓** (tanh saturation) | Varies | Varies | Gain-compensated tanh drive |
+| Band Linking | **✓** (groups A/B) | Varies | Varies | Link-group workflow |
+| Oversampling | **✓** (1×–8×) | Varies | Varies | Selectable oversampling |
+| Adaptive Q | **✓** | Varies | Varies | Gain-dependent Q behavior |
+| Spectrum Analyzer | **✓** (4096-pt FFT) | Common | Common/varies | Pre/post toggle |
+| Level Meter | **✓** (peak + RMS) | Common | Varies | Output metering |
+| Undo / Redo | **✓** | Common | Varies | APVTS UndoManager |
+| Collision Detection | ProEQ8 | Varies | Varies | Pro build feature |
+| Surround / Atmos | — | Varies | Rare | Not a FreeEQ8 target |
+| Formats | VST3, AU, Standalone | Varies | Varies | AU is macOS only |
 
-> **FreeEQ8 is the only free EQ that combines linear phase + dynamic EQ + match EQ + per-band saturation + band linking in one plugin.**
+> **Positioning:** FreeEQ8 is designed as a zero-cost, open-source EQ workflow that combines linear phase, dynamic EQ controls, match EQ, per-band saturation, band linking, and a spectrum analyzer in one JUCE plugin.
 
-## ⚡ ProEQ8 — Available Now ($20)
+## ⚡ ProEQ8 — Optional Commercial Build
 
-> **Love FreeEQ8? ProEQ8 takes everything further.**
+> **Love FreeEQ8? ProEQ8 is the expanded 24-band build.**
 
-[![Buy ProEQ8](https://img.shields.io/badge/Buy%20ProEQ8-%2420-brightgreen?style=for-the-badge&logo=stripe&logoColor=white)](https://github.com/GareBear99/FreeEQ8/releases/latest)
+[![ProEQ8 Release Info](https://img.shields.io/badge/ProEQ8-Release%20Info-brightgreen?style=for-the-badge&logo=github&logoColor=white)](https://github.com/GareBear99/FreeEQ8/releases/latest)
 
-ProEQ8 is the commercial big brother of FreeEQ8 — same rock-solid DSP engine, massively expanded. Included in the [latest release download](https://github.com/GareBear99/FreeEQ8/releases/latest).
+ProEQ8 is the expanded commercial build of FreeEQ8 — same core DSP foundation, 24-band layout, and additional workflow features. Release packaging and license-server setup are documented in this repository.
 
-| | **FreeEQ8** (Free) | **ProEQ8** ($20) |
+| | **FreeEQ8** (Free) | **ProEQ8** (commercial build) |
 |---|:---:|:---:|
 | Bands | 8 | **24** |
 | Saturation Modes | tanh | **Tube · Tape · Transistor · Tanh** |
@@ -135,11 +130,11 @@ ProEQ8 is the commercial big brother of FreeEQ8 — same rock-solid DSP engine, 
 | Band Linking | ✓ | ✓ |
 | Formats | VST3, AU | VST3, AU |
 
-**ProEQ8 is included in the macOS DMG download.** A license key is required to unlock it — purchase through the link above to receive your key via email. Without a license, ProEQ8 runs in demo mode: 2 minutes of clean playback, then a 30-second mute window (repeats).
+**ProEQ8 release packages may include a demo build when packaged by the maintainer.** A license key unlocks the commercial feature path. Without a license, ProEQ8 runs in demo mode: 2 minutes of clean playback, then a 30-second mute window that repeats. See `STRIPE_SETUP.md` and `docs/CHECKOUT_DEPLOY.md` for the checkout and license-server flow.
 
 ## 🧠 Smart EQ Layer (v2.3 foundation)
 
-FreeEQ8 is adding a real-time decision layer on top of the existing 8-band engine — not to replace surgical control, but to make getting to a clean mix faster than most paid EQs.
+FreeEQ8 is adding a real-time decision layer on top of the existing 8-band engine — not to replace surgical control, but to make common cleanup decisions easier and faster.
 
 **Shipped now (v2.3 DSP foundation, no UI wiring yet):**
 - `Source/DSP/ResonanceDetector.h` — log-frequency peak finder that produces up to 4 ranked suggestion bands with recommended frequency, cut-gain, Q, confidence score, and a semantic label ("mud", "boxiness", "harshness", "sibilance" …).
@@ -154,7 +149,7 @@ FreeEQ8 is adding a real-time decision layer on top of the existing 8-band engin
 - `intent_mode` APVTS parameter + small editor dropdown
 - Zero-Lag auto-switch between linear-phase (precision) and minimum-phase (real-time)
 
-No other free open-source 8-band EQ currently combines intent-aware resonance detection + explain-on-hover + one-click apply. See [`docs/SMART_EQ_LAYER.md`](docs/SMART_EQ_LAYER.md) for the full algorithm, status matrix, and next-commit plan.
+The Smart EQ Layer is the v2.3.0 development lane for intent-aware resonance detection, explain-on-hover, and one-click suggestions. See [`docs/SMART_EQ_LAYER.md`](docs/SMART_EQ_LAYER.md) for the algorithm, status matrix, and next-commit plan.
 
 ## 📊 Benchmarks & RT-safety
 
@@ -169,6 +164,17 @@ Full evidence and numbers:
 - [**v2.2.0 release readiness**](docs/RELEASE_v2.2.0.md) — what's verified green/yellow/red.
 - [**`Tests/AuditBench.cpp`**](Tests/AuditBench.cpp) — reproducible micro-benchmarks (`clang -O3 -DNDEBUG -pthread`).
 - [**`Tests/AuditRegressionTest.cpp`**](Tests/AuditRegressionTest.cpp) — concurrent-stress invariants for the triple-buffer + chunking patterns.
+
+## Repository Metadata for Crawlers
+
+- **Canonical project name:** FreeEQ8
+- **Canonical repository:** `GareBear99/FreeEQ8`
+- **Current stable release:** `v2.2.0`
+- **Development lane:** `v2.3.0-dev` Smart EQ Layer
+- **Primary category:** audio plugin, parametric EQ, VST3 plugin, AU plugin, JUCE plugin
+- **License:** GPL-3.0 for the source code in this repository
+- **Maintainer:** Gary Doman / GareBear99 / TizWildinEntertainment
+- **Commercial note:** ProEQ8 is an optional commercial build/activation path from the same repository; FreeEQ8 remains free and GPL-3.0.
 
 ## ✨ Features
 
@@ -213,10 +219,10 @@ Full evidence and numbers:
 - Low CPU usage (disable unused bands, lower oversampling to reduce load)
 
 ### Compatibility
-- **macOS**: 10.13 High Sierra and later (universal binary: Intel + Apple Silicon)
-- **Linux**: Debian/Ubuntu 20.04+ (VST3 only; see build instructions for dependencies)
-- **Windows**: 10 and later (64-bit)
-- **DAWs tested**: Ableton Live 10+, Logic Pro, FL Studio, Bitwig, REAPER
+- **macOS**: 10.13 High Sierra and later (CI target: Intel + Apple Silicon universal binary)
+- **Linux**: Debian/Ubuntu 20.04+ (VST3 target; see build instructions for dependencies)
+- **Windows**: 10 and later (64-bit VST3 target)
+- **DAW compatibility targets**: Ableton Live 10+, REAPER, Logic Pro, FL Studio, Bitwig, and other VST3/AU-capable hosts
 - **Formats**: VST3, AU (macOS), Standalone (all platforms)
 
 ## 🚀 Quick Start
@@ -660,7 +666,7 @@ FreeEQ8 is an **original implementation** of a parametric EQ plugin. It is:
 - Match EQ capture is mono-summed; correction is per-channel
 - Linear phase mode does not currently apply M/S, per-band drive, or dynamic EQ (minimum-phase path only)
 
-Report issues at: https://github.com/GareBear99/FreeEQ8/issues
+Report issues at: [GitHub Issues](https://github.com/GareBear99/FreeEQ8/issues)
 
 ## 💡 Tips & Tricks
 
@@ -709,7 +715,7 @@ Other ways to help:
 
 ---
 
-**Other Projects by Me!**
+## Related Projects
 
 https://github.com/GareBear99/TizWildinEntertainmentHUB
 
@@ -737,14 +743,16 @@ https://github.com/GareBear99/GlueMaid
 
 https://github.com/GareBear99/XyloCore
 
-**Built with ❤️ by Gary Doman (GareBear99/TizWildin)**
+## Author
+
+**Built by Gary Doman (GareBear99 / TizWildin).**
 
 *"Great sound shouldn't cost anything"*
 <p align="center">
   <img src="https://capsule-render.vercel.app/api?type=waving&section=footer&height=140" alt="footer banner" />
 </p>
 
-## TizWildin FREE sample packs
+## TizWildin Free Sample Packs
 
 | Pack | Description |
 |------|-------------|

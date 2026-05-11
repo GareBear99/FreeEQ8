@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+title: FreeEQ8
+message: "If you use FreeEQ8 in research, education, benchmarks, or curated audio-plugin listings, please cite this repository."
+type: software
+authors:
+  - family-names: Doman
+    given-names: Gary
+    alias: GareBear99
+repository-code: "https://github.com/GareBear99/FreeEQ8"
+url: "https://github.com/GareBear99/FreeEQ8"
+license: GPL-3.0-only
+version: 2.2.0
+keywords:
+  - audio plugin
+  - VST3
+  - AU plugin
+  - JUCE
+  - parametric EQ
+  - dynamic EQ
+  - linear phase EQ
+  - match EQ
+  - music production

@@ -1,0 +1,29 @@
+{
+  "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+  "@type": "SoftwareSourceCode",
+  "name": "FreeEQ8",
+  "description": "FreeEQ8 is a free GPL-3.0 8-band parametric EQ audio plugin built with JUCE for VST3, AU, and standalone targets. It includes linear-phase mode, dynamic EQ controls, match EQ, per-band drive, M/S processing, oversampling, band linking, and a real-time spectrum analyzer.",
+  "codeRepository": "https://github.com/GareBear99/FreeEQ8",
+  "license": "https://spdx.org/licenses/GPL-3.0-only.html",
+  "programmingLanguage": ["C++", "CMake", "JavaScript"],
+  "applicationCategory": "Audio Plugin",
+  "keywords": [
+    "audio plugin",
+    "VST3",
+    "AU plugin",
+    "JUCE",
+    "parametric EQ",
+    "dynamic EQ",
+    "linear phase EQ",
+    "match EQ",
+    "music production",
+    "DSP"
+  ],
+  "version": "2.2.0",
+  "author": {
+    "@type": "Person",
+    "givenName": "Gary",
+    "familyName": "Doman",
+    "identifier": "GareBear99"
+  }
+}

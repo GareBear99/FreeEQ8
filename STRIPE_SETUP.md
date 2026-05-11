@@ -57,7 +57,7 @@ static constexpr const char* licenseSigningSecret =
     "your-64-char-hex-secret-from-step-2";
 ```
 
-Rebuild both FreeEQ8 and ProEQ8 after this change.
+Rebuild FreeEQ8 and ProEQ8 after this change. Keep the source release version (`Source/Config.h`) and server health version (`server/stripe-webhook.js`) documented separately: FreeEQ8 is currently v2.2.0; the license server API is currently v2.0.0.
 
 ## Step 4: Deploy Cloudflare Worker
 
@@ -105,7 +105,7 @@ wrangler secret put STRIPE_WEBHOOK_SECRET  # paste whsec_... value
 ### Test the health endpoint:
 ```bash
 curl https://proeq8-license-server.<your-subdomain>.workers.dev/health
-# → {"status":"ok","version":"1.1.0"}
+# → {"status":"ok","version":"2.0.0"}
 ```
 
 ### Test checkout creation:
