@@ -15,10 +15,11 @@
 🎧 [Awesome Audio Lists](https://github.com/GareBear99/awesome-audio-lists) — even more audio lists, submission routes, and promotional directories
 
 <div align="center">
-  <a href="docs/FEATURED_ON.md"><sub><b>⭐ Featured on</b> — full list →</sub></a><br>
-  <a href="https://github.com/GareBear99/awesome-audio-plugins-dev#equalizers"><img src="https://img.shields.io/badge/Awesome_Audio_Dev_List-6C7BBD?style=for-the-badge&logo=awesomelists&logoColor=white" alt="Listed on Awesome Audio Plugins Dev List" /></a>
-  <a href="https://github.com/webprofusion/OpenAudio"><img src="https://img.shields.io/badge/OpenAudio-1f6feb?style=for-the-badge&logo=awesomelists&logoColor=white" alt="Listed on webprofusion/OpenAudio" /></a>
-  <a href="https://github.com/ad-si/awesome-music-production#plugins"><img src="https://img.shields.io/badge/Awesome_Music_Production-fc6d26?style=for-the-badge&logo=awesomelists&logoColor=white" alt="Listed on ad-si/awesome-music-production" /></a>
+  <a href="docs/FEATURED_ON.md"><sub><b>⭐ Featured / submitted on</b> — full tracker →</sub></a><br>
+  <a href="https://github.com/GareBear99/awesome-audio-plugins-dev#equalizers"><img src="https://img.shields.io/badge/Listed-Awesome_Audio_Dev_List-6C7BBD?style=for-the-badge&logo=awesomelists&logoColor=white" alt="Listed on Awesome Audio Plugins Dev List" /></a>
+  <a href="https://github.com/webprofusion/OpenAudio"><img src="https://img.shields.io/badge/Listed-OpenAudio-1f6feb?style=for-the-badge&logo=awesomelists&logoColor=white" alt="Listed on webprofusion/OpenAudio" /></a>
+  <a href="https://github.com/ad-si/awesome-music-production#plugins"><img src="https://img.shields.io/badge/Listed-Awesome_Music_Production-fc6d26?style=for-the-badge&logo=awesomelists&logoColor=white" alt="Listed on ad-si/awesome-music-production" /></a>
+  <a href="docs/SUBMISSIONS_2026.md"><img src="https://img.shields.io/badge/Submission_Tracker-2026-22c55e?style=for-the-badge&logo=github&logoColor=white" alt="FreeEQ8 submission tracker" /></a>
 </div>
 
 <div align="center">
@@ -75,6 +76,11 @@ FabFilter Pro-Q alternative for $0–$20
 
 
 </div>
+
+
+## Listed and submitted
+
+FreeEQ8 is already listed in multiple open audio/software directories, including [OpenAudio](https://github.com/webprofusion/OpenAudio), [awesome-music-production](https://github.com/ad-si/awesome-music-production#plugins), and the [Awesome Audio Dev List](https://github.com/GareBear99/awesome-audio-plugins-dev#equalizers). A live tracker for accepted listings, open PRs, and editorial submissions is maintained in [docs/FEATURED_ON.md](docs/FEATURED_ON.md) and [docs/SUBMISSIONS_2026.md](docs/SUBMISSIONS_2026.md).
 
 ## FreeEQ8 in Ableton Live
 
