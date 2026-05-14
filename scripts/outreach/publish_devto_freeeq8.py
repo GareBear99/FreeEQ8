@@ -4,6 +4,8 @@ import os
 import re
 import sys
 import urllib.request
+import ssl
+import certifi
 from pathlib import Path
 
 POST_PATH = Path("docs/outreach/api-publishing/FREEEQ8_DEVTO_POST.md")
@@ -51,13 +53,16 @@ def main():
         data=json.dumps(payload).encode("utf-8"),
         headers={
             "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "FreeEQ8Publisher/1.0 (+https://github.com/GareBear99/FreeEQ8)",
             "api-key": api_key,
         },
         method="POST",
     )
 
     try:
-        with urllib.request.urlopen(req, timeout=30) as res:
+        context = ssl.create_default_context(cafile=certifi.where())
+        with urllib.request.urlopen(req, timeout=30, context=context) as res:
             print(res.read().decode("utf-8"))
     except Exception as e:
         print(f"DEV.to publish failed: {e}", file=sys.stderr)
