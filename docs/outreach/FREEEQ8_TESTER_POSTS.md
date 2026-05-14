@@ -40,7 +40,13 @@ I’m looking for testers for **FreeEQ8**, my free open-source EQ plugin.
 I need people to try it in different DAWs and tell me what works, what breaks, and what needs cleanup.
 
 GitHub:  
-https://github.com/GareBear99/Freehttps://github.com/GareBear99/Freehttps://github.com/GareBear99/Freehttps://github.com/GareBear99/Freehttps://github.com/GareBear99/Freehttps://github.com/.yml
+https://github.com/GareBear99/FreeEQ8
+
+Download:  
+https://github.com/GareBear99/FreeEQ8/releases
+
+Feedback form:  
+https://github.com/GareBear99/FreeEQ8/issues/new?template=tester-feedback.yml
 
 Looking for tests in REAPER, Ableton, Logic, FL Studio, Studio One, Cubase, and Bitwig.
 
