@@ -8,7 +8,7 @@ import ssl
 import certifi
 from pathlib import Path
 
-POST_PATH = Path("docs/outreach/api-publishing/FREEEQ8_DEVTO_POST.md")
+DEFAULT_POST_PATH = Path("docs/outreach/api-publishing/FREEEQ8_DEVTO_POST.md")
 
 def parse_frontmatter(text: str):
     match = re.match(r"^---\n(.*?)\n---\n(.*)$", text, re.S)
@@ -33,7 +33,10 @@ def main():
     if not api_key:
         raise SystemExit("Set DEVTO_API_KEY first. Example: export DEVTO_API_KEY='your_key_here'")
 
-    text = POST_PATH.read_text(encoding="utf-8")
+    post_path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_POST_PATH
+    if not post_path.exists():
+        raise SystemExit(f"Post file not found: {post_path}")
+    text = post_path.read_text(encoding="utf-8")
     meta, body = parse_frontmatter(text)
 
     tags = [t.strip() for t in str(meta.get("tags", "")).split(",") if t.strip()]
