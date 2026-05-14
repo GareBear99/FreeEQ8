@@ -1,0 +1,91 @@
+name: FreeEQ8 Tester Feedback
+description: Report DAW compatibility, bugs, crashes, UI issues, or sound/workflow feedback.
+title: "[Tester Feedback]: "
+labels: ["tester-feedback", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing FreeEQ8. Please include your DAW, OS, plugin format, and what happened.
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      description: Example: macOS 14, Windows 11, Ubuntu 24.04
+      placeholder: macOS 14.5
+    validations:
+      required: true
+
+  - type: input
+    id: daw
+    attributes:
+      label: DAW / Host
+      description: Example: REAPER, Ableton Live, Logic Pro, FL Studio, Studio One
+      placeholder: REAPER 7
+    validations:
+      required: true
+
+  - type: dropdown
+    id: format
+    attributes:
+      label: Plugin Format
+      options:
+        - VST3
+        - AU
+        - Standalone
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: issue_type
+    attributes:
+      label: Feedback Type
+      options:
+        - Works correctly
+        - Crash / freeze
+        - UI bug
+        - Audio/DSP issue
+        - DAW scan issue
+        - Feature request
+        - Documentation issue
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      placeholder: Tell me what worked, what broke, or what felt off.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open DAW
+        2. Load FreeEQ8
+        3. Change...
+        4. Result...
+    validations:
+      required: false
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: What should have happened?
+    validations:
+      required: false
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Extra notes / screenshots / logs
+      placeholder: Drag screenshots or logs here if useful.
+    validations:
+      required: false

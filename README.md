@@ -769,3 +769,19 @@ https://github.com/GareBear99/XyloCore
 ### Related audio projects
 - [**VF-PlexLab**](https://github.com/GareBear99/VF-PlexLab) - VocalForge PersonaPlex Lab starter repo for a JUCE plugin + local backend + HTML tester around NVIDIA PersonaPlex.
 - [**PAP-Forge-Audio**](https://github.com/GareBear99/PAP-Forge-Audio) - Procedural Autonomous Plugins runtime for generating, branching, validating, and restoring plugin projects from natural-language sound intent.
+
+---
+
+## Tester Call
+
+FreeEQ8 is looking for real-world DAW testers.
+
+Please test the latest release in your DAW and report compatibility feedback here:
+
+https://github.com/GareBear99/FreeEQ8/issues/new?template=tester-feedback.yml
+
+Helpful feedback includes OS, DAW, plugin format, what worked, what broke, and steps to reproduce.
+
+See the full tester call:
+
+https://github.com/GareBear99/FreeEQ8/blob/main/docs/testing/TESTER_CALL.md
