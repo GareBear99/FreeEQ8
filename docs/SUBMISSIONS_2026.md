@@ -150,3 +150,16 @@ These are not all audio-specific, but they can build reach, SEO, backlinks, and 
 ## DEV.to article title
 
 > Building FreeEQ8: A Free Open-Source EQ Plugin in JUCE/C++
+
+
+## 2026 public testing-feedback outreach
+
+| Target / community | Status | Link |
+|---|---:|---|
+| JUCE team | Email sent | `info@juce.com` |
+| Tracktion/pluginval | Posted | https://github.com/Tracktion/pluginval/issues/168 |
+| Chowdhury-DSP/BYOD | Posted | https://github.com/Chowdhury-DSP/BYOD/issues/383 |
+| DISTRHO/DPF | Posted | https://github.com/DISTRHO/DPF/issues/526 |
+| iPlug2 community | Posted | https://github.com/orgs/iPlug2/discussions/1354 |
+
+These are technical-feedback routes, not claimed endorsements.

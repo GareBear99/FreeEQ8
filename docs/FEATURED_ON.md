@@ -46,6 +46,21 @@ _Last updated: 2026-05-12_
 | Plugin Boutique | Medium-high | Developer/product submission route; harder acceptance but high visibility. |
 | KVR Audio product listing | High | High-value plugin database route once assets/release details are ready. |
 
+
+## Public technical testing / DSP review outreach
+
+These are not directory listings; they are public engineering-feedback routes where FreeEQ8 has been shared for validation, host-compatibility, plugin-framework, or DSP review.
+
+| Community / project | Status | Link |
+|---|---:|---|
+| JUCE team | Email sent | `info@juce.com` |
+| Tracktion/pluginval | Posted | [Issue #168](https://github.com/Tracktion/pluginval/issues/168) |
+| Chowdhury-DSP/BYOD | Posted | [Issue #383](https://github.com/Chowdhury-DSP/BYOD/issues/383) |
+| DISTRHO/DPF | Posted | [Issue #526](https://github.com/DISTRHO/DPF/issues/526) |
+| iPlug2 community | Posted | [Discussion #1354](https://github.com/orgs/iPlug2/discussions/1354) |
+
+Full testing-feedback tracker: [docs/testing/PUBLIC_FEEDBACK_CHANNELS_2026.md](testing/PUBLIC_FEEDBACK_CHANNELS_2026.md)
+
 ## Suggested listing copy
 
 ### Short

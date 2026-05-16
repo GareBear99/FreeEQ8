@@ -78,9 +78,11 @@ FabFilter Pro-Q alternative for $0–$20
 </div>
 
 
-## Listed and submitted
+## Listed, submitted, and under public testing review
 
 FreeEQ8 is already listed in multiple open audio/software directories, including [OpenAudio](https://github.com/webprofusion/OpenAudio), [awesome-music-production](https://github.com/ad-si/awesome-music-production#plugins), and the [Awesome Audio Dev List](https://github.com/GareBear99/awesome-audio-plugins-dev#equalizers). A live tracker for accepted listings, open PRs, and editorial submissions is maintained in [docs/FEATURED_ON.md](docs/FEATURED_ON.md) and [docs/SUBMISSIONS_2026.md](docs/SUBMISSIONS_2026.md).
+
+FreeEQ8 is also actively requesting technical testing feedback from JUCE, plugin-validation, DSP, and plugin-framework communities. Public feedback routes are tracked in [docs/testing/PUBLIC_FEEDBACK_CHANNELS_2026.md](docs/testing/PUBLIC_FEEDBACK_CHANNELS_2026.md), including [Tracktion/pluginval #168](https://github.com/Tracktion/pluginval/issues/168), [Chowdhury-DSP/BYOD #383](https://github.com/Chowdhury-DSP/BYOD/issues/383), [DISTRHO/DPF #526](https://github.com/DISTRHO/DPF/issues/526), and [iPlug2 Discussion #1354](https://github.com/orgs/iPlug2/discussions/1354).
 
 ## FreeEQ8 in Ableton Live
 

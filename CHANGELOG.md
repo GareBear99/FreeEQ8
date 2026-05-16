@@ -1,5 +1,14 @@
 # Changelog
 
+
+## 2026-05-16 — Public DSP/plugin testing feedback tracker
+
+- Added `docs/testing/PUBLIC_FEEDBACK_CHANNELS_2026.md`.
+- Added active technical-feedback outreach links for JUCE, Tracktion/pluginval, Chowdhury-DSP/BYOD, DISTRHO/DPF, and iPlug2.
+- Updated README and testing docs so contributors can find public feedback channels and the tester feedback issue form.
+- Clarified that public outreach threads are feedback requests, not endorsements.
+
+
 All notable changes to FreeEQ8 will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
