@@ -60,10 +60,6 @@ Works with Reaper! Tested and built on Ableton 10+
 > 🗂️ **[Release Vault](https://ffm.bio/no4km87)** — official monetized releases, distributed tracks, and catalog proof  
 > 🗂️ **Release Vault Repo:** [https://github.com/GareBear99/TizWildin-Release-Vault](https://github.com/GareBear99/TizWildin-Release-Vault)
 
-## Press / Coverage
-
-- Rekkerd.org — “FREE: FreeEQ8 parametric EQ effect plugin by Gary Doman”  
-  https://rekkerd.org/free-freeeq8-parametric-eq-effect-plugin-by-gary-doman/
 
 <div align="center">
 
@@ -82,6 +78,11 @@ FabFilter Pro-Q alternative for $0–$20
 
 </div>
 
+
+## Press / Coverage
+
+- Rekkerd.org — “FREE: FreeEQ8 parametric EQ effect plugin by Gary Doman”  
+  https://rekkerd.org/free-freeeq8-parametric-eq-effect-plugin-by-gary-doman/
 
 ## Listed, submitted, and under public testing review
 
