@@ -78,6 +78,18 @@ FabFilter Pro-Q alternative for $0–$20
 
 </div>
 
+<details>
+<summary><strong>Current Status</strong></summary>
+
+- **FreeEQ8:** free/open-source 8-band EQ
+- **Formats:** VST3 / AU / Standalone
+- **Platforms:** macOS available now; Windows/Linux build support documented
+- **Tested in:** Ableton Live 10+, REAPER, Logic Pro, FL Studio, Bitwig
+- **Featured by:** [Rekkerd.org](https://rekkerd.org/free-freeeq8-parametric-eq-effect-plugin-by-gary-doman/)
+
+FreeEQ8 is evolving from a free open-source parametric EQ into a smart, explainable mix-assist EQ — combining traditional EQ control, match EQ workflows, and deterministic analysis tools without locking producers behind a $199 plugin.
+
+</details>
 
 ## Press / Coverage
 
