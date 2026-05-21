@@ -1,5 +1,11 @@
 # FreeEQ8 — indexing-first submission wave
 
+
+## Validation Context — 2026-05-21
+
+This wave is now based on live listing + Gmail validation, not only assumptions. Rekkerd coverage is confirmed live and should be referenced as the credibility anchor. KVR replied with the correct route: create/use a KVR developer account, add the product listing, then submit a news item. Some framework-specific outreach was off-target, so future technical outreach should focus on JUCE, DAW users, producer communities, and general audio-plugin directories.
+
+
 _Last updated: 2026-05-21_
 
 This is the aggressive SEO/indexing wave for FreeEQ8 after the repo audit. The goal is not only acceptance; it is discovery surface area: plugin databases, free VST searches, open-source audio searches, JUCE/C++ DSP searches, and paid-plugin-alternative searches.

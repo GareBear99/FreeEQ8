@@ -94,3 +94,11 @@ Full testing-feedback tracker: [docs/testing/PUBLIC_FEEDBACK_CHANNELS_2026.md](t
 ---
 
 Maintained alongside the FreeEQ8 release process. If you run a curated audio/plugin list and would like to include FreeEQ8, open an issue on the repo.
+
+
+## Validated Coverage Notes — 2026-05-21
+
+- **Rekkerd.org coverage is confirmed live**: `FREE: FreeEQ8 parametric EQ effect plugin by Gary Doman` published 2026-05-19.
+- Rekkerd email thread confirms the editor accepted the submission and acknowledged a version typo correction.
+- KVR has not yet been completed as a product listing; KVR replied that developers should manage listings and submit news through the KVR developer portal.
+- See `docs/outreach/EMAIL_VALIDATION_AUDIT_2026-05-21.md` for the full Gmail/listing validation audit.

@@ -247,3 +247,14 @@ Use bold titles for indexing, but avoid posting the exact same text everywhere.
 | iPlug2 community | Posted | https://github.com/orgs/iPlug2/discussions/1354 |
 
 These are technical-feedback routes, not claimed endorsements.
+
+
+## 2026-05-21 Gmail + Live Listing Validation Update
+
+- **Rekkerd.org is confirmed live coverage**, not just a submission. Article: `FREE: FreeEQ8 parametric EQ effect plugin by Gary Doman` published 2026-05-19. Use this as the primary third-party credibility anchor in future outreach.
+- **Rekkerd email evidence:** Ronnie replied “Thanks Gary, I’ll post about it,” then later acknowledged the version typo note with “Woops, will fix that version typo. Thanks!”
+- **KVR replied with the correct route:** developer account -> product listing -> submit news item. Email alone is not enough; this is now the next highest-value indexing action.
+- **BPB / ProducerSpot / HomeMusicMaker / Gearnews / MusicTech-style targets:** sent, but no confirmed positive reply found in the audited Gmail window.
+- **OpenAudio / awesome-music-production / awesome-audio-dsp / awesome-juce / awesome-webaudio:** evidence exists of accepted or completed GitHub/listing activity, but avoid duplicate submissions.
+- **Off-target outreach to avoid:** iPlug2 and DISTRHO/DPF unless FreeEQ8 gains real iPlug2/DPF/LV2 relevance.
+- Full validation record: `docs/outreach/EMAIL_VALIDATION_AUDIT_2026-05-21.md`.
