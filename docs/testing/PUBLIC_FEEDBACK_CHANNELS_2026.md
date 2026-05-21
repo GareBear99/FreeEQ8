@@ -1,20 +1,25 @@
 # FreeEQ8 Public Testing Feedback Channels — 2026
 
-FreeEQ8 is actively requesting technical feedback from audio DSP developers, plugin framework maintainers, host-validation users, and DAW testers.
+_Last cross-checked: 2026-05-21_
 
-This tracker documents public outreach threads and the kind of feedback requested. It is meant to make testing transparent, avoid duplicate outreach, and give contributors a clear place to reply.
+FreeEQ8 is actively requesting technical feedback from audio DSP developers, plugin validation users, DAW testers, and JUCE/plugin developers.
 
-_Last updated: 2026-05-16_
+This tracker documents public outreach threads and the kind of feedback requested. It also marks which routes were off-target so they are not repeated.
 
-## Active public feedback threads
+## Current public feedback routes
 
-| Target / community | Status | Link | Why it matters |
+| Target / community | Status | Link / route | Why it matters | Follow-up rule |
+|---|---:|---|---|---|
+| JUCE Forum / JUCE support | 🟡 Relevant, but use narrow asks | `info@juce.com` / JUCE forum | FreeEQ8 is a JUCE/C++ plugin; JUCE support restored account and said the forum is the right place. | Ask one specific question at a time: build, pluginval, UI performance, or RT safety. |
+| Tracktion/pluginval | ⏳ Relevant validation route | https://github.com/Tracktion/pluginval/issues/168 | Plugin validation and host-test focused feedback, especially VST3/AU validation behavior and pluginval compatibility expectations. | Keep technical and validation-specific. |
+| Chowdhury-DSP/BYOD | 🟡 Paid expert feedback offered | https://github.com/Chowdhury-DSP/BYOD/issues/383 | Jatin replied by email and offered technical review/consulting at $85/hour after closing the issue as not directly repo-relevant. | Optional paid review only; do not treat as public validation/listing. |
+
+## Off-target outreach — do not repeat without real port/relevance
+
+| Target / community | Status | Link | Why not repeat |
 |---|---:|---|---|
-| JUCE team | Email sent | `info@juce.com` | FreeEQ8 is a JUCE/C++ plugin; feedback requested on JUCE plugin architecture, validation expectations, host compatibility, and real-time safety. |
-| Tracktion/pluginval | Posted | https://github.com/Tracktion/pluginval/issues/168 | Plugin validation and host-test focused feedback, especially VST3/AU validation behavior and pluginval compatibility expectations. |
-| Chowdhury-DSP/BYOD | Posted | https://github.com/Chowdhury-DSP/BYOD/issues/383 | Audio DSP/plugin developer feedback from an open-source effects-plugin codebase/community. |
-| DISTRHO/DPF | Posted | https://github.com/DISTRHO/DPF/issues/526 | Cross-platform plugin-framework feedback around VST3/AU/LV2/CLAP-style compatibility, packaging, and RT-safe expectations. |
-| iPlug2 community | Posted | https://github.com/orgs/iPlug2/discussions/1354 | Plugin-framework and DSP developer feedback through a GitHub Discussion rather than an issue thread. |
+| DISTRHO/DPF | ❌ Off-target | https://github.com/DISTRHO/DPF/issues/526 | Maintainer objected that FreeEQ8 is JUCE while DPF is a different framework. Repeat only if there is a DPF/LV2/CLAP port or specific DPF relevance. |
+| iPlug2 community | ❌ Off-target | https://github.com/orgs/iPlug2/discussions/1354 | Maintainer said it does not seem iPlug2-relevant. Repeat only if there is an iPlug2 port/comparison. |
 
 ## Feedback requested
 

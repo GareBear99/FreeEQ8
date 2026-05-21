@@ -1,104 +1,83 @@
 # FreeEQ8 — Featured, listed, and submitted
 
-Curated external lists, directories, and editorial routes that feature or are reviewing FreeEQ8.
+_Last cross-checked: 2026-05-21_
 
-_Last updated: 2026-05-21_
+This file separates **verified public wins** from **pending submissions** and **closed/completed evidence that still needs a public-page recheck**. Do not claim a community/listing as live unless it appears in the verified section below.
 
-## Confirmed active listings
+## Verified public wins — safe to cite
 
-| List / directory | Status | Entry / proof |
+| Source | Status | Notes |
 |---|---:|---|
-| [GareBear99 / awesome-audio-plugins-dev](https://github.com/GareBear99/awesome-audio-plugins-dev#equalizers) | ✅ Listed | Equalizers category |
-| [webprofusion / OpenAudio](https://github.com/webprofusion/OpenAudio) | ✅ Listed | Added via OpenAudio plugin flow; see related issues [#207](https://github.com/webprofusion/OpenAudio/issues/207), [#209](https://github.com/webprofusion/OpenAudio/issues/209), [#210](https://github.com/webprofusion/OpenAudio/issues/210) |
-| [ad-si / awesome-music-production](https://github.com/ad-si/awesome-music-production#plugins) | ✅ Listed | Merged via [PR #197](https://github.com/ad-si/awesome-music-production/pull/197) |
+| [Rekkerd.org](https://rekkerd.org/free-freeeq8-parametric-eq-effect-plugin-by-gary-doman/) | ✅ Featured | Article: `FREE: FreeEQ8 parametric EQ effect plugin by Gary Doman`, published 2026-05-19. Gmail confirms Ronnie accepted the submission and acknowledged the version typo correction. |
+| [webprofusion / OpenAudio](https://github.com/webprofusion/OpenAudio) | ✅ Listed | Current OpenAudio public page shows `FreeEQ8` in Audio Plugins. Issue [#207](https://github.com/webprofusion/OpenAudio/issues/207) is closed. |
+| [ad-si / awesome-music-production](https://github.com/ad-si/awesome-music-production#apps) | ✅ Listed | [PR #197](https://github.com/ad-si/awesome-music-production/pull/197) merged on 2026-03-16; current public README shows `FreeEQ8` under Apps. |
+| [GareBear99 / awesome-audio-plugins-dev](https://github.com/GareBear99/awesome-audio-plugins-dev#equalizers) | ✅ Self-maintained listing | Useful SEO/index route, but mark as self-maintained rather than third-party validation. |
+
+## Closed/completed evidence — not safe to market as live-listed until rechecked
+
+| Source | Conservative status | Notes |
+|---|---:|---|
+| [BillyDM / awesome-audio-dsp](https://github.com/BillyDM/awesome-audio-dsp) | ⚠️ Completed issue evidence only | Gmail says Issue #14 was closed as completed, but current public README check did not show `FreeEQ8`. Do not claim live listing until visible. |
+| [sudara / awesome-juce](https://github.com/sudara/awesome-juce) | ⚠️ Mixed history / not verified live | Earlier issue notifications closed as completed, but current public README check did not show `FreeEQ8`; later PR #61 was closed with request for shorter resubmission. |
+| [notthetup / awesome-webaudio](https://github.com/notthetup/awesome-webaudio/issues/83) | ⚠️ Conflicting evidence / weak fit | Gmail said closed/completed, but live issue page checked as open and README did not show `FreeEQ8`. Also weak fit because FreeEQ8 is JUCE/VST3/AU, not Web Audio. |
+| [brandonhimpfen / awesome-audio-engineering](https://github.com/brandonhimpfen/awesome-audio-engineering) | ⚠️ Closed PR, not verified live | Gmail says PR #5 closed and maintainer considered it technically relevant; closure is not proof of listing. |
 
 ## Active review / pending submissions
 
-| List / directory | Status | Entry / proof |
+| Source | Status | Notes |
 |---|---:|---|
-| [sudara / awesome-juce](https://github.com/sudara/awesome-juce) | ⏳ New PR open | Old PR #61 closed by maintainer with request for shorter resubmission; clean replacement opened as [PR #64](https://github.com/sudara/awesome-juce/pull/64) |
-| [dreikanter / awesome-vst](https://github.com/dreikanter/awesome-vst) | ⏳ PR open | [PR #18](https://github.com/dreikanter/awesome-vst/pull/18) — FreeEQ8 under Mixing and Mastering |
-| [olilarkin / awesome-musicdsp](https://github.com/olilarkin/awesome-musicdsp) | ⏳ PR open | [PR #11](https://github.com/olilarkin/awesome-musicdsp/pull/11) — exemplary open-source audio plug-in project |
-| [noteflakes / awesome-music](https://github.com/noteflakes/awesome-music) | ⏳ PR open | Issue [#101](https://github.com/noteflakes/awesome-music/issues/101) linked to [PR #109](https://github.com/noteflakes/awesome-music/pull/109) |
-| [notthetup / awesome-webaudio](https://github.com/notthetup/awesome-webaudio) | ⏳ Issue open / weak fit | [Issue #83](https://github.com/notthetup/awesome-webaudio/issues/83) — left as optional because FreeEQ8 is JUCE/VST3/AU, not Web Audio |
-| [twinysam / FreeAudioPluginList](https://github.com/twinysam/FreeAudioPluginList) | ⏳ PR open | [PR #11](https://github.com/twinysam/FreeAudioPluginList/pull/11) |
-| [nodiscc / awesome-linuxaudio](https://github.com/nodiscc/awesome-linuxaudio) | ⏳ PR open | [PR #71](https://github.com/nodiscc/awesome-linuxaudio/pull/71) — Effects/Processing - EQ |
-| [landscape82 / awesome-sound-design-resources](https://github.com/landscape82/awesome-sound-design-resources) | ⏳ PR open | [PR #3](https://github.com/landscape82/awesome-sound-design-resources/pull/3) — Effects & Processing |
-| [brandonhimpfen / awesome-audio-engineering](https://github.com/brandonhimpfen/awesome-audio-engineering) | ⏳ PR open | [PR #5](https://github.com/brandonhimpfen/awesome-audio-engineering/pull/5) — Recording, Mixing & Mastering Tools |
-| [detroitsynth / awesome-open-synth](https://github.com/detroitsynth/awesome-open-synth) | ⏳ PR open | [PR #3](https://github.com/detroitsynth/awesome-open-synth/pull/3) — open-source audio processing/plugin project |
-| ProducersBuzz | ⏳ Email sent | Submitted to `submit@producersbuzz.com` on 2026-05-12 |
+| [sudara / awesome-juce](https://github.com/sudara/awesome-juce/pull/64) | ⏳ Pending/resubmission route | Old PR #61 closed with request for shorter resubmission; treat as pending until public README shows FreeEQ8. |
+| [dreikanter / awesome-vst](https://github.com/dreikanter/awesome-vst/pull/18) | ⏳ PR open | FreeEQ8 under Mixing and Mastering. |
+| [olilarkin / awesome-musicdsp](https://github.com/olilarkin/awesome-musicdsp/pull/11) | ⏳ PR open | Exemplary open-source audio plug-in project. |
+| [noteflakes / awesome-music](https://github.com/noteflakes/awesome-music/pull/109) | ⏳ PR open | Issue [#101](https://github.com/noteflakes/awesome-music/issues/101) linked to PR. |
+| [twinysam / FreeAudioPluginList](https://github.com/twinysam/FreeAudioPluginList/pull/11) | ⏳ PR open | Free plugin directory/list target. |
+| [nodiscc / awesome-linuxaudio](https://github.com/nodiscc/awesome-linuxaudio/pull/71) | ⏳ PR open | Effects/Processing - EQ; Linux status must stay honest. |
+| [landscape82 / awesome-sound-design-resources](https://github.com/landscape82/awesome-sound-design-resources/pull/3) | ⏳ PR open | Effects & Processing. |
+| [detroitsynth / awesome-open-synth](https://github.com/detroitsynth/awesome-open-synth/pull/3) | ⏳ PR open / weak fit | Open-source audio processing/plugin project. |
 
-## Reviewed but skipped / blocked
+## Email outreach / editorial submissions
 
-| Route | Result | Reason |
+| Target | Status | Notes |
 |---|---:|---|
-| [spnw / free-music-plugins](https://github.com/spnw/free-music-plugins) | ⚠️ Skipped | Repository is archived/read-only; PR creation rejected by GitHub. Successor route is Plexwave. |
-| [BillyDM / awesome-audio-dsp](https://github.com/BillyDM/awesome-audio-dsp) | ⛔ Skipped | Contribution rules and self-promotion/financial-incentive concern because FreeEQ8 is tied to ProEQ8. |
-| [matthewamend / awesome-audio-plugins](https://github.com/matthewamend/awesome-audio-plugins) | ⛔ Skipped | Scoped to plugin APIs/libraries/developer tools, not end-user plugins. |
-| [DolbyIO / awesome-audio](https://github.com/DolbyIO/awesome-audio) | ⛔ Skipped | Developer/API-focused list; no fitting individual plugin section. |
+| Bedroom Producers Blog | ⏳ Email sent | Sent multiple times; no confirmed reply found. Best follow-up target after adding Rekkerd link + demo assets. |
+| ProducersBuzz | ⏳ Email sent | Submitted to `submit@producersbuzz.com` on 2026-05-12. |
+| ProducerSpot | ⏳ Email sent | Submitted to `info@producerspot.com` on 2026-05-16. |
+| Home Music Maker | ⏳ Email sent | Submitted to `info@homemusicmaker.com` on 2026-05-16. |
+| Gearnews | ⏳ Email sent | Submitted to `news@gearnews.com` on 2026-05-16. |
+| MusicTech / NME / Guitar.com | ⏳ Email sent | Sent 2026-05-05; lower priority unless the story expands beyond a plugin listing. |
+| Sound On Sound | ⏳ Email sent | Review request sent 2026-05-05; needs polished release/demo follow-up only. |
+| KVR Audio email | 🟡 Routing reply | KVR replied with developer-account route; product listing itself is still not complete. |
 
+## Manual high-value gaps
 
-## Immediate high-value indexing gaps
-
-| Route | Priority | Why it matters | Next action |
-|---|---:|---|---|
-| KVR Audio Product Database | Highest | Core audio-plugin discovery/indexing surface. | Create Developer Account, add FreeEQ8 product, submit news item. |
-| Audio Plugins for Free | Highest | Direct free-plugin database with upload route. | Upload/submit FreeEQ8 with screenshots and release link. |
-| Plugins4Free | High | Long-running free VST/AU discovery site. | Submit as Effects / Equalizer if active route is available. |
-| AlternativeTo | High | SEO surface for “free alternative to FabFilter Pro-Q / TDR Nova / ZL Equalizer.” | Suggest new application with GPL/open-source tags. |
-| Product Hunt | Medium-high | Broader product discovery and backlink value. | Launch after hero image/demo GIF/release assets are clean. |
-| Hacker News / Show HN | Medium-high | Developer credibility and JUCE/C++/DSP review surface. | Post only as a substantive build/code story, not a version bump. |
-| REAPER Forum / r/Reaper | High | Strong free-plugin adoption community. | Post with REAPER-tested angle and feedback request. |
-| r/FREEVSTS / r/AudioPlugins | High | Direct producer discovery. | Post once with clear download link and feature list. |
-
-Full indexing wave copy: [docs/outreach/FREEEQ8_INDEXING_WAVE_2026.md](outreach/FREEEQ8_INDEXING_WAVE_2026.md).
-
-## Next outreach candidates
-
-| Route | Priority | Notes |
+| Target | Priority | Next action |
 |---|---:|---|
-| Plexwave free plugins | High | Successor route to archived `spnw/free-music-plugins`; submit under Effects / EQ if a submission/contact route is found. |
-| Bedroom Producers Blog | High | Editorial pitch target for free plugin coverage. |
-| Plugin Boutique | Medium-high | Developer/product submission route; harder acceptance but high visibility. |
-| KVR Audio product listing | High | High-value plugin database route once assets/release details are ready. |
-
+| KVR Audio Product Database | Highest | Create Developer Account, add FreeEQ8 product listing, submit news item. |
+| Audio Plugins for Free | High | Submit once stable direct download/release page and screenshots are ready. |
+| Plugins4Free | High | Submit if route is active; use VST3/AU/free EQ wording. |
+| AlternativeTo | High | Create/suggest FreeEQ8 profile as free/open-source EQ alternative. |
+| Product Hunt | Medium-high | Launch after hero image/demo/release assets are ready. |
+| Hacker News / Show HN | Medium-high | Post as technical JUCE/C++/DSP build story, not a promo blast. |
+| REAPER Forum / r/Reaper | High | Post with REAPER-specific testing notes and screenshots. |
 
 ## Public technical testing / DSP review outreach
 
-These are not directory listings; they are public engineering-feedback routes where FreeEQ8 has been shared for validation, host-compatibility, plugin-framework, or DSP review.
-
-| Community / project | Status | Link |
+| Target | Status | Notes |
 |---|---:|---|
-| JUCE team | Email sent | `info@juce.com` |
-| Tracktion/pluginval | Posted | [Issue #168](https://github.com/Tracktion/pluginval/issues/168) |
-| Chowdhury-DSP/BYOD | Posted | [Issue #383](https://github.com/Chowdhury-DSP/BYOD/issues/383) |
-| DISTRHO/DPF | Posted | [Issue #526](https://github.com/DISTRHO/DPF/issues/526) |
-| iPlug2 community | Posted | [Discussion #1354](https://github.com/orgs/iPlug2/discussions/1354) |
+| JUCE Forum / support | 🟡 Relevant but narrow asks only | JUCE restored account and said forum is the right route, but warned broad review requests ask a lot of people’s time. |
+| Tracktion/pluginval | ⏳ Relevant validation route | Keep as plugin validation / host-test focused. |
+| Chowdhury-DSP/BYOD | 🟡 Paid expert feedback offered | Jatin offered technical review at $85/hour; this is not free validation/listing. |
+| DISTRHO/DPF | ❌ Off-target | FreeEQ8 is JUCE, not DPF. Do not repeat unless a DPF/LV2 port exists. |
+| iPlug2 community | ❌ Off-target | Maintainer said it does not seem iPlug2 relevant. Do not repeat unless an iPlug2 port/comparison exists. |
 
-Full testing-feedback tracker: [docs/testing/PUBLIC_FEEDBACK_CHANNELS_2026.md](testing/PUBLIC_FEEDBACK_CHANNELS_2026.md)
-
-## Suggested listing copy
+## Reusable verified credibility copy
 
 ### Short
 
-> FreeEQ8 — Free, open-source 8-band parametric EQ plugin built with JUCE for VST3/AU/Standalone workflows.
+> FreeEQ8 is a free, open-source JUCE/C++ 8-band parametric EQ plugin featured by Rekkerd.org and listed on OpenAudio and awesome-music-production.
 
-### Medium
+### Directory / listing
 
-> FreeEQ8 is a free, open-source JUCE-based 8-band parametric EQ plugin with linear phase, dynamic EQ, match EQ, M/S processing, per-band drive, oversampling, band linking, and VST3/AU/Standalone support.
+> FreeEQ8 is a free, open-source JUCE/C++ parametric EQ plugin for VST3/AU/Standalone workflows, with 8-band EQ, linear phase, dynamic EQ direction, match EQ direction, M/S processing, per-band drive/saturation direction, oversampling, and real-time spectrum analysis.
 
-### Developer/DSP focused
-
-> FreeEQ8 is an open-source JUCE-based 8-band parametric EQ plugin and reference-quality C++ audio plugin project, covering real-time EQ processing, dynamic EQ, linear-phase workflows, spectrum analysis, and VST3/AU/Standalone packaging.
-
----
-
-Maintained alongside the FreeEQ8 release process. If you run a curated audio/plugin list and would like to include FreeEQ8, open an issue on the repo.
-
-
-## Validated Coverage Notes — 2026-05-21
-
-- **Rekkerd.org coverage is confirmed live**: `FREE: FreeEQ8 parametric EQ effect plugin by Gary Doman` published 2026-05-19.
-- Rekkerd email thread confirms the editor accepted the submission and acknowledged a version typo correction.
-- KVR has not yet been completed as a product listing; KVR replied that developers should manage listings and submit news through the KVR developer portal.
-- See `docs/outreach/EMAIL_VALIDATION_AUDIT_2026-05-21.md` for the full Gmail/listing validation audit.
+Full cross-check file: [docs/outreach/CROSSCHECKED_SUBMISSION_STATUS_2026-05-21.md](outreach/CROSSCHECKED_SUBMISSION_STATUS_2026-05-21.md).

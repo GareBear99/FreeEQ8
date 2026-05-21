@@ -113,3 +113,8 @@ After auditing the current FreeEQ8 package, the launch order should be tightened
 10. Editorial follow-up to Bedroom Producers Blog, CDM, MusicRadar, MusicTech, Gearnews, Ask.Audio, Production Expert, and Sonic State
 
 Use [FREEEQ8_INDEXING_WAVE_2026.md](FREEEQ8_INDEXING_WAVE_2026.md) for platform-specific copy.
+
+
+## Cross-checked source of truth
+
+Use [CROSSCHECKED_SUBMISSION_STATUS_2026-05-21.md](CROSSCHECKED_SUBMISSION_STATUS_2026-05-21.md) before claiming any list/coverage status. Verified public wins as of 2026-05-21 are Rekkerd.org coverage, OpenAudio listing, and awesome-music-production listing. KVR is a routing reply/manual account action, not a completed product listing yet.

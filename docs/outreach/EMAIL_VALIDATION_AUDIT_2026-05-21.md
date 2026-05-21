@@ -80,9 +80,9 @@ This file records the validated outreach/listing evidence checked from Gmail and
 
 ### awesome-audio-dsp
 
-- Status: **Closed as completed after discussion.**
-- Evidence included skepticism about repo age/AI involvement, but final state showed completed.
-- Action: cite the accepted placement; strengthen provenance/testing docs to reduce future “AI slop” concerns.
+- Status: **Gmail shows closed/completed, but public README listing was not verified during cross-check.**
+- Evidence included skepticism about repo age/AI involvement, and later Gmail notification said closed as completed.
+- Action: do not market as live-listed until the public README/list page visibly contains FreeEQ8; keep provenance/testing docs strong to reduce future “AI slop” concerns.
 
 ### awesome-juce
 
@@ -131,7 +131,7 @@ This file records the validated outreach/listing evidence checked from Gmail and
 
 Use this as the grounded credibility line:
 
-> FreeEQ8 is a free, open-source JUCE/C++ 8-band parametric EQ plugin with VST3/AU/Standalone packaging, advanced EQ features, public source code, and early third-party coverage from Rekkerd.org. It has also been accepted into several open-source/audio discovery lists, while broader KVR/product-database indexing is the next major step.
+> FreeEQ8 is a free, open-source JUCE/C++ 8-band parametric EQ plugin with VST3/AU/Standalone packaging, advanced EQ features, public source code, confirmed third-party coverage from Rekkerd.org, and verified public listings on OpenAudio and awesome-music-production. Some additional list submissions have closed/completed evidence, but should not be marketed as live listings until the public list pages visibly contain FreeEQ8.
 
 ## Next actions
 

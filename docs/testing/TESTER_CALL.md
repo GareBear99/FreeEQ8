@@ -32,16 +32,15 @@ I am looking for producers, engineers, and plugin developers to test FreeEQ8 acr
 3. Try it on vocals, drums, synths, bass, and master bus.
 4. Report whether it works or what breaks.
 
+## Public technical feedback status
 
-## Public technical feedback threads
+FreeEQ8 has been shared for engineering/testing feedback. Current cross-checked status:
 
-FreeEQ8 is also being shared with relevant DSP/plugin-framework/testing communities for engineering review:
-
-- Tracktion/pluginval: https://github.com/Tracktion/pluginval/issues/168
-- Chowdhury-DSP/BYOD: https://github.com/Chowdhury-DSP/BYOD/issues/383
-- DISTRHO/DPF: https://github.com/DISTRHO/DPF/issues/526
-- iPlug2 Discussions: https://github.com/orgs/iPlug2/discussions/1354
-- JUCE enquiry sent to: `info@juce.com`
+- JUCE Forum / JUCE support: relevant, but future asks should be narrow and specific.
+- Tracktion/pluginval: relevant validation route — https://github.com/Tracktion/pluginval/issues/168
+- Chowdhury-DSP/BYOD: issue closed as not directly repo-relevant; Jatin offered paid expert review by email.
+- DISTRHO/DPF: off-target because FreeEQ8 is JUCE, not DPF. Do not repeat unless there is a DPF/LV2/CLAP port.
+- iPlug2: off-target because FreeEQ8 is JUCE, not iPlug2. Do not repeat unless there is an iPlug2 port/comparison.
 
 Full tracker: [PUBLIC_FEEDBACK_CHANNELS_2026.md](PUBLIC_FEEDBACK_CHANNELS_2026.md)
 

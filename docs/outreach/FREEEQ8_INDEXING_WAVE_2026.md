@@ -3,7 +3,7 @@
 
 ## Validation Context — 2026-05-21
 
-This wave is now based on live listing + Gmail validation, not only assumptions. Rekkerd coverage is confirmed live and should be referenced as the credibility anchor. KVR replied with the correct route: create/use a KVR developer account, add the product listing, then submit a news item. Some framework-specific outreach was off-target, so future technical outreach should focus on JUCE, DAW users, producer communities, and general audio-plugin directories.
+This wave is now based on live listing + Gmail validation + public-page cross-checking, not assumptions. Rekkerd coverage is confirmed live and should be referenced as the credibility anchor. OpenAudio and awesome-music-production are verified public listings. KVR replied with the correct route: create/use a KVR developer account, add the product listing, then submit a news item. Some framework-specific outreach was off-target, so future technical outreach should focus on JUCE, DAW users, producer communities, plugin-validation routes, and general audio-plugin directories.
 
 
 _Last updated: 2026-05-21_

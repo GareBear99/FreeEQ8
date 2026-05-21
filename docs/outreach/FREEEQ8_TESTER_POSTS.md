@@ -7,9 +7,9 @@
 |---|---:|---|
 | JUCE team | Email sent | `info@juce.com` |
 | Tracktion/pluginval | Posted | https://github.com/Tracktion/pluginval/issues/168 |
-| Chowdhury-DSP/BYOD | Posted | https://github.com/Chowdhury-DSP/BYOD/issues/383 |
-| DISTRHO/DPF | Posted | https://github.com/DISTRHO/DPF/issues/526 |
-| iPlug2 community | Posted | https://github.com/orgs/iPlug2/discussions/1354 |
+| Chowdhury-DSP/BYOD | Closed; optional paid expert feedback offered | https://github.com/Chowdhury-DSP/BYOD/issues/383 |
+| DISTRHO/DPF | Off-target for current JUCE build; do not repeat | https://github.com/DISTRHO/DPF/issues/526 |
+| iPlug2 community | Off-target for current JUCE build; do not repeat | https://github.com/orgs/iPlug2/discussions/1354 |
 
 Do not repost identical messages to unrelated repositories. Prefer forums, discussions, and official feedback forms after this first wave.
 
