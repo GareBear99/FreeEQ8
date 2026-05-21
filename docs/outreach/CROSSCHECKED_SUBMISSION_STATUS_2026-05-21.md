@@ -18,6 +18,7 @@ This audit cross-checks FreeEQ8 outreach/listing status against the current repo
 | Target | Status | Evidence | Safe public wording |
 |---|---|---|---|
 | Rekkerd.org | ✅ Verified live coverage | Live article: `FREE: FreeEQ8 parametric EQ effect plugin by Gary Doman`, published 2026-05-19. Gmail confirms Ronnie accepted the submission and later acknowledged the version typo note. | “Featured by Rekkerd.org.” |
+| AudioApp.cn | ✅ Screenshot-verified coverage / search-index pending | User-provided screenshots show AudioApp.cn thread `237167` with English and Chinese views. The page title says `Bonus: Gary Doman launches FreeEQ8 free and open source parametric equalizer effects plugin` / `福利：Gary Doman 推出 FreeEQ8 免费开源的参量均衡器效果插件`, names Gary Doman and FreeEQ8, lists the feature set, mentions ProEQ8, and links to `https://github.com/GareBear99/FreeEQ8`. Screenshots saved in `docs/press/`. | “Covered by AudioApp.cn” or “screenshot-verified AudioApp.cn pickup.” Do not call it search-indexed until search results surface. |
 | webprofusion / OpenAudio | ✅ Verified live listing | Public OpenAudio page currently shows `FreeEQ8` in Audio Plugins with description: professional-grade, free and open-source 8-band parametric EQ for macOS, Linux, and Windows. Issue #207 is closed. | “Listed on OpenAudio.” |
 | ad-si / awesome-music-production | ✅ Merged PR + visible | PR #197 merged into master on 2026-03-16; current public README shows `FreeEQ8` under Apps as a free, open-source 8-band parametric EQ plugin. | “Listed in awesome-music-production.” |
 | GareBear99 / awesome-audio-plugins-dev | ✅ Self-maintained listing | Repo badge/link points to the Equalizers section of the user-maintained audio plugin dev list. This is useful SEO, but it is not third-party validation. | “Listed in the GareBear99 audio plugin dev list.” |
@@ -80,10 +81,10 @@ This audit cross-checks FreeEQ8 outreach/listing status against the current repo
 
 ## Correct public credibility statement
 
-> FreeEQ8 has confirmed third-party coverage from Rekkerd.org and verified public listings on OpenAudio and awesome-music-production. Several other GitHub/list submissions are pending or have closed/completed issue evidence, but they should not be marketed as live listings unless the current public list page visibly contains FreeEQ8.
+> FreeEQ8 has confirmed third-party coverage from Rekkerd.org, screenshot-verified Chinese/English pickup from AudioApp.cn, and verified public listings on OpenAudio, awesome-music-production, and the Awesome Audio Dev List. Several other GitHub/list submissions are pending or have closed/completed issue evidence, but they should not be marketed as live listings unless the current public list page visibly contains FreeEQ8.
 
 ## Next three actions
 
 1. Finish the KVR developer product listing and news submission.
-2. Use Rekkerd + OpenAudio + awesome-music-production as the safe credibility stack in all new pitches.
+2. Use Rekkerd + AudioApp.cn + OpenAudio + awesome-music-production + Awesome Audio Dev List as the safe credibility stack in all new pitches.
 3. Follow up with BPB/producer blogs only after adding a clean demo clip, stable release link, and direct install notes.

@@ -19,6 +19,7 @@
   <a href="https://github.com/GareBear99/awesome-audio-plugins-dev#equalizers"><img src="https://img.shields.io/badge/Listed-Awesome_Audio_Dev_List-6C7BBD?style=for-the-badge&logo=awesomelists&logoColor=white" alt="Listed on Awesome Audio Plugins Dev List" /></a>
   <a href="https://github.com/webprofusion/OpenAudio"><img src="https://img.shields.io/badge/Listed-OpenAudio-1f6feb?style=for-the-badge&logo=awesomelists&logoColor=white" alt="Listed on webprofusion/OpenAudio" /></a>
   <a href="https://github.com/ad-si/awesome-music-production#plugins"><img src="https://img.shields.io/badge/Listed-Awesome_Music_Production-fc6d26?style=for-the-badge&logo=awesomelists&logoColor=white" alt="Listed on ad-si/awesome-music-production" /></a>
+  <a href="https://www.audioapp.cn/thread-237167-1-1.html"><img src="https://img.shields.io/badge/Covered-AudioApp.cn-dc2626?style=for-the-badge&logo=rss&logoColor=white" alt="Covered by AudioApp.cn" /></a>
   <a href="docs/SUBMISSIONS_2026.md"><img src="https://img.shields.io/badge/Submission_Tracker-2026-22c55e?style=for-the-badge&logo=github&logoColor=white" alt="FreeEQ8 submission tracker" /></a>
 </div>
 
@@ -85,7 +86,9 @@ FabFilter Pro-Q alternative for $0–$20
 - **Formats:** VST3 / AU / Standalone
 - **Platforms:** macOS available now; Windows/Linux build support documented
 - **Tested in:** Ableton Live 10+, REAPER, Logic Pro, FL Studio, Bitwig
-- **Featured by:** [Rekkerd.org](https://rekkerd.org/free-freeeq8-parametric-eq-effect-plugin-by-gary-doman/)
+- **Featured by:** [Rekkerd.org](https://rekkerd.org/free-freeeq8-parametric-eq-effect-plugin-by-gary-doman/) and [AudioApp.cn](https://www.audioapp.cn/thread-237167-1-1.html)
+- **Verified listings:** [OpenAudio](https://github.com/webprofusion/OpenAudio), [awesome-music-production](https://github.com/ad-si/awesome-music-production#plugins), [Awesome Audio Dev List](https://github.com/GareBear99/awesome-audio-plugins-dev#equalizers)
+- **International pickup:** AudioApp.cn Chinese/English community article, screenshot-verified, linking to the official GitHub repo
 
 FreeEQ8 is evolving from a free open-source parametric EQ into a smart, explainable mix-assist EQ — combining traditional EQ control, match EQ workflows, and deterministic analysis tools without locking producers behind a $199 plugin.
 
@@ -95,10 +98,13 @@ FreeEQ8 is evolving from a free open-source parametric EQ into a smart, explaina
 
 - Rekkerd.org — “FREE: FreeEQ8 parametric EQ effect plugin by Gary Doman”  
   https://rekkerd.org/free-freeeq8-parametric-eq-effect-plugin-by-gary-doman/
+- AudioApp.cn — “Bonus: Gary Doman launches FreeEQ8 free and open source parametric equalizer effects plugin” / “福利：Gary Doman 推出 FreeEQ8 免费开源的参量均衡器效果插件”  
+  https://www.audioapp.cn/thread-237167-1-1.html  
+  Screenshot-verified Chinese/English audio-community pickup: names Gary Doman, FreeEQ8, the feature set, ProEQ8, and links to the official GitHub repo.
 
 ## Listed, submitted, and under public testing review
 
-FreeEQ8 is already listed in multiple open audio/software directories, including [OpenAudio](https://github.com/webprofusion/OpenAudio), [awesome-music-production](https://github.com/ad-si/awesome-music-production#plugins), and the [Awesome Audio Dev List](https://github.com/GareBear99/awesome-audio-plugins-dev#equalizers). A live tracker for accepted listings, open PRs, and editorial submissions is maintained in [docs/FEATURED_ON.md](docs/FEATURED_ON.md) and [docs/SUBMISSIONS_2026.md](docs/SUBMISSIONS_2026.md). The most conservative cross-check is in [docs/outreach/CROSSCHECKED_SUBMISSION_STATUS_2026-05-21.md](docs/outreach/CROSSCHECKED_SUBMISSION_STATUS_2026-05-21.md).
+FreeEQ8 now has third-party English and Chinese audio-community coverage from [Rekkerd.org](https://rekkerd.org/free-freeeq8-parametric-eq-effect-plugin-by-gary-doman/) and [AudioApp.cn](https://www.audioapp.cn/thread-237167-1-1.html), plus verified open audio/software listings including [OpenAudio](https://github.com/webprofusion/OpenAudio), [awesome-music-production](https://github.com/ad-si/awesome-music-production#plugins), and the [Awesome Audio Dev List](https://github.com/GareBear99/awesome-audio-plugins-dev#equalizers). A live tracker for accepted listings, open PRs, and editorial submissions is maintained in [docs/FEATURED_ON.md](docs/FEATURED_ON.md) and [docs/SUBMISSIONS_2026.md](docs/SUBMISSIONS_2026.md). The most conservative cross-check is in [docs/outreach/CROSSCHECKED_SUBMISSION_STATUS_2026-05-21.md](docs/outreach/CROSSCHECKED_SUBMISSION_STATUS_2026-05-21.md).
 
 FreeEQ8 is also requesting targeted technical testing feedback from relevant JUCE, plugin-validation, DAW, and DSP review routes. Public feedback status is tracked in [docs/testing/PUBLIC_FEEDBACK_CHANNELS_2026.md](docs/testing/PUBLIC_FEEDBACK_CHANNELS_2026.md). Cross-check note: Tracktion/pluginval and JUCE are relevant technical routes; Chowdhury-DSP resulted in an optional paid expert-review offer; DISTRHO/DPF and iPlug2 were confirmed off-target for the current JUCE-based FreeEQ8 project.
 

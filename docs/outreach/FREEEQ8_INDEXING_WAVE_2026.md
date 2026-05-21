@@ -3,7 +3,7 @@
 
 ## Validation Context — 2026-05-21
 
-This wave is now based on live listing + Gmail validation + public-page cross-checking, not assumptions. Rekkerd coverage is confirmed live and should be referenced as the credibility anchor. OpenAudio and awesome-music-production are verified public listings. KVR replied with the correct route: create/use a KVR developer account, add the product listing, then submit a news item. Some framework-specific outreach was off-target, so future technical outreach should focus on JUCE, DAW users, producer communities, plugin-validation routes, and general audio-plugin directories.
+This wave is now based on live listing + Gmail validation + public-page cross-checking, not assumptions. Rekkerd coverage is confirmed live and should be referenced as the primary English-language credibility anchor. AudioApp.cn is screenshot-verified as a Chinese/English audio-community pickup and should be referenced as international coverage. OpenAudio, awesome-music-production, and the Awesome Audio Dev List are verified public listings. KVR replied with the correct route: create/use a KVR developer account, add the product listing, then submit a news item. Some framework-specific outreach was off-target, so future technical outreach should focus on JUCE, DAW users, producer communities, plugin-validation routes, and general audio-plugin directories.
 
 
 _Last updated: 2026-05-21_
@@ -249,3 +249,25 @@ Only follow up when one of these is true:
 - Any directory requiring a stable direct binary download if the release asset is missing.
 - Any Linux-specific directory if Linux artifacts are not attached or build instructions are not clean.
 - Any commercial marketplace for ProEQ8 until payment/license activation and support docs are final.
+
+## Added 2026-05-21 — AudioApp.cn international pickup
+
+### AudioApp.cn
+
+**Status:** Screenshot-verified Chinese/English coverage; search-index pending.
+
+**URL:** `https://www.audioapp.cn/thread-237167-1-1.html`
+
+**Safe copy:**
+
+> FreeEQ8 has now been picked up by both Rekkerd.org and AudioApp.cn, giving the plugin early English-language and Chinese audio-community coverage in addition to verified open-source audio-list placements.
+
+**Use in pitches:**
+
+- “Featured by Rekkerd.org and covered by AudioApp.cn.”
+- “English + Chinese audio-community pickup.”
+- “International discovery signal for FreeEQ8.”
+
+**Do not say yet:**
+
+- “Search-indexed in China” unless search results begin surfacing the thread.

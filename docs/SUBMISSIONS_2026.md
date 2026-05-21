@@ -47,7 +47,7 @@ Use these phrases across titles, tags, release copy, directory descriptions, and
 
 | Status | Count | Meaning |
 |---|---:|---|
-| Verified third-party public wins | 3 | Rekkerd coverage, OpenAudio listing, awesome-music-production listing. |
+| Verified third-party public wins | 5 | Rekkerd coverage, AudioApp.cn screenshot-verified coverage, OpenAudio listing, awesome-music-production listing, Awesome Audio Dev List. |
 | Self-maintained listing | 1 | Useful SEO, not third-party validation. |
 | Completed/closed evidence needing public-page recheck | 4 | Some GitHub/email threads closed as completed or relevant, but current public page did not prove live listing. |
 | Active/open PRs and issues | 8+ | Waiting for maintainer review or response. |
@@ -60,6 +60,7 @@ Use these phrases across titles, tags, release copy, directory descriptions, and
 | Target | Status | Evidence |
 |---|---:|---|
 | Rekkerd.org | ✅ Featured | Live article: `FREE: FreeEQ8 parametric EQ effect plugin by Gary Doman`, published 2026-05-19. |
+| AudioApp.cn | ✅ Screenshot-verified coverage | Chinese/English audio-community article/thread: `Bonus: Gary Doman launches FreeEQ8 free and open source parametric equalizer effects plugin` / `福利：Gary Doman 推出 FreeEQ8 免费开源的参量均衡器效果插件`; links to official GitHub repo. |
 | webprofusion / OpenAudio | ✅ Listed | Current public OpenAudio page shows `FreeEQ8` in Audio Plugins; Issue #207 is closed. |
 | ad-si / awesome-music-production | ✅ Listed | PR #197 merged 2026-03-16; current public README shows `FreeEQ8` under Apps. |
 | GareBear99 / awesome-audio-plugins-dev | ✅ Self-maintained listing | Useful index route; not third-party validation. |
@@ -129,12 +130,12 @@ These were sent as direct outreach. Do not resend unless there is a real update,
 
 ## Best current truth statement for future submissions
 
-> FreeEQ8 is a free, open-source JUCE/C++ 8-band parametric EQ plugin with VST3/AU/Standalone packaging, advanced EQ features, public source code, confirmed third-party coverage from Rekkerd.org, and verified public listings on OpenAudio and awesome-music-production. KVR product-database indexing is the next major step.
+> FreeEQ8 is a free, open-source JUCE/C++ 8-band parametric EQ plugin with VST3/AU/Standalone packaging, advanced EQ features, public source code, confirmed third-party coverage from Rekkerd.org and AudioApp.cn, and verified public listings on OpenAudio, awesome-music-production, and the Awesome Audio Dev List. KVR product-database indexing is the next major step.
 
 ## Next actions
 
 1. Create / complete KVR Developer Account product listing.
-2. Add Rekkerd/OpenAudio/awesome-music-production proof to follow-up pitches.
-3. Follow up with Bedroom Producers Blog using Rekkerd coverage as credibility proof.
+2. Add Rekkerd/AudioApp.cn/OpenAudio/awesome-music-production proof to follow-up pitches.
+3. Follow up with Bedroom Producers Blog using Rekkerd + AudioApp.cn coverage as credibility proof.
 4. Submit to Audio Plugins for Free, Plugins4Free, AlternativeTo, and Product Hunt only after release/demo assets are clean.
 5. Keep framework-specific outreach targeted only to frameworks FreeEQ8 actually uses.

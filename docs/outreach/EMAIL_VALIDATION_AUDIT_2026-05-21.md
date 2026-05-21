@@ -21,6 +21,16 @@ This file records the validated outreach/listing evidence checked from Gmail and
 
 ## Confirmed submission / routing evidence
 
+
+### AudioApp.cn — screenshot-verified international pickup
+
+- Status: **Screenshot-verified Chinese/English audio-community coverage; search-index pending.**
+- URL: `https://www.audioapp.cn/thread-237167-1-1.html`
+- Evidence: user-provided screenshots show the English title `Bonus: Gary Doman launches FreeEQ8 free and open source parametric equalizer effects plugin` and the Chinese title `福利：Gary Doman 推出 FreeEQ8 免费开源的参量均衡器效果插件`.
+- The page names **Gary Doman**, **FreeEQ8**, the 8-band free/open-source parametric EQ positioning, macOS/Linux/Windows, VST3/AU, linear phase, dynamic EQ, match EQ, drive, band linking, M/S processing, oversampling, real-time spectrum analyzer, **ProEQ8**, and the official GitHub URL.
+- Screenshot evidence is stored in `docs/press/audioapp-cn-freeeq8-english-view.jpeg` and `docs/press/audioapp-cn-freeeq8-chinese-view.jpeg`.
+- Correct marketing wording: “Covered by AudioApp.cn” or “Chinese/English AudioApp.cn audio-community pickup.” Avoid saying “search-indexed” until search engines surface the thread.
+
 ### KVR Audio
 
 - Status: **KVR replied with correct developer route; product listing still needs direct developer-account action.**
@@ -131,12 +141,12 @@ This file records the validated outreach/listing evidence checked from Gmail and
 
 Use this as the grounded credibility line:
 
-> FreeEQ8 is a free, open-source JUCE/C++ 8-band parametric EQ plugin with VST3/AU/Standalone packaging, advanced EQ features, public source code, confirmed third-party coverage from Rekkerd.org, and verified public listings on OpenAudio and awesome-music-production. Some additional list submissions have closed/completed evidence, but should not be marketed as live listings until the public list pages visibly contain FreeEQ8.
+> FreeEQ8 is a free, open-source JUCE/C++ 8-band parametric EQ plugin with VST3/AU/Standalone packaging, advanced EQ features, public source code, confirmed third-party coverage from Rekkerd.org, screenshot-verified international pickup from AudioApp.cn, and verified public listings on OpenAudio, awesome-music-production, and the Awesome Audio Dev List. Some additional list submissions have closed/completed evidence, but should not be marketed as live listings until the public list pages visibly contain FreeEQ8.
 
 ## Next actions
 
 1. Create / complete KVR Developer Account product listing.
-2. Add Rekkerd quote/link everywhere relevant.
+2. Add Rekkerd + AudioApp.cn coverage links everywhere relevant.
 3. Follow up with Bedroom Producers Blog using Rekkerd coverage as credibility proof.
 4. Submit AlternativeTo entry with “free/open-source alternative to FabFilter Pro-Q / TDR Nova / ZL Equalizer” keyword strategy.
 5. Submit Product Hunt only after screenshots/demo GIF/video are polished.
