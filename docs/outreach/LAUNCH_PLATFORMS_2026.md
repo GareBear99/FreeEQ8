@@ -96,3 +96,20 @@ FreeEQ8 is part of a local-first audio/DSP and AI tooling ecosystem by Gary Doma
 - `docs/FEATURED_ON.md` and `docs/SUBMISSIONS_2026.md` are current.
 - At least one short demo clip or screenshot is available.
 - No claims imply fully validated commercial-grade behavior unless tested in multiple DAWs.
+
+## 2026-05-21 audit update — indexing-first expansion
+
+After auditing the current FreeEQ8 package, the launch order should be tightened around index surfaces first:
+
+1. KVR Audio Developer Account + Product Database listing
+2. Audio Plugins for Free upload/submission
+3. Plugins4Free listing route
+4. AlternativeTo application profile
+5. REAPER Forum / r/Reaper post
+6. r/FREEVSTS and r/AudioPlugins posts
+7. Product Hunt launch
+8. Hacker News / Show HN technical post
+9. LinuxMusicians / r/linuxaudio after Linux package/build path is clean
+10. Editorial follow-up to Bedroom Producers Blog, CDM, MusicRadar, MusicTech, Gearnews, Ask.Audio, Production Expert, and Sonic State
+
+Use [FREEEQ8_INDEXING_WAVE_2026.md](FREEEQ8_INDEXING_WAVE_2026.md) for platform-specific copy.

@@ -2,7 +2,7 @@
 
 Curated external lists, directories, and editorial routes that feature or are reviewing FreeEQ8.
 
-_Last updated: 2026-05-12_
+_Last updated: 2026-05-21_
 
 ## Confirmed active listings
 
@@ -36,6 +36,22 @@ _Last updated: 2026-05-12_
 | [BillyDM / awesome-audio-dsp](https://github.com/BillyDM/awesome-audio-dsp) | ⛔ Skipped | Contribution rules and self-promotion/financial-incentive concern because FreeEQ8 is tied to ProEQ8. |
 | [matthewamend / awesome-audio-plugins](https://github.com/matthewamend/awesome-audio-plugins) | ⛔ Skipped | Scoped to plugin APIs/libraries/developer tools, not end-user plugins. |
 | [DolbyIO / awesome-audio](https://github.com/DolbyIO/awesome-audio) | ⛔ Skipped | Developer/API-focused list; no fitting individual plugin section. |
+
+
+## Immediate high-value indexing gaps
+
+| Route | Priority | Why it matters | Next action |
+|---|---:|---|---|
+| KVR Audio Product Database | Highest | Core audio-plugin discovery/indexing surface. | Create Developer Account, add FreeEQ8 product, submit news item. |
+| Audio Plugins for Free | Highest | Direct free-plugin database with upload route. | Upload/submit FreeEQ8 with screenshots and release link. |
+| Plugins4Free | High | Long-running free VST/AU discovery site. | Submit as Effects / Equalizer if active route is available. |
+| AlternativeTo | High | SEO surface for “free alternative to FabFilter Pro-Q / TDR Nova / ZL Equalizer.” | Suggest new application with GPL/open-source tags. |
+| Product Hunt | Medium-high | Broader product discovery and backlink value. | Launch after hero image/demo GIF/release assets are clean. |
+| Hacker News / Show HN | Medium-high | Developer credibility and JUCE/C++/DSP review surface. | Post only as a substantive build/code story, not a version bump. |
+| REAPER Forum / r/Reaper | High | Strong free-plugin adoption community. | Post with REAPER-tested angle and feedback request. |
+| r/FREEVSTS / r/AudioPlugins | High | Direct producer discovery. | Post once with clear download link and feature list. |
+
+Full indexing wave copy: [docs/outreach/FREEEQ8_INDEXING_WAVE_2026.md](outreach/FREEEQ8_INDEXING_WAVE_2026.md).
 
 ## Next outreach candidates
 
