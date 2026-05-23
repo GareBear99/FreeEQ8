@@ -16,6 +16,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.1] — 2026-05-22
+
+### Fixed
+- **Transistor saturation gain error** (ProEQ8) — the hard-clip waveshaper was
+  computing `clamp(x*d, -1, 1) * invD * d`, where `invD = 1/d`, reducing the
+  expression to `clamp(x*d, -1, 1) * 1.0` — a no-op normalisation followed by a
+  redundant second clamp. Fixed to `clamp(x*d, -1, 1) * invD`, which correctly
+  clips the signal and restores unity gain at 0% drive. At high drive the
+  previous build produced ~d× too much output level; at 0% drive the output was
+  correct. Affects ProEQ8 only (`#if PROEQ8`); FreeEQ8 (Tanh) was unaffected.
+- **Dynamic EQ coefficient lag** — `maybeUpdateCoeffs()` batched biquad
+  coefficient updates on a 16-sample interval even when Dynamic EQ was active,
+  causing up to 16 samples of lag between the envelope follower detecting a
+  transient and the filter responding. When `dynEnabled` is true, coefficients
+  are now recomputed every sample (matching the per-sample envelope follower
+  cadence). The 16-sample batching is retained for the parameter-smoothing-only
+  path, where the cost saving is worthwhile and the audible impact is negligible.
+- **Match EQ hot-path `pow(10)` calls** — `applyToChannel()` was computing
+  `std::pow(10.0f, correctionDb[i] / 20.0f)` for every bin (2048 calls) on every
+  audio block per channel. The correction dB values are static once analysis
+  completes, so the equivalent linear gains are now pre-computed into
+  `correctionGain[]` when the correction is finalised, and `applyToChannel()`
+  reads those directly. Eliminates ~4096 transcendental operations per block
+  while Match EQ is active.
+- **Linear phase + oversampling interaction** — when both were enabled,
+  oversampling was silently bypassed by the `if (linearPhase) … else if (activeOS)`
+  branch structure, with no indication in the code. Added an explicit explanatory
+  comment documenting why this is correct (the FIR kernel already encodes the full
+  magnitude response at native sample rate; upsampling would add latency without
+  benefit). No audio change; code-clarity fix only matching the existing greyed-out
+  UI behaviour.
+
 ## [2.2.0] — 2026-04-23
 
 ### Added

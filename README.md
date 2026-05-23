@@ -188,6 +188,14 @@ FreeEQ8 is adding a real-time decision layer on top of the existing 8-band engin
 
 No other free open-source 8-band EQ currently combines intent-aware resonance detection + explain-on-hover + one-click apply. See [`docs/SMART_EQ_LAYER.md`](docs/SMART_EQ_LAYER.md) for the full algorithm, status matrix, and next-commit plan.
 
+
+## 🔍 Code Audit
+
+A full line-by-line audit of the DSP, threading, and restriction system is
+published at [AUDIT.md](AUDIT.md). Summary: FreeEQ8 has **zero audio
+restrictions, zero feature locks, and zero nag interruptions**. All v2.2.1
+bug fixes are documented with root cause analysis.
+
 ## 📊 Benchmarks & RT-safety
 
 FreeEQ8 / ProEQ8 v2.2.0 ships with a proven real-time-safe DSP engine:
@@ -209,7 +217,7 @@ Full evidence and numbers:
 - **6 Filter Types** per band: Bell, Low Shelf, High Shelf, High Pass, Low Pass, Bandpass
 - **Multiple Slopes** — 12 / 24 / 48 dB/oct via cascaded biquad stages
 - **Per-Band Enable/Disable & Solo** for A/B comparison and audition
-- **Parameter Smoothing** (20ms linear interpolation, coefficients refreshed every 16 samples)
+- **Parameter Smoothing** (20ms linear interpolation, coefficients refreshed every 16 samples during parameter automation; every sample when Dynamic EQ is active)
 
 ### Advanced Processing
 - **Linear Phase Mode** — symmetric FIR from combined biquad magnitude, overlap-add FFT convolution (2048-sample latency when active)
@@ -452,7 +460,7 @@ Q: 0.7 (standard)
 - **Filter Structure**: Transposed Direct Form II biquad (Biquad.h)
 - **Coefficient Calculation**: RBJ Audio EQ Cookbook
 - **Smoothing**: Linear interpolation over 20ms
-- **Update Rate**: Coefficients refreshed every 16 samples during smoothing
+- **Update Rate**: Coefficients refreshed every sample when Dynamic EQ is active; every 16 samples during parameter smoothing (amortised cost)
 - **Precision**: Double-precision (64-bit) coefficients and internal state; float I/O
 - **Linear Phase**: 4096-tap symmetric FIR, 8192-point FFT, overlap-add convolution
 - **Dynamic EQ**: One-pole envelope follower with sidechain bandpass at band frequency
@@ -685,12 +693,54 @@ FreeEQ8 is an **original implementation** of a parametric EQ plugin. It is:
 - An independent, open-source project
 - Built using public-domain DSP algorithms (RBJ Audio EQ Cookbook)
 
+
+
+## 🔍 Code Audit
+
+A full line-by-line audit of the DSP, threading, and restriction system is
+published at [AUDIT.md](AUDIT.md). Summary: FreeEQ8 has **zero audio
+restrictions, zero feature locks, and zero nag interruptions**. All v2.2.1
+bug fixes are documented with root cause analysis.
+
+## 📊 Benchmarks
+
+Every feature claim is backed by a reproducible standalone benchmark suite.
+All 33 features pass at **>10x CPU headroom** at 44.1 kHz / 512-sample blocks.
+
+Key numbers (g++ -O3, x86-64, median of 16 trials):
+
+| Feature | ns/sample | Headroom |
+|---------|-----------|---------|
+| Single biquad band (Bell) | 5.1 | >2200x |
+| 8-band stereo full path | 41.5 | >273x |
+| Dynamic EQ (per-sample, zero-lag) | 68.3 | >166x |
+| Linear phase FIR rebuild | 36.5 µs/event | background thread |
+| Match EQ correction (v2.2.1) | 2.8 | >4000x |
+| Match EQ correction (old naive pow) | 7.4 | 1527x |
+| Mid/Side encode+decode | 0.42 | >27,000x |
+| SpectrumFIFO push (audio thread) | 0.66 | >17,000x |
+| Oversampling 8x EQ cost | 213 | >53x |
+| Tanh saturation (stereo) | 61.4 | >184x |
+
+→ Full results and methodology: [BENCHMARK.md](BENCHMARK.md)
+
+Build and run the benchmarks yourself (no JUCE required):
+```bash
+g++ -std=c++17 -O3 -DNDEBUG -pthread Tests/FeatureBench.cpp -o FeatureBench -I.
+./FeatureBench
+```
+
 ## 🐛 Known Issues
 
-- Changing oversampling mid-playback may cause a brief click
-- Linear phase mode adds 2048 samples of latency (reported to DAW via `setLatencySamples`)
-- Match EQ capture is mono-summed; correction is per-channel
-- Linear phase mode does not currently apply M/S, per-band drive, or dynamic EQ (minimum-phase path only)
+- Changing oversampling mid-playback may cause a brief click (IIR half-band filter state differs between orders; reset on switch)
+- Linear phase mode adds 2048 samples of latency (reported to the DAW via `setLatencySamples`)
+- Match EQ capture is mono-summed; correction is applied per-channel
+- Linear phase mode does not apply M/S, per-band drive, or dynamic EQ — those features require per-sample biquad state and are on the minimum-phase path only. The oversampling selector and the affected controls are greyed out in the UI when linear phase is active
+
+**Fixed in v2.2.1:**
+- ~~Transistor saturation gain error~~ (ProEQ8) — double-multiply bug caused ~d× level at high drive; fixed
+- ~~Dynamic EQ coefficient lag~~ — up to 16-sample transient lag between envelope detection and filter response; now zero-lag when Dynamic EQ is enabled
+- ~~Linear phase + oversampling undocumented interaction~~ — behaviour now explicitly documented in source
 
 Report issues at: https://github.com/GareBear99/FreeEQ8/issues
 
