@@ -16,6 +16,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.2] — 2026-05-22
+
+### Added
+- **SvfBiquad.h** — Simper (Cytomic) State Variable Filter implementation
+  based on "Solving the continuous SVF equations using trapezoidal integration
+  and equivalent currents" (Andrew Simper, 2013). Parallel to existing Biquad.h
+  (RBJ path fully preserved). Key properties:
+  - `g = tan(pi*fc/sr)` pre-warps the cutoff exactly — de-cramped by design
+  - Stable under audio-rate parameter modulation (trapezoidal integrators cannot
+    blow up under fast sweeps the way TDF-II feedback can)
+  - All 8 filter types (Bell, LowShelf, HighShelf, LP, HP, BP, Notch, AllPass)
+    from one 2-integrator core
+  - 64-bit double internal state, float I/O — same as Biquad.h
+  - Optimised hot path: cached `a2*ic1eq` term (eliminates 1 redundant mul),
+    `v+v` state updates (avoids mul), type-dispatched output mix (LP/HP/BP skip
+    dead multiplies in the m0/m1/m2 mix)
+- **Tests/SvfTest.cpp** — 8-test correctness suite for SvfBiquad (all pass):
+  Bell unity at 0 dB, Bell peak gain accuracy, Q BZT documentation, LP/HP -3dB
+  at fc, stability under audio-rate sweep, state reset, Q-independence of peak gain
+- **FeatureBench.cpp** — 5 new SVF benchmark sections: single-band all types,
+  8-band stereo, RBJ vs SVF throughput ratio, bq.set() cost, dynamic EQ path
+
+### Architecture — RBJ vs SVF
+FreeEQ8 v2.2.2 ships BOTH filter topologies. The SVF is the v2.3.0 path
+(full integration into EQBand, ProEQ8 commercial release). For v2.2.2 it is
+a tested, benchmarked drop-in that operators and contributors can evaluate.
+
+Measured overhead of SVF vs RBJ (8-band stereo, Bell+Shelf+HP+LP mix):
+  - **1.73x** ns/sample (SVF=70.4, RBJ=40.7 at 44.1kHz)
+  - **161x headroom** at 44.1kHz/512-block/50% CPU budget
+  - **0.62% of 50% CPU budget** — negligible in practice
+  - bq.set() cost: SVF Bell=22ns vs RBJ Bell=21ns (tan() ≈ sin()/cos() cost)
+
+The accuracy justification (from JUCE forum feedback by Nitsuj70, corroborated
+by the Simper paper):
+  - RBJ Bell at 16kHz/44.1kHz with Q=1.0 has effective Q ≈ 2.99 (199% error)
+  - This is a bilinear transform property — not a bug in either RBJ or SVF
+  - SVF pre-warps the cutoff frequency: Bell peak gain is always exactly gainDb
+  - SVF eliminates the need for oversampling to get accurate HF cutoff response
+
+### Known change
+- SVF bq.set() Bell/Shelf requires `tan()` (vs `sin()/cos()` for RBJ); measured
+  cost is identical (~22 ns/call) — no regression on the dynamic EQ path
+
 ## [2.2.1] — 2026-05-22
 
 ### Fixed

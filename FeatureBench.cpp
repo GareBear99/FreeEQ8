@@ -52,6 +52,7 @@
 // Pull in production DSP headers (standalone — no JUCE required for Biquad.h)
 #include <string>
 #include "../Source/DSP/Biquad.h"
+#include "../Source/DSP/SvfBiquad.h"
 
 // --- Timing helpers ----------------------------------------------------------
 
@@ -827,6 +828,186 @@ static void bench_denormal_handling()
            ns, "measured with near-subnormal signal; if slow → FTZ not active");
 }
 
+
+// --- SVF BENCHMARKS (v2.2.2) — Simper trapezoidal SVF vs RBJ Biquad ---------
+
+static void bench_svf_single_band()
+{
+    constexpr int N = 65536;
+    auto noise = make_noise(N);
+    std::vector<float> out(N);
+
+    struct Case { SvfBiquad::Type type; const char* name; };
+    static const Case cases[] = {
+        { SvfBiquad::Type::Bell,      "Bell"      },
+        { SvfBiquad::Type::LowShelf,  "LowShelf"  },
+        { SvfBiquad::Type::HighShelf, "HighShelf" },
+        { SvfBiquad::Type::HighPass,  "HighPass"  },
+        { SvfBiquad::Type::LowPass,   "LowPass"   },
+        { SvfBiquad::Type::Bandpass,  "Bandpass"  },
+    };
+    for (auto& c : cases)
+    {
+        SvfBiquad bq;
+        bq.set(c.type, 44100.0, 1000.0, 1.0, 6.0);
+        char feat[64];
+        std::snprintf(feat, sizeof(feat), "SVF/%s (1 band)", c.name);
+        auto fn = [&]() {
+            bq.reset();
+            for (int i = 0; i < N; ++i)
+                out[i] = bq.processL(noise[i]);
+        };
+        double ns = bench_ns_per_sample(fn, N);
+        record(feat, "Simper SVF 2-integrator, 64-bit, de-cramped BZT", ns, "single channel");
+    }
+}
+
+static void bench_svf_8band_stereo()
+{
+    constexpr int N = 65536;
+    auto L = make_noise(N, 0xAAAAAAAA);
+    auto R = make_noise(N, 0x55555555);
+    std::vector<float> ol(N), or_(N);
+
+    std::array<SvfBiquad, 8> bands;
+    static const SvfBiquad::Type types[] = {
+        SvfBiquad::Type::HighPass, SvfBiquad::Type::LowShelf,
+        SvfBiquad::Type::Bell,     SvfBiquad::Type::Bell,
+        SvfBiquad::Type::Bell,     SvfBiquad::Type::Bell,
+        SvfBiquad::Type::HighShelf,SvfBiquad::Type::LowPass
+    };
+    static const double freqs[] = { 80, 200, 500, 1000, 2000, 4000, 8000, 12000 };
+    for (int i = 0; i < 8; ++i)
+        bands[i].set(types[i], 44100.0, freqs[i], 1.0, i%2==0 ? 3.0 : -3.0);
+
+    auto fn = [&]() {
+        for (auto& b : bands) b.reset();
+        for (int i = 0; i < N; ++i) {
+            float l = L[i], r = R[i];
+            for (auto& b : bands) { l = b.processL(l); r = b.processR(r); }
+            ol[i] = l; or_[i] = r;
+        }
+    };
+    double ns = bench_ns_per_sample(fn, N);
+    record("SVF/8-band stereo", "2-integrator x8 x2ch — vs RBJ/8-band stereo", ns,
+           "overhead vs RBJ shown in SVF/vs-RBJ row");
+}
+
+static void bench_svf_vs_rbj_ratio()
+{
+    constexpr int N = 65536;
+    auto L = make_noise(N, 0x11223344);
+    auto R = make_noise(N, 0x44332211);
+    std::vector<float> ol(N), or_(N);
+
+    std::array<Biquad, 8>    rbj_bands;
+    std::array<SvfBiquad, 8> svf_bands;
+    for (int i = 0; i < 8; ++i) {
+        rbj_bands[i].set(Biquad::Type::Bell,    44100.0, 1000.0*(i+1), 1.0, 3.0);
+        svf_bands[i].set(SvfBiquad::Type::Bell, 44100.0, 1000.0*(i+1), 1.0, 3.0);
+    }
+
+    double ns_rbj = bench_ns_per_sample([&]() {
+        for (auto& b : rbj_bands) b.reset();
+        for (int i = 0; i < N; ++i) {
+            float l=L[i], r=R[i];
+            for (auto& b : rbj_bands) { l=b.processL(l); r=b.processR(r); }
+            ol[i]=l; or_[i]=r;
+        }
+    }, N);
+
+    double ns_svf = bench_ns_per_sample([&]() {
+        for (auto& b : svf_bands) b.reset();
+        for (int i = 0; i < N; ++i) {
+            float l=L[i], r=R[i];
+            for (auto& b : svf_bands) { l=b.processL(l); r=b.processR(r); }
+            ol[i]=l; or_[i]=r;
+        }
+    }, N);
+
+    double ratio = ns_svf / ns_rbj;
+    char note[128];
+    std::snprintf(note, sizeof(note),
+                  "SVF=%.2f ns/samp, RBJ=%.2f ns/samp, overhead=%.2fx", ns_svf, ns_rbj, ratio);
+    record("SVF/vs-RBJ throughput ratio", "SVF cost premium vs RBJ (target < 1.5x)", ns_svf, note);
+}
+
+static void bench_svf_set_cost()
+{
+    constexpr int N = 65536;
+    SvfBiquad bq;
+    float gain = 0.0f;
+
+    static const SvfBiquad::Type types[] = {
+        SvfBiquad::Type::Bell, SvfBiquad::Type::LowShelf,
+        SvfBiquad::Type::HighShelf, SvfBiquad::Type::HighPass,
+        SvfBiquad::Type::LowPass, SvfBiquad::Type::Bandpass
+    };
+    static const char* tnames[] = {
+        "Bell","LowShelf","HighShelf","HighPass","LowPass","Bandpass"
+    };
+    for (int t = 0; t < 6; ++t)
+    {
+        auto fn = [&]() {
+            for (int i = 0; i < N; ++i) {
+                gain = (float)(i % 48) - 24.0f;
+                bq.set(types[t], 44100.0, 1000.0, 1.0, gain);
+            }
+        };
+        char feat[64];
+        std::snprintf(feat, sizeof(feat), "SVF bq.set()/%s", tnames[t]);
+        double ns = bench_ns_per_sample(fn, N);
+        record(feat, "SVF coefficient recompute (tan() per call)", ns,
+               "compare vs RBJ bq.set() — tan() vs sin()/cos()");
+    }
+}
+
+static void bench_svf_dynamic_eq()
+{
+    constexpr int N = 65536;
+    constexpr double SR = 44100.0;
+    auto L = make_noise(N, 0xABCDEF01);
+    auto R = make_noise(N, 0x10FEDCBA);
+    std::vector<float> ol(N), or_(N);
+
+    struct SvfDynBand {
+        SvfBiquad bq, scBq;
+        float envLevel=0.0f, threshDb=-20.0f, ratio=4.0f, attackMs=10.0f, releaseMs=100.0f;
+        void prepare(double sr, double freq) {
+            bq.set(SvfBiquad::Type::Bell, sr, freq, 1.0, 0.0);
+            scBq.set(SvfBiquad::Type::Bandpass, sr, freq, 2.0, 0.0);
+            envLevel=0.0f;
+        }
+        void process(float& l, float& r, double sr) {
+            float rect = std::abs(scBq.processL((l+r)*0.5f));
+            float ac = 1.0f-std::exp(-1.0f/(float)(sr*attackMs*0.001f));
+            float rc = 1.0f-std::exp(-1.0f/(float)(sr*releaseMs*0.001f));
+            if (rect>envLevel) envLevel+=ac*(rect-envLevel);
+            else               envLevel+=rc*(rect-envLevel);
+            float db = 20.0f*std::log10(std::max(envLevel,1e-7f));
+            float dg = (db>threshDb) ? -(db-threshDb)*(1.0f-1.0f/ratio) : 0.0f;
+            bq.set(SvfBiquad::Type::Bell, sr, 1000.0, 1.0, dg);
+            l=bq.processL(l); r=bq.processR(r);
+        }
+    };
+
+    SvfDynBand band;
+    band.prepare(SR, 1000.0);
+
+    auto fn = [&]() {
+        band.prepare(SR, 1000.0);
+        for (int i = 0; i < N; ++i) {
+            float l=L[i], r=R[i];
+            band.process(l, r, SR);
+            ol[i]=l; or_[i]=r;
+        }
+    };
+
+    double ns = bench_ns_per_sample(fn, N);
+    record("SVF Dynamic EQ (per-sample)", "SVF envelope + per-sample set() + process", ns,
+           "compare vs RBJ Dynamic EQ row — tan() overhead visible here");
+}
+
 // --- Printing -----------------------------------------------------------------
 
 static void print_table(bool csv)
@@ -956,6 +1137,13 @@ int main(int argc, char** argv)
     bench_biquad_set();
     verify_biquad_unity();
     bench_denormal_handling();
+
+    // ── SVF benchmarks (v2.2.2) ──────────────────────────────────────────────
+    bench_svf_single_band();
+    bench_svf_8band_stereo();
+    bench_svf_vs_rbj_ratio();
+    bench_svf_set_cost();
+    bench_svf_dynamic_eq();
 
     print_table(csv);
     return 0;
