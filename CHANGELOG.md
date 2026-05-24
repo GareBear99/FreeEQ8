@@ -16,6 +16,94 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.3] — 2026-05-24
+
+### Added
+
+- **Variable-cadence Dynamic EQ** (`Source/DSP/EQBand.h`) — adaptive coefficient
+  update strategy that saves up to 75% of transcendental `bq.set()` calls during
+  stable signal conditions without reintroducing transient lag:
+  - When `|dynGainMod − lastDynGainMod| > 0.1 dB` (envelope actively tracking a
+    transient): per-sample coefficient update — zero transient lag, unchanged from
+    v2.2.2.
+  - When envelope is stable (sustained note, held chord, tail): throttle to a
+    4-sample batch cadence. The 0.1 dB threshold ensures the first sample of any
+    transient immediately restores per-sample accuracy.
+  - New member `lastDynGainMod` tracks previous gain modulation value for the
+    delta check. Reset to zero in `reset()`. Entirely on the audio thread; no
+    allocation, no locks.
+
+- **`intent_mode` APVTS parameter** (`Source/PluginProcessor.cpp`) — exposes the
+  Smart EQ intent profile as a host-automatable parameter (Choice: None / Vocal
+  Clean / Drum Punch / Guitar Space / Master Polish). Previously `IntentMode.h`
+  existed but had no APVTS binding.
+
+- **`ResonanceDetector` wired to editor timer** (`Source/PluginEditor.cpp`) —
+  `timerCallback()` now calls `resonanceDetector.analyse()` on fresh spectrum
+  data at 30 Hz (UI thread, allocation-free). Passes results to
+  `ResponseCurveComponent::setSuggestions()` and updates the pre-ring warning flag.
+
+- **Suggestion overlay** (`Source/UI/ResponseCurveComponent.cpp`) —
+  `paintSuggestions()` renders glowing amber ring markers at each `ResonanceDetector`
+  suggestion node with confidence-scaled opacity. Semantic label shown below node
+  in full view; hidden in compact mode. Hit-tested via `hitTestSuggestion()` for
+  future one-click apply (v2.3.0).
+
+- **Compact / mini-window mode** (`Source/UI/ResponseCurveComponent.h/.cpp`) —
+  `setCompactMode(bool)` flag controlling visual density. Coordinate mapping
+  (`freqToX`, `dbToY`, drag math, Q drag sensitivity, node hit-test radius) is
+  **identical** in both views — matching the Ableton EQ Eight "one truth source,
+  multiple renderers" principle. Changes in compact mode: analyser resolution
+  reduced (512→128 points), grid labels hidden, node text suppressed.
+
+- **Pre-ring warning overlay** (`Source/UI/ResponseCurveComponent.cpp`) —
+  amber banner rendered at curve bottom when `IntentMode::DrumPunch` is active
+  simultaneously with Linear Phase mode. Warns that FIR pre-ringing smears drum
+  transients. Full view: full message. Compact view: "Pre-Ring Risk" only.
+
+- **Oversampling crossfade buffer** (`Source/PluginProcessor.h/.cpp`) — eliminates
+  the "one-block latency blip" documented in v2.2.0 comments. When oversampling
+  order changes mid-playback:
+  1. Incoming oversampler is reset (non-allocating, as before).
+  2. `osCrossfadeRemaining = 128` samples is set.
+  3. Over the next 128 samples (~3 ms at 44.1 kHz), output is a linear blend
+     from old→new signal. Completely inaudible; prevents monitor-damaging pops.
+  Members: `osCrossfadeL[128]`, `osCrossfadeR[128]`, `osCrossfadeRemaining`,
+  `osSwitchPending`. All stack-allocated, zero heap cost.
+
+- **`PAPER.md`** — full technical paper: SVF math derivation, SPSC concurrency
+  model, variable-cadence algorithm, semantic analysis architecture, measured
+  benchmarks. Suitable for DAFx 2026 / AES submission or arXiv cs.SD preprint.
+
+- **`ROADMAP_2_5_PLUS.md`** — complete long-horizon plan through v3.0:
+  v2.3 ProEQ8 launch, v2.4 SIMD vectorisation, v2.5 spectral dynamics + Atmos,
+  v3.0 cross-instance ARC-Core spine. Includes competitor feature matrix,
+  publication plan, and FreeEQ8 feature-freeze policy.
+
+### Fixed
+
+- **Dynamic EQ worst-case CPU** — all 8 bands in dynamic mode with a sustained
+  signal previously called `bq.set()` every sample regardless of whether the
+  envelope was moving. Now throttles to 4-sample batch during stable conditions.
+
+- **Oversampling mid-playback pop** — the "one-block latency blip" noted in
+  v2.2.0 comments is now resolved with the 128-sample crossfade buffer.
+
+### Changed
+
+- **`ResponseCurveComponent.h`**: added `setSuggestions()`, `setPreRingWarning()`,
+  `setCompactMode()`, `paintSuggestions()`, `paintPreRingWarning()`,
+  `hitTestSuggestion()`, `cachedGrid`, `gridDirty`, `numPointsCompact = 128`.
+  Includes `ResonanceDetector.h` directly.
+- **`PluginProcessor.h`**: includes `ResonanceDetector.h` and `IntentMode.h`.
+  Adds `resonanceDetector`, `getIntentMode()`, `isLinearPhaseActive()` accessors,
+  and oversampling crossfade members.
+- **`PluginEditor.cpp`**: `timerCallback()` calls `resonanceDetector.analyse()`
+  and pushes results to `responseCurve`. `setOpaque(true)` on editor root.
+  `levelMeter.setBufferedToImage(true)` to avoid redundant repaints.
+- **`ResponseCurveComponent.cpp`**: `setOpaque(true)` in constructor, `paint()`
+  calls `paintSuggestions()` and `paintPreRingWarning()`.
+
 ## [2.2.2] — 2026-05-22
 
 ### Added

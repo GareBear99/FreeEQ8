@@ -15,7 +15,7 @@
     static constexpr const char* kProductTag   = "8-Band Parametric EQ";
 #endif
 
-static constexpr const char* kVersion = "2.2.2";
+static constexpr const char* kVersion = "2.2.3";
 
 // GitHub repo for update checking
 static constexpr const char* kGitHubOwner = "GareBear99";

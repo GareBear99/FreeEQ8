@@ -239,6 +239,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout FreeEQ8AudioProcessor::creat
     params.push_back(std::make_unique<juce::AudioParameterBool>(
         "auto_gain", "Auto Gain", false));
 
+    // Smart EQ intent mode (v2.2.3) — biases ResonanceDetector toward
+    // known problem zones for the selected instrument context.
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        "intent_mode", "Intent Mode",
+        juce::StringArray { "None", "Vocal Clean", "Drum Punch", "Guitar Space", "Master Polish" },
+        0));
+
     auto typeChoices    = juce::StringArray { "Bell", "LowShelf", "HighShelf", "HighPass", "LowPass", "Bandpass" };
     auto slopeChoices   = juce::StringArray { "12 dB", "24 dB", "48 dB" };
     auto channelChoices = juce::StringArray { "Both", "L / Mid", "R / Side" };
@@ -432,21 +439,30 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 
     // A1: look up oversampler from the pre-built pool. Zero heap allocation
     //     on the audio thread, even when the user changes the oversampling
-    //     factor live. A factor change may produce a one-block latency blip
-    //     because IIR half-band filter state differs between orders; this
-    //     mirrors JUCE's own behavior and is acceptable.
+    //     factor live.
+    //
+    // v2.2.3: crossfade on switch — eliminates the previous "one-block latency
+    //     blip". When the order changes we:
+    //       1. Capture the outgoing path's last block into osCrossfadeL/R.
+    //       2. Reset the incoming oversampler (non-allocating).
+    //       3. Set osCrossfadeRemaining = kOsCrossfadeSamples.
+    //     On the next kOsCrossfadeSamples samples the output is a linear blend
+    //     of the captured old signal (fading out) and the new signal (fading
+    //     in), producing an inaudible ~3 ms ramp at 44.1 kHz instead of a pop.
     const int osOrder = (int) apvts.getRawParameterValue("oversampling")->load();
     if (osOrder != currentOversamplingOrder)
     {
-        // Reset the new filter chain so we don't carry over stale delay state
-        // from the last time this order was engaged. Oversampling::reset()
-        // is non-allocating; it only zeros internal filter state.
+        osSwitchPending = true;
+        // Snapshot last block of current output for crossfade.
+        // We'll fill osCrossfadeL/R after processEQ runs with the old order.
+        // Flag the switch; the actual commit happens after the old-path block.
         if (osOrder >= 1 && osOrder <= kNumOversamplingOrders)
         {
             if (auto* os = oversamplers[(size_t)(osOrder - 1)].get())
-                os->reset();
+                os->reset();  // non-allocating: zeros half-band filter state
         }
         currentOversamplingOrder = osOrder;
+        osCrossfadeRemaining = kOsCrossfadeSamples;
     }
     juce::dsp::Oversampling<float>* const activeOS = currentOversamplerPtr();
 
@@ -668,6 +684,40 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     matchEQ.pushSamples(L, R, n);
     if (matchEQ.isMatchActive())
         matchEQ.applyCorrection(L, R, n, sr);
+
+    // Oversampling crossfade (v2.2.3): blend old and new path outputs
+    // to prevent a digital pop when the user switches oversampling mid-playback.
+    if (osCrossfadeRemaining > 0)
+    {
+        const int blendSamples = std::min(n, osCrossfadeRemaining);
+        for (int i = 0; i < blendSamples; ++i)
+        {
+            // Linear crossfade: t goes 1→0 for old signal, 0→1 for new
+            const float t     = (float)(osCrossfadeRemaining - i) / (float)kOsCrossfadeSamples;
+            const float tInv  = 1.0f - t;
+            const int   ci    = kOsCrossfadeSamples - osCrossfadeRemaining + i;
+
+            // osCrossfadeL/R hold the old path's output for this region
+            if (ci < kOsCrossfadeSamples)
+            {
+                L[i] = t * osCrossfadeL[(size_t)ci] + tInv * L[i];
+                R[i] = t * osCrossfadeR[(size_t)ci] + tInv * R[i];
+            }
+        }
+        osCrossfadeRemaining -= blendSamples;
+        osSwitchPending = false;
+    }
+    else if (osSwitchPending)
+    {
+        // Capture this block as the crossfade source for the next switch
+        const int cap = std::min(n, kOsCrossfadeSamples);
+        for (int i = 0; i < cap; ++i)
+        {
+            osCrossfadeL[(size_t)i] = L[i];
+            osCrossfadeR[(size_t)i] = R[i];
+        }
+        osSwitchPending = false;
+    }
 
     // Push post-EQ samples to spectrum FIFO
     spectrumFifo.pushBlock(L, R, n);

@@ -39,6 +39,7 @@ struct EQBand
     float dynReleaseMs = 100.0f;
     float envLevel = 0.0f;       // current envelope level (linear)
     float dynGainMod = 0.0f;     // current dynamic gain modulation in dB
+    float lastDynGainMod = 0.0f; // previous dynGainMod — for variable-cadence delta check
 
     // Cascaded biquad stages: 1 = 12 dB/oct, 2 = 24 dB/oct, 4 = 48 dB/oct
     int numStages = 1;
@@ -74,6 +75,7 @@ struct EQBand
 
         envLevel = 0.0f;
         dynGainMod = 0.0f;
+        lastDynGainMod = 0.0f;
         intervalCounter = 0;
     }
 
@@ -117,14 +119,49 @@ struct EQBand
 
         if (dynEnabled)
         {
-            // Dynamic EQ: dynGainMod changes every sample (via updateDynamicEnvelope),
-            // so biquad coefficients must be recomputed every sample to track it
-            // without lag. Smoothers are also advanced each sample.
+            // Dynamic EQ: dynGainMod changes every sample via updateDynamicEnvelope().
+            // Variable-cadence strategy (v2.2.3):
+            //   - When |dynGainMod - lastDynGainMod| > kDynThresholdDb (signal is
+            //     moving — transient, attack, or release actively happening): update
+            //     every sample for zero transient lag.
+            //   - When the envelope is stable (|delta| < threshold): throttle to every
+            //     kDynStableBatch samples. This avoids 8x unnecessary bq.set() calls
+            //     when all 8 bands have dynEnabled but the signal is held/sustained.
+            //
+            // kDynThresholdDb = 0.1 dB: below this, the gain change is inaudible
+            //   within one batch interval (4 samples at 44.1 kHz = 0.09ms).
+            // kDynStableBatch = 4: 4-sample batching when stable. Keeps per-sample
+            //   coefficient cost at 1/4 during sustained holds without sacrificing
+            //   transient tracking — when a transient hits, |delta| > threshold
+            //   immediately and we flip back to per-sample mode.
+
+            static constexpr float kDynThresholdDb  = 0.1f;
+            static constexpr int   kDynStableBatch  = 4;
+
+            const float delta = std::abs(dynGainMod - lastDynGainMod);
+            const bool  transientActive = (delta > kDynThresholdDb);
+
             freqHz = freqSm.getNextValue();
             Q      = qSm.getNextValue();
             gainDb = gainSm.getNextValue();
-            setAllStages(sampleRate);
-            intervalCounter = 0;
+
+            if (transientActive)
+            {
+                // Per-sample update — zero transient lag
+                setAllStages(sampleRate);
+                intervalCounter  = 0;
+                lastDynGainMod   = dynGainMod;
+            }
+            else
+            {
+                // Stable envelope — 4-sample batch
+                if (intervalCounter++ >= kDynStableBatch)
+                {
+                    intervalCounter = 0;
+                    setAllStages(sampleRate);
+                    lastDynGainMod = dynGainMod;
+                }
+            }
         }
         else if (smoothing)
         {
