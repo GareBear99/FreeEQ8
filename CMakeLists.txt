@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(FreeEQ8 VERSION 2.2.3)
+project(FreeEQ8 VERSION 2.2.5)
 
 set(CMAKE_CXX_STANDARD 17)
 

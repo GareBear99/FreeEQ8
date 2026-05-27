@@ -18,7 +18,7 @@
 #include <cstdio>
 #include <algorithm>
 #include "../Source/DSP/Biquad.h"
-#include "../SvfBiquad.h"
+#include "../Source/DSP/SvfBiquad.h"
 
 static constexpr double kPi2 = 2.0 * 3.14159265358979323846;
 static constexpr double SR = 44100.0;

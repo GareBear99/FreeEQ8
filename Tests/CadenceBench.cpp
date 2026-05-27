@@ -18,7 +18,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <array>
-#include "../SvfBiquad.h"
+#include "../Source/DSP/SvfBiquad.h"
 
 static constexpr double SR = 44100.0;
 static constexpr int DURATION_SAMPLES = 44100; // 1 second

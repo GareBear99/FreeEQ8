@@ -159,6 +159,24 @@ All oversamplers (1×/2×/4×/8× via JUCE polyphase IIR) are pre-constructed in
 Mid-playback order changes call `Oversampling::reset()` (non-allocating) and
 trigger a 128-sample linear crossfade to eliminate the transient pop (v2.2.3).
 
+### 3.4 Natural Phase Mode (NaturalPhaseEngine)
+
+Full linear-phase mode (§3.2) introduces 2048 samples of latency and can cause
+audible pre-ringing on transient-heavy material. Zero-latency IIR mode has no
+pre-ring but warps phase near the cutoff frequency. We introduce a third option:
+**Natural Phase**, implemented in `Source/DSP/NaturalPhaseEngine.h`.
+
+Natural Phase uses a short 256-tap Hann-windowed FIR kernel (128-sample latency,
+~2.9 ms at 44.1 kHz) built from the SVF all-pass complement. Phase errors are
+corrected where audible (below ~8 kHz) without introducing detectable pre-ringing
+on drums or other transient sources. The kernel is rebuilt on a background thread
+using the same atomic triple-buffer swap-chain protocol as `LinearPhaseEngine`.
+
+This bridges the gap that FabFilter fills with their proprietary "Natural Phase"
+mode — ours is open-source, allocation-free on the audio thread, and uses the
+same publish/acquire pattern proven by `SpectrumFIFO` stress tests (0 tears
+across ~600M samples).
+
 ---
 
 ## 4. Variable-Cadence Dynamic EQ (v2.2.3)
@@ -260,7 +278,7 @@ floor variations.
 ## 6. Benchmarks (Measured — Reproducible)
 
 All benchmarks run from `Tests/FeatureBench.cpp` — standalone, no JUCE, no DAW,
-no mock. Build: `g++ -std=c++17 -O3 -DNDEBUG -pthread Tests/FeatureBench.cpp -o FeatureBench -ISource`.
+no mock. Build: `g++ -std=c++17 -O3 -DNDEBUG -pthread Tests/FeatureBench.cpp -o FeatureBench -I.`.
 Platform: Linux x86-64, g++ 13.3.0. Median of 16 trials, 4 warmup runs discarded.
 
 ### 6.1 Single-Instance Filter Cost
@@ -336,12 +354,12 @@ targeting < 10 ns/sample for all 8 bands mono — approaching 0.09% CPU.
 ```bash
 git clone --recursive https://github.com/GareBear99/FreeEQ8.git
 cd FreeEQ8
-g++ -std=c++17 -O3 -DNDEBUG -pthread Tests/FeatureBench.cpp -o FeatureBench -ISource
+g++ -std=c++17 -O3 -DNDEBUG -pthread Tests/FeatureBench.cpp -o FeatureBench -I.
 ./FeatureBench          # human-readable table
 ./FeatureBench --csv    # machine-readable CSV
 
 # For ARC-AudioBench integration (JSON output):
-g++ -std=c++17 -O3 -DNDEBUG Tests/ArcBenchIntegration.cpp -o ArcBench -ISource
+g++ -std=c++17 -O3 -DNDEBUG Tests/ArcBenchIntegration.cpp -o ArcBench -I.
 ./ArcBench --json > arc_results.json
 ```
 

@@ -11,7 +11,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <algorithm>
-#include "../SvfBiquad.h"
+#include "../Source/DSP/SvfBiquad.h"
 
 static int failures = 0;
 static int passes   = 0;
