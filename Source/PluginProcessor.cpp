@@ -239,6 +239,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout FreeEQ8AudioProcessor::creat
     params.push_back(std::make_unique<juce::AudioParameterBool>(
         "auto_gain", "Auto Gain", false));
 
+    // Intent mode for Smart EQ resonance detection
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        "intent_mode", "Intent Mode",
+        juce::StringArray { "None", "Vocal Clean", "Drum Punch", "Guitar Space", "Master Polish" }, 0));
+
     auto typeChoices    = juce::StringArray { "Bell", "LowShelf", "HighShelf", "HighPass", "LowPass", "Bandpass" };
     auto slopeChoices   = juce::StringArray { "12 dB", "24 dB", "48 dB" };
     auto channelChoices = juce::StringArray { "Both", "L / Mid", "R / Side" };
@@ -354,6 +359,7 @@ void FreeEQ8AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
     syncBandsFromParams();
 
     licenseValidator.resetDemoCounter();
+    licenseValidator.resetExportCounter();
 }
 
 void FreeEQ8AudioProcessor::buildAllOversamplers(double /*sampleRate*/, int samplesPerBlock)
@@ -663,7 +669,12 @@ void FreeEQ8AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     // Push post-EQ samples to spectrum FIFO
     spectrumFifo.pushBlock(L, R, n);
 
-    // Demo mute (ProEQ8 only, unactivated)
+    // Export limit: FreeEQ8 caps offline render at 4:30.
+    // ProEQ8 demo blocks export entirely. ProEQ8 activated: no limit.
+    if (licenseValidator.shouldLimitExport(sr, n, isNonRealtime()))
+        buffer.clear();
+
+    // Demo mute (ProEQ8 only, unactivated): 2 min clean + 30 s mute cycle
     if (licenseValidator.shouldMuteDemo(sr, n))
         buffer.clear();
 
