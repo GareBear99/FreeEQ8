@@ -28,39 +28,39 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    // ── CORS preflight ───────────────────────────────────────────
+    // ── CORS preflight ───────────────────────────────────────
     if (request.method === "OPTIONS") {
-      return corsResponse(new Response(null, { status: 204 }));
+      return corsResponse(new Response(null, { status: 204 }), request);
     }
 
     // ── GET /health ──────────────────────────────────────────────
     if (url.pathname === "/health" && request.method === "GET") {
-      return corsResponse(jsonResponse({ status: "ok", version: "2.0.0" }));
+      return corsResponse(jsonResponse({ status: "ok", version: "2.2.5" }), request);
     }
 
     // ── POST /create-checkout ────────────────────────────────────
     if (url.pathname === "/create-checkout" && request.method === "POST") {
-      return corsResponse(await handleCreateCheckout(env));
+      return corsResponse(await handleCreateCheckout(env), request);
     }
 
     // ── POST /activate ───────────────────────────────────────────
     if (url.pathname === "/activate" && request.method === "POST") {
-      return corsResponse(await handleActivate(request, env));
+      return corsResponse(await handleActivate(request, env), request);
     }
 
     // ── POST /deactivate ─────────────────────────────────────────
     if (url.pathname === "/deactivate" && request.method === "POST") {
-      return corsResponse(await handleDeactivate(request, env));
+      return corsResponse(await handleDeactivate(request, env), request);
     }
 
     // ── POST /verify ──────────────────────────────────────────────
     if (url.pathname === "/verify" && request.method === "POST") {
-      return corsResponse(await handleVerify(request, env));
+      return corsResponse(await handleVerify(request, env), request);
     }
 
     // ── POST /recover ───────────────────────────────────────
     if (url.pathname === "/recover" && request.method === "POST") {
-      return corsResponse(await handleRecover(request, env));
+      return corsResponse(await handleRecover(request, env), request);
     }
 
     // ── POST /webhook/stripe ─────────────────────────────
@@ -126,6 +126,13 @@ async function handleStripeWebhook(request, env) {
       stripe_session_id: session.id,
     };
     await env.LICENSES.put(licenseId, JSON.stringify(licenseRecord));
+
+    // ── Update email→license index for O(1) recovery lookups ──
+    const emailKey = `email_index:${email.toLowerCase()}`;
+    const existingIndex = await env.LICENSES.get(emailKey);
+    const idList = existingIndex ? JSON.parse(existingIndex) : [];
+    if (!idList.includes(licenseId)) idList.push(licenseId);
+    await env.LICENSES.put(emailKey, JSON.stringify(idList));
 
     // ── Store idempotency key (TTL: 30 days) ──
     await env.LICENSES.put(idempotencyKey, licenseId, {
@@ -361,12 +368,30 @@ async function handleRecover(request, env) {
     return jsonResponse({ error: "Valid email required" }, 400);
   }
 
-  // Scan KV for all license records matching this email.
-  // KV list returns keys; we check each record's email field.
-  const allKeys = await env.LICENSES.list();
+  // Rate limit: 1 recovery per email per 10 minutes
+  const rateLimitKey = `recover_cooldown:${email.toLowerCase()}`;
+  const cooldown = await env.LICENSES.get(rateLimitKey);
+  if (cooldown) {
+    return jsonResponse({ error: "Recovery email already sent. Please wait 10 minutes before trying again." }, 429);
+  }
+  await env.LICENSES.put(rateLimitKey, "1", { expirationTtl: 600 });
+
+  // Check email→license index first (O(1) if available)
+  const emailIndexKey = `email_index:${email.toLowerCase()}`;
+  const indexedIds = await env.LICENSES.get(emailIndexKey);
+
+  let keysToCheck;
+  if (indexedIds) {
+    // Fast path: use pre-built index
+    keysToCheck = JSON.parse(indexedIds).map(id => ({ name: id }));
+  } else {
+    // Fallback: full KV scan (first-time recovery before index exists)
+    const allKeys = await env.LICENSES.list();
+    keysToCheck = allKeys.keys;
+  }
   const matches = [];
 
-  for (const key of allKeys.keys) {
+  for (const key of keysToCheck) {
     // Skip idempotency keys (session:...)
     if (key.name.startsWith("session:")) continue;
 
@@ -691,12 +716,21 @@ function jsonResponse(data, status = 200) {
   });
 }
 
-function corsResponse(response) {
+const ALLOWED_ORIGINS = [
+  "https://garebear99.github.io",
+  "https://tizwildin.com",
+];
+
+function corsResponse(response, request) {
   const headers = new Headers(response.headers);
-  // TODO: Replace "*" with your actual domain(s) before going live
-  headers.set("Access-Control-Allow-Origin", "*");
+  const origin = request?.headers?.get("Origin") || "";
+  // Lock CORS to known origins in production. Plugins don't send Origin headers
+  // (native HTTP clients), so they bypass this check naturally.
+  const allowed = ALLOWED_ORIGINS.some(o => origin.startsWith(o)) ? origin : ALLOWED_ORIGINS[0];
+  headers.set("Access-Control-Allow-Origin", allowed);
   headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   headers.set("Access-Control-Allow-Headers", "Content-Type");
+  headers.set("Vary", "Origin");
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
