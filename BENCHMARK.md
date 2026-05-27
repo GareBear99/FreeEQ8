@@ -1,7 +1,8 @@
 # FreeEQ8 — Feature Benchmark Results
 
-> **Version:** 2.2.1 | **Date:** 2026-05-22 | **Compiler:** g++ 13.3.0 `-O3 -DNDEBUG`
-> **Platform:** Linux x86-64 | **Methodology:** median over 16 trials, 4 warmup runs discarded
+> **Version:** 2.2.5 | **Date:** 2026-05-27 | **Compiler:** g++ 13.3.0 / Apple Clang `-O3 -DNDEBUG`
+> **Platform:** Linux x86-64 (primary), macOS i7-3720QM Ivy Bridge (secondary)
+> **Methodology:** median over 16 trials, 4 warmup runs discarded
 
 All benchmarks are standalone (no JUCE, no DAW host) and measure DSP algorithm
 cost only. Every feature listed in the README has a corresponding benchmark
@@ -121,6 +122,20 @@ FreeEQ8 Feature Benchmark Suite — warming up...
 +==========================================================================================+
 
 Summary: 33 PASS  0 WARN  0 TIGHT
+```
+
+## Additional test suites (v2.2.5)
+
+| Suite | File | What it measures |
+|-------|------|------------------|
+| SVF Correctness | `Tests/SvfTest.cpp` | 11 assertions: unity, peak gain, LP/HP -3dB, sweep stability, Q-independence, HF de-cramping |
+| Magnitude Response | `Tests/ResponsePlotTest.cpp` | 200-point sine sweep × 3 center freqs × 3 topologies (RBJ, SVF, RBJ@4×OS). CSV output. |
+| Cadence Profiler | `Tests/CadenceBench.cpp` | bq.set() call count with variable-cadence ON vs OFF. 80% savings measured. |
+| Detector Eval | `Tests/DetectorEvalTest.cpp` | Precision/recall on 8 synthetic spectra with planted peaks. 100%/100%. |
+| Platform Stress | `Tests/AuditRegressionTest.cpp` | Triple-buffer 239M samples / 0 tears. Kernel handoff 110K / 0 torn. |
+
+**i7-3720QM (2012 MacBook Pro) results: 61 PASS, 0 WARN, 0 TIGHT.**
+See PAPER.md §6.6 for full platform-specific benchmark table.
 ```
 
 ## Key findings

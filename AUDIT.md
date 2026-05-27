@@ -1,6 +1,6 @@
 # FreeEQ8 — Code Audit Report
 
-> **Version:** 2.2.1 | **Date:** 2026-05-22 | **Auditor:** Internal (full source review)
+> **Version:** 2.2.5 | **Date:** 2026-05-27 | **Auditor:** Internal (full source review)
 
 This document records the findings of a full line-by-line source audit
 covering restriction correctness, DSP correctness, threading safety, and
@@ -10,8 +10,10 @@ performance. It serves as a transparency record for users and contributors.
 
 ## 1. Restriction Audit — FreeEQ8 (Free Version)
 
-**Result: FreeEQ8 has zero audio restrictions, zero feature locks, and zero
-nag interruptions.**
+**Result: FreeEQ8 has zero feature locks and zero nag interruptions during
+real-time playback.** Offline export is limited to 4 minutes 30 seconds
+(ProEQ8 removes this limit). ProEQ8 demo (unactivated) blocks export entirely
+and applies a 2 min clean + 30 s mute cycle.
 
 ### How the restriction system works
 
@@ -114,15 +116,33 @@ bool shouldMuteDemo(double sampleRate, int numSamples)
 - Known limitation: capture is mono-summed (L+R * 0.5); correction applied
   per-channel. Documented in README
 
-### 2.5 Saturation — Transistor (fixed in v2.2.1)
+### 2.5 Saturation — Transistor (fixed in v2.2.5)
 
-**Rating: ✅ Correct (post v2.2.1) — ProEQ8 only**
+**Rating: ✅ Correct (post v2.2.5) — ProEQ8 only**
 
-- **Before:** `clamp(x*d, -1, 1) * invD * d` where `invD = 1/d` → simplifies
-  to `clamp(x*d, -1, 1) * 1.0` → no normalisation, followed by redundant clamp
-- **After:** `clamp(x*d, -1, 1) * invD` → drives signal, clips, restores unity
-- At high drive the old code passed ~d× excess level through the clipper
+- **Before (through v2.2.4):** `clamp(x*d, -1, 1) * invD * d` where `invD = 1/d`
+  → simplifies to `clamp(x*d, -1, 1) * 1.0` → no normalisation (no-op)
+- **After (v2.2.5):** `clamp(x*d, -1, 1) * invD` → drives signal, clips, restores unity
+- AUDIT.md v2.2.1 claimed this was fixed but the code was not committed until v2.2.5
 - FreeEQ8 (Tanh only) was not affected
+
+### 2.8 SVF Implementation (added v2.2.2)
+
+**Rating: ✅ Correct**
+
+- Simper SVF via trapezoidal integration (`SvfBiquad.h`)
+- Bell uses `kA = k/A` for both denominator and m1 mix — critical detail
+- 11-assertion correctness suite in `Tests/SvfTest.cpp`: unity, peak gain,
+  LP/HP -3dB, stability sweep, state reset, Q-independence, HF de-cramping
+- All 11 pass on i7-3720QM (Ivy Bridge, SSE4.2, no AVX2)
+
+### 2.9 MatchEQ Hot-Path (fixed in v2.2.5)
+
+**Rating: ✅ Correct (post v2.2.5)**
+
+- `correctionGain[]` precompute array added; hot path uses table lookup
+- Eliminates ~4096 `std::pow()` calls per audio block when Match EQ is active
+- 3× throughput improvement measured
 
 ### 2.6 Mid/Side
 
@@ -179,10 +199,12 @@ bool shouldMuteDemo(double sampleRate, int numSamples)
 
 | ID | Severity | Affected Build | Fixed In | Description |
 |----|----------|---------------|----------|-------------|
-| A1 | Medium | ProEQ8 | v2.2.1 | Transistor saturation gain error — double-multiply reduced to no-op |
+| A1 | Medium | ProEQ8 | v2.2.5 | Transistor saturation gain error — `invD*d` no-op (code fix committed v2.2.5) |
 | A2 | Low | Both | v2.2.1 | Dynamic EQ coefficient lag — up to 16-sample transient lag |
-| A3 | Low | Both | v2.2.1 | Match EQ hot-path pow() — ~4096 transcendental calls/block eliminated |
+| A3 | Low | Both | v2.2.5 | Match EQ hot-path pow() — `correctionGain[]` precompute added v2.2.5 |
 | A4 | Info | Both | v2.2.1 | LP + oversampling interaction — behaviour documented in source |
+| A5 | Info | FreeEQ8 | v2.2.5 | Export limit (4:30 offline) added to FreeEQ8 |
+| A6 | Info | ProEQ8 | v2.2.5 | Demo export block — ProEQ8 demo disables offline render entirely |
 
 ---
 
