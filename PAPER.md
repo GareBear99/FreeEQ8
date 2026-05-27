@@ -349,7 +349,7 @@ targeting < 10 ns/sample for all 8 bands mono — approaching 0.09% CPU.
 | Naive pow(10) per bin (old) | 7.4 | — |
 | Pre-computed correctionGain[] (v2.2.1) | 2.8 | **3.0×** |
 
-### 6.7 Platform Verification: Intel Ivy Bridge (2012 MacBook Pro)
+### 6.6 Platform Verification: Intel Ivy Bridge (2012 MacBook Pro)
 
 To validate that the architecture performs under constrained hardware, all
 benchmarks and stress tests were re-run on a 2012 MacBook Pro:
@@ -386,7 +386,7 @@ Zero data tears across 239 million samples on decade-old Ivy Bridge hardware
 confirms that the `memory_order_release`/`acquire` fence pairs are sufficient
 for real-world deployment across Intel’s entire post-2012 microarchitecture range.
 
-### 6.8 Reproducing These Results
+### 6.7 Reproducing These Results
 
 ```bash
 git clone --recursive https://github.com/GareBear99/FreeEQ8.git
