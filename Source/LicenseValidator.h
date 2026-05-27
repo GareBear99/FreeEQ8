@@ -62,6 +62,22 @@ public:
     juce::String getEmail() const { return licensedEmail; }
     juce::String getDeviceId() const { return deviceId; }
 
+    // FreeEQ8 export limit: 4 minutes 30 seconds of offline render.
+    // Returns true when the render has exceeded the limit.
+    // Only applies during offline/bounce — real-time playback is unrestricted.
+    // FreeEQ8 has zero other restrictions.
+    bool shouldLimitExport(double sampleRate, int numSamples, bool isOfflineRender)
+    {
+        if (kIsProVersion) return false;   // ProEQ8 has no export limit
+        if (!isOfflineRender) return false; // Real-time playback: no limit
+
+        exportSampleCounter += numSamples;
+        constexpr double kExportLimitSeconds = 270.0;  // 4 min 30 sec
+        return (double)exportSampleCounter / sampleRate >= kExportLimitSeconds;
+    }
+
+    void resetExportCounter() { exportSampleCounter = 0; }
+
     // Demo mode: returns true when audio should be muted.
     //
     // Cycle: 2 minutes of clean playback, then a 30-second mute window,
@@ -123,6 +139,7 @@ private:
     juce::String parsedEmail;
     juce::String deviceId;
     int64_t demoSampleCounter = 0;
+    int64_t exportSampleCounter = 0;
 
     // HMAC signing secret — must match LICENSE_SIGNING_SECRET on the server.
     // XOR-obfuscated at compile time so it's not a plain string in the binary.

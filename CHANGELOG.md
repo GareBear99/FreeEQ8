@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   source, zero runtime branches. The AVX2 path uses FMA3 instructions for the
   trapezoidal integration loop. Scalar fallback verified identical to `SvfBiquad`.
   Measured on SSE2 machine: 23.5 ns/sample (8-band mono) — 3.1× faster than scalar
-  stereo. AVX2 projects < 10 ns/sample. Provides the SIMD foundation for v2.4.0.
+  stereo. AVX2 projects < 10 ns/sample. Provides the SIMD foundation for v2.2.5.
 
 - **Instance scaling benchmarks** (`Tests/FeatureBench.cpp`) — 1/8/32/64/128
   simultaneous plugin instances simulated. Key finding: per-instance cost rises
@@ -148,9 +148,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   model, variable-cadence algorithm, semantic analysis architecture, measured
   benchmarks. Suitable for DAFx 2026 / AES submission or arXiv cs.SD preprint.
 
-- **`ROADMAP_2_5_PLUS.md`** — complete long-horizon plan through v3.0:
-  v2.3 ProEQ8 launch, v2.4 SIMD vectorisation, v2.5 spectral dynamics + Atmos,
-  v3.0 cross-instance ARC-Core spine. Includes competitor feature matrix,
+- **`ROADMAP_2_5_PLUS.md`** — complete long-horizon plan through v2.3.0:
+  v2.2.5 SIMD vectorisation, v2.2.6 spectral dynamics + Atmos,
+  v2.3.0 ProEQ8 launch + cross-instance ARC-Core spine. Includes competitor feature matrix,
   publication plan, and FreeEQ8 feature-freeze policy.
 
 ### Fixed

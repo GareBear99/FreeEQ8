@@ -1,4 +1,4 @@
-# FreeEQ8 / ProEQ8 — Long-Horizon Roadmap (v2.5+)
+# FreeEQ8 / ProEQ8 — Long-Horizon Roadmap (v2.2.5+)
 
 > Based on architectural analysis, JUCE forum feedback (Nitsuj70), competitor
 > feature audit (FabFilter Pro-Q 4, Soothe2, DMG Equilibrium), and the
@@ -10,10 +10,10 @@
 ## Phase Matrix
 
 ```
-v2.2.2 ──── v2.2.3 ──── v2.3.0 ──── v2.4.0 ──── v2.5.0 ──── v3.0.0
-  SVF         Smart EQ    ProEQ8      SIMD         Spectral    Cross-
-  engine      layer       launch      vector       dynamics    instance
-  shipped     wired       (Stripe)    loops        + Atmos     spine
+v2.2.2 ──── v2.2.3 ──── v2.2.4 ──── v2.2.5 ──── v2.3.0
+  SVF         Smart EQ    SIMD         Spectral    ProEQ8
+  engine      layer       scaffold     dynamics    launch
+  shipped     wired       + bench      + Atmos     (Stripe)
 ```
 
 ---
@@ -51,7 +51,7 @@ v2.2.2 ──── v2.2.3 ──── v2.3.0 ──── v2.4.0 ──── 
 
 ---
 
-## Benchmark Status (v2.2.4 Measured + v2.4+ Targets)
+## Benchmark Status (v2.2.4 Measured + v2.2.5+ Targets)
 
 ### Measured — v2.2.4 (60/60 PASS, 0 WARN, 0 TIGHT)
 
@@ -69,7 +69,7 @@ v2.2.2 ──── v2.2.3 ──── v2.3.0 ──── v2.4.0 ──── 
 at 44.1kHz/512. A modern 8-core CPU can host ~900 SVF instances. Per-instance
 cost rises only 5% from 1→128 due to coefficient table cache warmup.
 
-### Planned Targets — v2.4.0+
+### Planned Targets — v2.2.5+
 
 | Feature | Target | Status |
 |---------|--------|--------|
@@ -83,7 +83,7 @@ cost rises only 5% from 1→128 due to coefficient table cache warmup.
 | pluginval CI strictness-10 | All PASS | v2.2.4 ✅ |
 | Mini vs full view parameter parity | 100% null-test cancel | v2.2.3 ✅ |
 
-## v2.4.0 — SIMD Vectorisation
+## v2.2.5 — SIMD Vectorisation
 
 **Goal:** Close the performance gap with FabFilter's hand-optimised assembly.
 
@@ -127,7 +127,7 @@ M1 Pro projected: 8-band SVF stereo < 15 ns/sample.
 
 ---
 
-## v2.5.0 — Spectral Dynamics + Dolby Atmos
+## v2.2.6 — Spectral Dynamics + Dolby Atmos
 
 ### Spectral Dynamics (Soothe2 territory — ProEQ8 exclusive)
 
@@ -154,7 +154,7 @@ from `ResonanceDetector` output — no new infrastructure needed. Just a new
 signal path through the existing FFT machinery.
 
 **CPU estimate:** ~2× current Match EQ cost per active spectral dynamics band.
-Well within budget given v2.4 SIMD improvements.
+Well within budget given v2.2.5 SIMD improvements.
 
 ### Dolby Atmos 9.1.6 (ProEQ8 exclusive)
 
@@ -177,10 +177,10 @@ User can apply unique SVF filter curves per spatial zone from one plugin instanc
 
 ---
 
-## v3.0.0 — Cross-Instance Intelligence (ARC-Core Spine)
+## v2.3.0 — Cross-Instance Intelligence (ARC-Core Spine)
 
 **The killer feature.** FabFilter Pro-Q 4's "Instance List" lets you *see* other
-instances. ProEQ8 v3 lets them *talk* and *negotiate*.
+instances. ProEQ8 v2.3 lets them *talk* and *negotiate*.
 
 ### Architecture
 
@@ -251,18 +251,18 @@ The model learns *your* mixing decisions, not internet averages.
 
 ## Competitive Analysis (Target: First Place)
 
-| Feature | FabFilter Pro-Q 4 | Soothe2 | **ProEQ8 v3** |
+| Feature | FabFilter Pro-Q 4 | Soothe2 | **ProEQ8 v2.3** |
 |---------|------------------|---------|--------------|
 | Filter topology | Proprietary analog-match | Proprietary | **Simper SVF (published)** |
 | De-cramping | Custom polynomial | N/A | **g=tan(π·fc/fs) exact** |
-| Dynamic EQ | Per-band threshold | Per-bin spectral | **Both (v2.5)** |
-| Cross-instance | Visual list only | None | **Active negotiation (v3)** |
-| SIMD | Manual AVX/SSE | Unknown | **JUCE SIMDRegister (v2.4)** |
-| Atmos | No | No | **9.1.6 (v2.5)** |
+| Dynamic EQ | Per-band threshold | Per-bin spectral | **Both (v2.2.6)** |
+| Cross-instance | Visual list only | None | **Active negotiation (v2.3)** |
+| SIMD | Manual AVX/SSE | Unknown | **JUCE SIMDRegister (v2.2.5)** |
+| Atmos | No | No | **9.1.6 (v2.2.6)** |
 | Semantic labels | None | None | **Deterministic, allocation-free** |
 | Open source | No | No | **GPL-3.0 core** |
 | Price | $179 | $149 | **$0 / $20** |
-| AI training loop | None | None | **ARC-Neuron (v3)** |
+| AI training loop | None | None | **ARC-Neuron (v2.3)** |
 
 ---
 

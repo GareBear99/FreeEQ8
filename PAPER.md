@@ -199,7 +199,7 @@ Semantic labels from `FrequencyExplainer.h` map frequency ranges to strings
 
 ---
 
-## 7. Benchmarks (Measured — Reproducible)
+## 6. Benchmarks (Measured — Reproducible)
 
 All benchmarks run from `Tests/FeatureBench.cpp` — standalone, no JUCE, no DAW,
 no mock. Build: `g++ -std=c++17 -O3 -DNDEBUG -pthread Tests/FeatureBench.cpp -o FeatureBench -ISource`.
@@ -290,7 +290,9 @@ g++ -std=c++17 -O3 -DNDEBUG Tests/ArcBenchIntegration.cpp -o ArcBench -ISource
 Numbers will vary by CPU and compiler. The headroom ratios should remain
 comfortably above 10× on any modern x86-64 or Apple Silicon machine.
 
+---
 
+## 8. Compact View Architecture
 
 Inspired by Ableton Live's EQ Eight compact device view. Design constraint: the
 coordinate mapping (`freqToX`, `dbToY`), drag sensitivity (pixel delta → parameter
@@ -304,7 +306,7 @@ both renderers read the same parameter values.
 
 ---
 
-## 7. Future Work (v2.5+)
+## 9. Future Work (v2.2.5+)
 
 - **Explicit SIMD vectorisation**: group 8 bands into `juce::dsp::SIMDRegister<float>`,
   processing 4 bands per SSE instruction or 8 via AVX2.

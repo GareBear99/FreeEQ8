@@ -1193,7 +1193,7 @@ static void bench_worst_case_dynamic_eq()
 }
 
 // ─── SIMD.1  SvfBandArray<8> scalar fallback benchmark ───────────────────────
-// Documents the baseline before explicit SIMD (v2.4) is engaged
+// Documents the baseline before explicit SIMD (v2.2.5) is engaged
 
 #include "../Source/DSP/SvfBandArray.h"
 
@@ -1234,7 +1234,7 @@ static void bench_svf_band_array()
 #endif
     char note[128];
     std::snprintf(note, sizeof(note), "SIMD mode: %s — compare vs SVF/8-band-stereo", simd_mode);
-    record("SvfBandArray/8-band mono", "Packed band array — baseline for v2.4 SIMD integration", ns, note);
+    record("SvfBandArray/8-band mono", "Packed band array — baseline for v2.2.5 SIMD integration", ns, note);
 }
 
 // --- Printing -----------------------------------------------------------------

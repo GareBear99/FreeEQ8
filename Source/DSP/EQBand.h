@@ -240,10 +240,8 @@ struct EQBand
             {
                 // Hard clip — aggressive, odd harmonics
                 const float invD = 1.0f / d;
-                l = std::clamp(l * d, -1.0f, 1.0f) * invD * d;  // clip then restore level
-                l = std::clamp(l, -1.0f, 1.0f);
-                r = std::clamp(r * d, -1.0f, 1.0f) * invD * d;
-                r = std::clamp(r, -1.0f, 1.0f);
+                l = std::clamp(l * d, -1.0f, 1.0f) * invD;
+                r = std::clamp(r * d, -1.0f, 1.0f) * invD;
             } break;
         }
     }

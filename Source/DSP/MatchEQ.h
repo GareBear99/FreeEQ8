@@ -192,6 +192,9 @@ private:
     // Correction curve in dB (reference - current, clamped ±24 dB)
     std::array<float, numBins> correctionDb {};
 
+    // Pre-computed linear gains from correctionDb (eliminates per-block pow() calls)
+    std::array<float, numBins> correctionGain {};
+
     // Overlap-add buffers for artifact-free correction
     std::array<float, fftSize> overlapL {};
     std::array<float, fftSize> overlapR {};
@@ -246,10 +249,14 @@ private:
                 currentSpectrum[(size_t)i] *= inv;
 
             // Compute correction = reference - current (clamped to ±24 dB)
+            // Pre-compute linear gains so the hot path avoids pow() entirely
             for (int i = 0; i < numBins; ++i)
+            {
                 correctionDb[(size_t)i] = std::clamp(
                     capturedSpectrum[(size_t)i] - currentSpectrum[(size_t)i],
                     -24.0f, 24.0f);
+                correctionGain[(size_t)i] = std::pow(10.0f, correctionDb[(size_t)i] / 20.0f);
+            }
 
             // Reset overlap buffers for a clean start
             std::fill(overlapL.begin(), overlapL.end(), 0.0f);
@@ -270,16 +277,16 @@ private:
         // Forward FFT
         fft.performRealOnlyForwardTransform(processBuf.data());
 
-        // Apply correction gains in frequency domain
+        // Apply pre-computed correction gains in frequency domain (no pow() on hot path)
         // DC (JUCE packs DC in index 0)
-        processBuf[0] *= std::pow(10.0f, correctionDb[0] / 20.0f);
+        processBuf[0] *= correctionGain[0];
         // Nyquist (JUCE packs Nyquist in index 1)
-        processBuf[1] *= std::pow(10.0f, correctionDb[numBins - 1] / 20.0f);
+        processBuf[1] *= correctionGain[numBins - 1];
         // Complex bins 1..N/2-1
         for (int i = 1; i < fftSize / 2; ++i)
         {
             const int binIdx = std::min(i, numBins - 1);
-            const float gain = std::pow(10.0f, correctionDb[(size_t)binIdx] / 20.0f);
+            const float gain = correctionGain[(size_t)binIdx];
             processBuf[(size_t)(i * 2)]     *= gain;
             processBuf[(size_t)(i * 2 + 1)] *= gain;
         }

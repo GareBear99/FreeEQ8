@@ -37,7 +37,7 @@
     header works on all platforms. Falls back to scalar loop when no
     SIMD is available. Zero runtime branches on the hot path.
 
-    Integration plan (v2.4.0)
+    Integration plan (v2.2.5)
     ─────────────────────────
     1. Replace EQBand's per-band scalar Biquad/SvfBiquad with SvfBandArray<kNumBands>
     2. Set coefficients from maybeUpdateCoeffs() → array.setCoeffs()
