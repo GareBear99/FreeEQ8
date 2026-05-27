@@ -61,10 +61,11 @@ piano roll overlay, and collision detection. No export limit.
 
 **ProEQ8 Demo (unactivated):** Included in the same installer. Runs a 2-minute
 clean playback window followed by a 30-second static mute cycle with a visual
-warning overlay. Fully functional otherwise — all 24 bands and features are
-accessible. Activation via HMAC-SHA256-signed license key removes the mute
-cycle permanently (2-device limit per key, 7-day server re-verify, 30-day
-offline grace period).
+warning overlay. Offline export/bounce is disabled entirely in demo mode.
+All 24 bands and features are accessible during real-time playback. Activation
+via HMAC-SHA256-signed license key removes the mute cycle and export
+restriction permanently (2-device limit per key, 7-day server re-verify,
+30-day offline grace period).
 
 The restriction logic is isolated in `Source/LicenseValidator.h`:
 
@@ -78,9 +79,10 @@ bool shouldMuteDemo(double sampleRate, int numSamples)
 
 bool shouldLimitExport(double sampleRate, int numSamples, bool isOfflineRender)
 {
-    if (kIsProVersion) return false;   // ProEQ8 has no export limit
-    if (!isOfflineRender) return false; // Real-time: no limit
-    // ... 4:30 offline cap ...
+    if (kIsProVersion && activated.load()) return false; // ProEQ8 activated: no limit
+    if (kIsProVersion && !activated.load()) return true;  // ProEQ8 demo: no export
+    if (!isOfflineRender) return false;                   // FreeEQ8 real-time: no limit
+    // ... FreeEQ8: 4:30 offline cap ...
 }
 ```
 

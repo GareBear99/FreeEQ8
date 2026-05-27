@@ -68,8 +68,9 @@ public:
     // FreeEQ8 has zero other restrictions.
     bool shouldLimitExport(double sampleRate, int numSamples, bool isOfflineRender)
     {
-        if (kIsProVersion) return false;   // ProEQ8 has no export limit
-        if (!isOfflineRender) return false; // Real-time playback: no limit
+        if (kIsProVersion && activated.load()) return false;  // ProEQ8 activated: no limit
+        if (kIsProVersion && !activated.load()) return true;   // ProEQ8 demo: no export
+        if (!isOfflineRender) return false;                    // FreeEQ8 real-time: no limit
 
         exportSampleCounter += numSamples;
         constexpr double kExportLimitSeconds = 270.0;  // 4 min 30 sec
