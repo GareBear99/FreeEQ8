@@ -127,8 +127,11 @@ async function handleStripeWebhook(request, env) {
       expirationTtl: 60 * 60 * 24 * 30,
     });
 
-    // ── Send license email ──
+    // ── Send license email to customer ──
     await sendLicenseEmail(email, license, maxDevices, env.RESEND_API_KEY);
+
+    // ── Send master list update to admin ──
+    await sendAdminNotification(email, licenseId, session.id, env.RESEND_API_KEY);
 
     console.log(`License ${licenseId} sent to ${email} for session ${session.id}`);
     return jsonResponse({ ok: true });
@@ -549,7 +552,45 @@ async function sendLicenseEmail(email, licenseKey, maxDevices, resendApiKey) {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════════
+//  ADMIN NOTIFICATION — master list update on every purchase
+// ═════════════════════════════════════════════════════════════════
+
+const ADMIN_EMAIL = "gdoman99@gmail.com";
+
+async function sendAdminNotification(customerEmail, licenseId, stripeSessionId, resendApiKey) {
+  const now = new Date().toISOString();
+  const html = `
+    <h3>New ProEQ8 Purchase</h3>
+    <table style="border-collapse:collapse;font-family:monospace;font-size:14px;">
+      <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Customer:</td><td>${customerEmail}</td></tr>
+      <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">License ID:</td><td>${licenseId}</td></tr>
+      <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Stripe Session:</td><td>${stripeSessionId}</td></tr>
+      <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Time:</td><td>${now}</td></tr>
+    </table>
+  `;
+
+  try {
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "ProEQ8 Sales <noreply@tizwildin.com>",
+        to: [ADMIN_EMAIL],
+        subject: `[ProEQ8] New purchase: ${customerEmail}`,
+        html: html,
+      }),
+    });
+  } catch (e) {
+    // Non-fatal: don't block the purchase if admin email fails
+    console.error("Admin notification failed:", e);
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════
 //  HELPERS
 // ═══════════════════════════════════════════════════════════════════
 
