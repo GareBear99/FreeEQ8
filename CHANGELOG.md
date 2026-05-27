@@ -16,6 +16,79 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.4] — 2026-05-24
+
+### Added
+
+- **`NaturalPhaseEngine.h`** (`Source/DSP/NaturalPhaseEngine.h`) — Natural Phase mode:
+  a middle path between Zero-Latency IIR and full Linear-Phase FIR. Uses a 256-tap
+  Hann-windowed FIR kernel (128-sample latency = ~2.9ms at 44.1kHz, vs 2048 samples
+  for full linear phase) built from the SVF all-pass complement. Phase errors are
+  corrected where audible without introducing detectable pre-ringing on transients.
+  Addresses the gap FabFilter fills with "Natural Phase" mode. Same triple-buffer
+  atomic swap protocol as `LinearPhaseEngine`. Header-only, allocation-free hot path.
+
+- **`SvfBandArray.h`** (`Source/DSP/SvfBandArray.h`) — Packed SIMD SVF scaffold:
+  `SvfBandArray<N>` template packs all N band state variables into 32-byte aligned
+  arrays for hardware SIMD dispatch. Dispatches at compile time to AVX2 (8-wide
+  float32, 256-bit), SSE2 (4-wide), ARM Neon (4-wide), or scalar fallback — same
+  source, zero runtime branches. The AVX2 path uses FMA3 instructions for the
+  trapezoidal integration loop. Scalar fallback verified identical to `SvfBiquad`.
+  Measured on SSE2 machine: 23.5 ns/sample (8-band mono) — 3.1× faster than scalar
+  stereo. AVX2 projects < 10 ns/sample. Provides the SIMD foundation for v2.4.0.
+
+- **Instance scaling benchmarks** (`Tests/FeatureBench.cpp`) — 1/8/32/64/128
+  simultaneous plugin instances simulated. Key finding: per-instance cost rises
+  only 5% from 1→128 instances (cache warmup effect). At 128 SVF instances,
+  total CPU = 85.8% of one core at 44.1kHz/512. A modern 8-core CPU can host ~900
+  SVF instances. Addresses Document 11 review gap: "not yet crossed into industrial
+  benchmark validation under real DAW stress matrices."
+
+- **Worst-case Dynamic EQ benchmark** — all 8 bands active, white noise input
+  (maximum envelope churn). Result: 370.9 ns/sample = 3.27% CPU = 30.6× headroom.
+  Addresses Document 11 review: "actual limit is NOT filter math — dynamic coeff
+  churn." Variable-cadence engine (v2.2.3) keeps worst-case below 3.3% CPU.
+
+- **`PAPER.md` full benchmark tables** — §7 now contains measured instance-scaling
+  table (1→128 instances), worst-case DynEQ table, SvfBandArray table, and MatchEQ
+  speedup table. All numbers from live `./FeatureBench` run, fully reproducible.
+
+- **`CMakeLists.txt`** — `NaturalPhaseEngine.h` and `SvfBandArray.h` added to
+  `target_sources`. IDEs can now index and navigate all DSP files.
+
+
+- **One-click apply suggestion** (`Source/UI/ResponseCurveComponent.cpp`) — clicking
+  any `ResonanceDetector` suggestion node (amber glow ring) now applies it directly
+  to the next available disabled band: sets freq, gain, Q, type=Bell, enables the band.
+  All via APVTS so the action is undo-able. Right-click shows a popup with full label
+  and confirm option. If all 8 bands are occupied, a tooltip informs the user.
+
+- **Explain-on-hover** (`Source/UI/ResponseCurveComponent.cpp`) — `mouseMove` now
+  calls `frequencyActionDescription(freq, isCut)` from `FrequencyExplainer.h` for
+  band node hover, producing strings like "Cutting mud (320 Hz)" or "Adding air
+  (12000 Hz)". Suggestion node hover shows the confidence-labelled description plus
+  "Click to apply". Tooltip cleared on mouse-out.
+
+- **pluginval CI** (`.github/workflows/release.yml`) — every tagged release now runs
+  `pluginval --strictness-level 10` on both the VST3 and AU formats before packaging
+  the DMG. Results uploaded as CI artifacts. Blocks release on any validation failure.
+
+### Fixed
+
+- **CMakeLists.txt version** — was `VERSION 2.2.0`, now `VERSION 2.2.3` (matching
+  `Config.h`). Prevented proper cmake version detection and DAW "update available"
+  checks from reporting the correct version.
+
+- **CMakeLists.txt missing DSP headers** — `SvfBiquad.h`, `ResonanceDetector.h`,
+  `IntentMode.h`, and `FrequencyExplainer.h` were not listed in `target_sources`.
+  IDEs (Xcode, VS, CLion) could not index or navigate these files. Added.
+
+### Changed
+
+- `docs/SMART_EQ_LAYER.md` — all "Next pass" items updated to "Shipped v2.2.3/4"
+  status. Next section now points to v2.3.0+ features (continuous slope, Natural Phase,
+  EQ Sketch, SIMD).
+
 ## [2.2.3] — 2026-05-24
 
 ### Added

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(FreeEQ8 VERSION 2.2.0)
+project(FreeEQ8 VERSION 2.2.3)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -49,10 +49,16 @@ target_sources(FreeEQ8 PRIVATE
     Source/UpdateChecker.h
     Source/LicenseValidator.h
     Source/DSP/Biquad.h
+    Source/DSP/SvfBiquad.h
+    Source/DSP/SvfBandArray.h
+    Source/DSP/NaturalPhaseEngine.h
     Source/DSP/EQBand.h
     Source/DSP/SpectrumFIFO.h
     Source/DSP/LinearPhaseEngine.h
     Source/DSP/MatchEQ.h
+    Source/DSP/ResonanceDetector.h
+    Source/DSP/IntentMode.h
+    Source/DSP/FrequencyExplainer.h
     Source/UI/ResponseCurveComponent.h
     Source/UI/ResponseCurveComponent.cpp
     Source/UI/LevelMeter.h

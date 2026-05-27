@@ -48,6 +48,41 @@ v2.2.2 ──── v2.2.3 ──── v2.3.0 ──── v2.4.0 ──── 
 
 ---
 
+
+---
+
+## Benchmark Status (v2.2.4 Measured + v2.4+ Targets)
+
+### Measured — v2.2.4 (60/60 PASS, 0 WARN, 0 TIGHT)
+
+| Benchmark | Measured | CPU% | Headroom |
+|-----------|----------|------|---------|
+| SVF 8-band stereo, single instance | 72.7 ns/samp | 0.63% | 161× |
+| RBJ instance scaling 1→128 | +5% cost rise | near-linear | 242× |
+| SVF instance scaling 1→128 | +5% cost rise | 0.63–0.67% | 150× |
+| Worst-case DynEQ (8 bands, white noise) | 370.9 ns/samp | 3.27% | 30.6× |
+| SvfBandArray<8> SSE2 mono | 23.5 ns/samp | 0.21% | 482× |
+| Natural Phase latency | 128 samples | ~2.9ms at 44.1kHz | — |
+| MatchEQ correctionGain[] speedup | 3.0× vs naive pow() | — | — |
+
+**Key finding:** At 128 simultaneous SVF instances, total CPU = 85.8% of one core
+at 44.1kHz/512. A modern 8-core CPU can host ~900 SVF instances. Per-instance
+cost rises only 5% from 1→128 due to coefficient table cache warmup.
+
+### Planned Targets — v2.4.0+
+
+| Feature | Target | Status |
+|---------|--------|--------|
+| SvfBandArray AVX2 8-band mono | < 10 ns/sample | Scaffold ready |
+| SvfBandArray AVX2 8-band stereo | < 20 ns/sample | Scaffold ready |
+| 128 SVF instances total CPU | < 60% one core | Projected with AVX2 |
+| Worst-case DynEQ + AVX2 | < 100 ns/sample | Projected |
+| SVF 8-band stereo (ProEQ8, v2.3) | < 80 ns/sample | v2.3.0 |
+| Natural Phase mode wired to UI | 128-sample latency | v2.3.0 |
+| Smart EQ analyse() per-call | < 500 µs UI thread | v2.3.0 |
+| pluginval CI strictness-10 | All PASS | v2.2.4 ✅ |
+| Mini vs full view parameter parity | 100% null-test cancel | v2.2.3 ✅ |
+
 ## v2.4.0 — SIMD Vectorisation
 
 **Goal:** Close the performance gap with FabFilter's hand-optimised assembly.

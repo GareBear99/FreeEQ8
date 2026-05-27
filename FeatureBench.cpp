@@ -1008,6 +1008,235 @@ static void bench_svf_dynamic_eq()
            "compare vs RBJ Dynamic EQ row — tan() overhead visible here");
 }
 
+
+// ─── INSTANCE SCALING BENCHMARKS (v2.2.4) ────────────────────────────────────
+// Gap identified by Document 11: "not yet crossed into industrial benchmark
+// validation under real DAW stress matrices."
+// These benchmarks simulate N simultaneous plugin instances at 44.1kHz/512 block.
+
+// ─── INST.1  Instance scaling — RBJ ──────────────────────────────────────────
+
+static void bench_instance_scaling_rbj()
+{
+    constexpr int BLOCK = 512;
+    constexpr double SR = 44100.0;
+    static const double freqs[] = { 80,200,500,1000,2000,4000,8000,12000 };
+    static const Biquad::Type types[] = {
+        Biquad::Type::HighPass, Biquad::Type::LowShelf,
+        Biquad::Type::Bell,     Biquad::Type::Bell,
+        Biquad::Type::Bell,     Biquad::Type::Bell,
+        Biquad::Type::HighShelf,Biquad::Type::LowPass
+    };
+
+    static const int instance_counts[] = { 1, 8, 32, 64, 128 };
+
+    for (int numInst : instance_counts)
+    {
+        auto L = make_noise(BLOCK * numInst, 0xABCDEF01 + (unsigned)numInst);
+        auto R = make_noise(BLOCK * numInst, 0x10FEDCBA + (unsigned)numInst);
+        std::vector<float> ol(BLOCK * numInst), or_(BLOCK * numInst);
+
+        // Simulate numInst independent plugin instances (each with 8 bands)
+        std::vector<std::array<Biquad, 8>> instances((size_t)numInst);
+        for (auto& inst : instances)
+            for (int b = 0; b < 8; ++b)
+                inst[(size_t)b].set(types[b], SR, freqs[b], 1.0, b%2?3.0:-3.0);
+
+        auto fn = [&]() {
+            for (int i = 0; i < numInst; ++i)
+            {
+                auto& inst = instances[(size_t)i];
+                const int off = i * BLOCK;
+                for (auto& bq : inst) bq.reset();
+                for (int s = 0; s < BLOCK; ++s)
+                {
+                    float l = L[(size_t)(off+s)], r = R[(size_t)(off+s)];
+                    for (auto& bq : inst) { l = bq.processL(l); r = bq.processR(r); }
+                    ol[(size_t)(off+s)] = l;
+                    or_[(size_t)(off+s)] = r;
+                }
+            }
+        };
+
+        int totalSamples = BLOCK * numInst;
+        double ns = bench_ns_per_sample(fn, totalSamples);
+
+        char feat[64], note[128];
+        std::snprintf(feat, sizeof(feat), "ScaleRBJ/%d instances x 8-band stereo", numInst);
+        std::snprintf(note, sizeof(note), "%.1f%% CPU at 44.1kHz/512 (50%% budget = %.0f ns/samp)",
+            ns * BLOCK / (512.0/44100.0*1e9) * 100.0,
+            512.0/44100.0*1e9*0.5/BLOCK);
+        record(feat, "RBJ instance scaling — real DAW load simulation", ns, note);
+    }
+}
+
+// ─── INST.2  Instance scaling — SVF ──────────────────────────────────────────
+
+static void bench_instance_scaling_svf()
+{
+    constexpr int BLOCK = 512;
+    constexpr double SR = 44100.0;
+    static const double freqs[] = { 80,200,500,1000,2000,4000,8000,12000 };
+    static const SvfBiquad::Type types[] = {
+        SvfBiquad::Type::HighPass, SvfBiquad::Type::LowShelf,
+        SvfBiquad::Type::Bell,     SvfBiquad::Type::Bell,
+        SvfBiquad::Type::Bell,     SvfBiquad::Type::Bell,
+        SvfBiquad::Type::HighShelf,SvfBiquad::Type::LowPass
+    };
+
+    static const int instance_counts[] = { 1, 8, 32, 64, 128 };
+
+    for (int numInst : instance_counts)
+    {
+        auto L = make_noise(BLOCK * numInst, 0xABCDEF01 + (unsigned)numInst);
+        auto R = make_noise(BLOCK * numInst, 0x10FEDCBA + (unsigned)numInst);
+        std::vector<float> ol(BLOCK * numInst), or_(BLOCK * numInst);
+
+        std::vector<std::array<SvfBiquad, 8>> instances((size_t)numInst);
+        for (auto& inst : instances)
+            for (int b = 0; b < 8; ++b)
+                inst[(size_t)b].set(types[b], SR, freqs[b], 1.0, b%2?3.0:-3.0);
+
+        auto fn = [&]() {
+            for (int i = 0; i < numInst; ++i)
+            {
+                auto& inst = instances[(size_t)i];
+                const int off = i * BLOCK;
+                for (auto& bq : inst) bq.reset();
+                for (int s = 0; s < BLOCK; ++s)
+                {
+                    float l = L[(size_t)(off+s)], r = R[(size_t)(off+s)];
+                    for (auto& bq : inst) { l = bq.processL(l); r = bq.processR(r); }
+                    ol[(size_t)(off+s)] = l;
+                    or_[(size_t)(off+s)] = r;
+                }
+            }
+        };
+
+        int totalSamples = BLOCK * numInst;
+        double ns = bench_ns_per_sample(fn, totalSamples);
+
+        double cpuPct = ns * BLOCK / (512.0/44100.0*1e9) * 100.0;
+        char feat[64], note[128];
+        std::snprintf(feat, sizeof(feat), "ScaleSVF/%d instances x 8-band stereo", numInst);
+        std::snprintf(note, sizeof(note), "%.2f%% CPU at 44.1kHz/512 (50%% budget)", cpuPct);
+        record(feat, "SVF instance scaling — real DAW load simulation", ns, note);
+    }
+}
+
+// ─── INST.3  Worst-case Dynamic EQ — all 8 bands + fast envelope ─────────────
+// "The actual limit is NOT filter math — it becomes dynamic coefficient churn"
+// This benchmark quantifies exactly that ceiling.
+
+static void bench_worst_case_dynamic_eq()
+{
+    constexpr int N = 65536;
+    constexpr double SR = 44100.0;
+
+    // White noise burst signal — worst case for envelope follower (all transients)
+    auto L = make_noise(N, 0x12345678);
+    auto R = make_noise(N, 0x87654321);
+    std::vector<float> ol(N), or_(N);
+
+    // Simulate 8 simultaneous dynamic EQ bands (worst case: all active)
+    struct DynBand {
+        SvfBiquad bq, scBq;
+        float env = 0.0f;
+        float lastGain = 0.0f;
+
+
+        int counter = 0;
+
+        void prepare(double sr, double fc) {
+            bq.set(SvfBiquad::Type::Bell, sr, fc, 1.0, 0.0);
+            scBq.set(SvfBiquad::Type::Bandpass, sr, fc, 2.0, 0.0);
+            env = 0.0f; lastGain = 0.0f; counter = 0;
+        }
+        void process(float& l, float& r, double sr) {
+            float rect = std::abs(scBq.processL((l+r)*0.5f));
+            float ac = 1.0f-std::exp(-1.0f/(float)(sr*0.01f));
+            float rc = 1.0f-std::exp(-1.0f/(float)(sr*0.1f));
+            if (rect>env) env+=ac*(rect-env); else env+=rc*(rect-env);
+            float db   = 20.0f*std::log10(std::max(env,1e-7f));
+            float gain = (db>-20.0f)? -(db+20.0f)*0.75f : 0.0f;
+            // Variable-cadence (v2.2.3 fix)
+            float delta = std::abs(gain - lastGain);
+            bool perSample = (delta > 0.1f);
+            if (perSample || counter++ >= 4) {
+                bq.set(SvfBiquad::Type::Bell, sr, 1000.0, 1.0, gain);
+                lastGain = gain; counter = 0;
+            }
+            l = bq.processL(l); r = bq.processR(r);
+        }
+    };
+
+    static const double freqs[] = {100,300,600,1000,2000,4000,8000,12000};
+    std::array<DynBand, 8> bands;
+    for (int i = 0; i < 8; ++i) bands[(size_t)i].prepare(SR, freqs[i]);
+
+    auto fn = [&]() {
+        for (int i = 0; i < 8; ++i) bands[(size_t)i].prepare(SR, freqs[i]);
+        for (int s = 0; s < N; ++s) {
+            float l=L[(size_t)s], r=R[(size_t)s];
+            for (auto& b : bands) b.process(l, r, SR);
+            ol[(size_t)s]=l; or_[(size_t)s]=r;
+        }
+    };
+
+    double ns = bench_ns_per_sample(fn, N);
+    double cpuPct = ns * 512 / (512.0/44100.0*1e9) * 100.0;
+    char note[128];
+    std::snprintf(note, sizeof(note),
+        "Worst case: 8 dyn bands, white noise, all transients. %.2f%% CPU at 512 block",
+        cpuPct);
+    record("WorstCase/8-band DynEQ all active", "White noise burst — max envelope churn, variable-cadence active", ns, note);
+}
+
+// ─── SIMD.1  SvfBandArray<8> scalar fallback benchmark ───────────────────────
+// Documents the baseline before explicit SIMD (v2.4) is engaged
+
+#include "../Source/DSP/SvfBandArray.h"
+
+static void bench_svf_band_array()
+{
+    constexpr int N = 65536;
+    auto sig = make_noise(N);
+    std::vector<float> out(N);
+
+    SvfBandArray8 arr;
+    // Set coefficients for all 8 bands (Bell, various freqs)
+    static const double freqs[] = {80,200,500,1000,2000,4000,8000,12000};
+    for (int b = 0; b < 8; ++b)
+    {
+        SvfBiquad tmp;
+        tmp.set(SvfBiquad::Type::Bell, 44100.0, freqs[b], 1.0, b%2?3.0:-3.0);
+        // Extract coefficients from SvfBiquad into array
+        arr.setCoeffs(b, (float)tmp.a1, (float)tmp.a2, (float)tmp.a3,
+                         (float)tmp.m0, (float)tmp.m1, (float)tmp.m2);
+    }
+
+    auto fn = [&]() {
+        arr.reset();
+        for (int i = 0; i < N; ++i)
+            out[(size_t)i] = arr.processL(sig[(size_t)i]);
+    };
+
+    double ns = bench_ns_per_sample(fn, N);
+    const char* simd_mode =
+#if defined(__AVX2__)
+        "AVX2 (8-wide float32)";
+#elif defined(__SSE2__)
+        "SSE2 (4-wide float32)";
+#elif defined(__ARM_NEON)
+        "ARM Neon (4-wide float32)";
+#else
+        "Scalar fallback (no SIMD detected)";
+#endif
+    char note[128];
+    std::snprintf(note, sizeof(note), "SIMD mode: %s — compare vs SVF/8-band-stereo", simd_mode);
+    record("SvfBandArray/8-band mono", "Packed band array — baseline for v2.4 SIMD integration", ns, note);
+}
+
 // --- Printing -----------------------------------------------------------------
 
 static void print_table(bool csv)
@@ -1144,6 +1373,12 @@ int main(int argc, char** argv)
     bench_svf_vs_rbj_ratio();
     bench_svf_set_cost();
     bench_svf_dynamic_eq();
+
+    // -- Instance scaling + worst-case + SvfBandArray (v2.2.4) --
+    bench_instance_scaling_rbj();
+    bench_instance_scaling_svf();
+    bench_worst_case_dynamic_eq();
+    bench_svf_band_array();
 
     print_table(csv);
     return 0;

@@ -1,9 +1,47 @@
 #include "ResponseCurveComponent.h"
 #include "../PluginProcessor.h"
+#include "../DSP/FrequencyExplainer.h"
 
 static juce::String bandId(int idx, const char* suffix)
 {
     return "b" + juce::String(idx) + "_" + suffix;
+}
+
+// ── One-click apply suggestion (v2.2.4) ────────────────────────────
+// Finds the first disabled band slot, applies the suggestion's freq/gain/Q
+// and Bell type, then enables the band. Wrapped in APVTS so it is
+// undo-able via the existing UndoManager.
+void ResponseCurveComponent::applyFreeBandSuggestion(const ResonanceDetector::Suggestion& s)
+{
+    // Scan bands 1..kNumBands for the first disabled slot
+    for (int i = 1; i <= kNumBands; ++i)
+    {
+        auto* onParam = proc.apvts.getRawParameterValue(bandId(i, "on"));
+        if (onParam == nullptr) continue;
+        if (onParam->load() > 0.5f) continue; // already on — skip
+
+        // Found a free slot — apply freq, gain, Q, type=Bell, then enable
+        auto setParam = [&](const char* suffix, float value)
+        {
+            auto* param = proc.apvts.getParameter(bandId(i, suffix));
+            if (param) param->setValueNotifyingHost(param->convertTo0to1(value));
+        };
+
+        setParam("freq", s.freqHz);
+        setParam("gain", s.gainDb);
+        setParam("q",    s.q);
+        setParam("type", 0.0f); // Bell = index 0
+
+        auto* en = proc.apvts.getParameter(bandId(i, "on"));
+        if (en) en->setValueNotifyingHost(1.0f);
+
+        // Brief flash repaint to confirm application
+        repaint();
+        return;
+    }
+
+    // All bands occupied — inform user via tooltip (no allocation on audio thread)
+    setTooltip("All 8 bands in use. Free a band to apply this suggestion.");
 }
 
 // ── Band colours (EQ Eight–style palette) ──────────────────────────
@@ -467,6 +505,41 @@ int ResponseCurveComponent::hitTestNode(float mx, float my) const
 // ── Mouse interaction ──────────────────────────────────────────────
 void ResponseCurveComponent::mouseDown(const juce::MouseEvent& e)
 {
+    // ── v2.2.4: One-click apply suggestion ───────────────────────────
+    // Left-click on a suggestion node → apply to next unused band.
+    // Right-click on suggestion → show popup with full label + option to apply.
+    const int sugHit = hitTestSuggestion((float)e.x, (float)e.y);
+    if (sugHit >= 0)
+    {
+        const auto& s = suggestions[(size_t)sugHit];
+        if (s.confidence > 0.05f)
+        {
+            if (e.mods.isPopupMenu())
+            {
+                // Right-click: info + apply option
+                juce::PopupMenu menu;
+                menu.addSectionHeader(juce::String(s.label) + " detected");
+                menu.addItem(1, "Apply to next free band  (" +
+                    juce::String(s.freqHz, 0) + " Hz, " +
+                    juce::String(s.gainDb, 1) + " dB, Q=" +
+                    juce::String(s.q, 2) + ")");
+                menu.addItem(2, "Dismiss");
+                menu.showMenuAsync(juce::PopupMenu::Options(),
+                    [this, s](int result)
+                    {
+                        if (result == 1)
+                            applyFreeBandSuggestion(s);
+                    });
+            }
+            else
+            {
+                // Left-click: apply immediately
+                applyFreeBandSuggestion(s);
+            }
+            return;
+        }
+    }
+
     const int hit = hitTestNode((float)e.x, (float)e.y);
 
     if (e.mods.isPopupMenu() && hit >= 0)
@@ -556,12 +629,41 @@ void ResponseCurveComponent::mouseUp(const juce::MouseEvent&)
 
 void ResponseCurveComponent::mouseMove(const juce::MouseEvent& e)
 {
-    const int hit = hitTestNode((float)e.x, (float)e.y);
+    const int sugHit = hitTestSuggestion((float)e.x, (float)e.y);
+    const int hit    = hitTestNode((float)e.x, (float)e.y);
+
+    // ── v2.2.4: Explain-on-hover ─────────────────────────────────────
+    // Priority: suggestion > band node > nothing
+    if (sugHit >= 0 && suggestions[(size_t)sugHit].confidence > 0.05f)
+    {
+        const auto& s = suggestions[(size_t)sugHit];
+        juce::String tip = juce::String(s.label) + " — " +
+                           juce::String(s.freqHz, 0) + " Hz  " +
+                           juce::String(s.gainDb, 1) + " dB  " +
+                           "Click to apply";
+        setTooltip(tip);
+        setMouseCursor(juce::MouseCursor::PointingHandCursor);
+    }
+    else if (hit >= 0)
+    {
+        // Band node hover: FrequencyExplainer semantic label
+        const float freq = proc.apvts.getRawParameterValue(bandId(hit + 1, "freq"))->load();
+        const float gain = proc.apvts.getRawParameterValue(bandId(hit + 1, "gain"))->load();
+        const bool  isCut = gain < -0.5f;
+        // FrequencyExplainer::describe(freq, isCut) returns e.g. "Cutting mud (320 Hz)"
+        juce::String tip = juce::String(frequencyActionDescription(freq, isCut)) + " (" + juce::String((int)freq) + " Hz)";
+        setTooltip(tip);
+        setMouseCursor(juce::MouseCursor::PointingHandCursor);
+    }
+    else
+    {
+        setTooltip({});
+        setMouseCursor(juce::MouseCursor::CrosshairCursor);
+    }
+
     if (hit != hoveredBand)
     {
         hoveredBand = hit;
-        setMouseCursor(hit >= 0 ? juce::MouseCursor::PointingHandCursor
-                                : juce::MouseCursor::CrosshairCursor);
         repaint();
     }
 }

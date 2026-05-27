@@ -51,6 +51,9 @@ public:
     using Suggestions = std::array<ResonanceDetector::Suggestion, ResonanceDetector::kMaxSuggestions>;
     void setSuggestions(const Suggestions& s) { suggestions = s; }
 
+    // One-click apply: find first disabled band and set freq/gain/Q/type
+    void applyFreeBandSuggestion(const ResonanceDetector::Suggestion& s);
+
     // Pre-ring warning flag — set when DrumPunch mode + linear phase active
     void setPreRingWarning(bool show) { showPreRingWarning = show; }
 
