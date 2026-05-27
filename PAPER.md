@@ -44,6 +44,46 @@ types (Bell, LowShelf, HighShelf, LP, HP, Bandpass, Notch, AllPass) emerge from
 a single two-integrator core, simplifying maintenance and enabling structural
 modulation safety that TDF-II cannot provide.
 
+### 1.1 Product Architecture
+
+The codebase produces two plugins from a single source tree via compile-time
+configuration (`#if PROEQ8`):
+
+**FreeEQ8 (Free, GPL-3.0):** 8-band parametric EQ using the RBJ TDF-II biquad
+topology (§2.1). Zero audio restrictions during real-time playback. Offline
+export/bounce is limited to 4 minutes 30 seconds. No nag screens, no feature
+locks, no muting.
+
+**ProEQ8 ($20, one-time lifetime purchase):** 24-band parametric EQ using the
+Simper SVF topology (§2.2) with de-cramped high-frequency response. Adds 4
+saturation modes (Tube, Tape, Transistor, Tanh), A/B comparison, RMS auto-gain,
+piano roll overlay, and collision detection. No export limit.
+
+**ProEQ8 Demo (unactivated):** Included in the same installer. Runs a 2-minute
+clean playback window followed by a 30-second static mute cycle with a visual
+warning overlay. Fully functional otherwise — all 24 bands and features are
+accessible. Activation via HMAC-SHA256-signed license key removes the mute
+cycle permanently (2-device limit per key, 7-day server re-verify, 30-day
+offline grace period).
+
+The restriction logic is isolated in `Source/LicenseValidator.h`:
+
+```cpp
+bool shouldMuteDemo(double sampleRate, int numSamples)
+{
+    if (activated.load()) return false;
+    if (!kIsProVersion) return false;  // FreeEQ8 never mutes
+    // ... 2 min clean + 30 s mute cycle ...
+}
+
+bool shouldLimitExport(double sampleRate, int numSamples, bool isOfflineRender)
+{
+    if (kIsProVersion) return false;   // ProEQ8 has no export limit
+    if (!isOfflineRender) return false; // Real-time: no limit
+    // ... 4:30 offline cap ...
+}
+```
+
 ---
 
 ## 2. Filter Topology
