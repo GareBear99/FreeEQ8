@@ -169,36 +169,38 @@ ProEQ8 is the commercial big brother of FreeEQ8 — same rock-solid DSP engine, 
 
 **ProEQ8 is included in the macOS DMG download.** A license key is required to unlock it — purchase through the link above to receive your key via email. Without a license, ProEQ8 runs in demo mode: 2 minutes of clean playback, then a 30-second mute window (repeats).
 
-## 🧠 Smart EQ Layer (v2.3 foundation)
+## 🧠 Smart EQ Layer (shipped v2.2.3–2.2.4)
 
-FreeEQ8 is adding a real-time decision layer on top of the existing 8-band engine — not to replace surgical control, but to make getting to a clean mix faster than most paid EQs.
+FreeEQ8 includes a real-time decision layer on top of the existing 8-band engine — not to replace surgical control, but to make getting to a clean mix faster than most paid EQs.
 
-**Shipped now (v2.3 DSP foundation, no UI wiring yet):**
+**Shipped:**
 - `Source/DSP/ResonanceDetector.h` — log-frequency peak finder that produces up to 4 ranked suggestion bands with recommended frequency, cut-gain, Q, confidence score, and a semantic label ("mud", "boxiness", "harshness", "sibilance" …).
-- `Source/DSP/IntentMode.h` — behavioural biasing: `None` / `Vocal Clean` / `Drum Punch` / `Guitar Space` / `Master Polish`. Each mode shifts the detector's scoring curve toward the frequency zones that matter for that source, without forcing preset bands.
-- `Source/DSP/FrequencyExplainer.h` — static frequency → semantic description map powering the Explain-on-hover UX ("Cutting mud (320 Hz)" / "Adding air (12 kHz)").
+- `Source/DSP/IntentMode.h` — behavioural biasing: `None` / `Vocal Clean` / `Drum Punch` / `Guitar Space` / `Master Polish`. Each mode shifts the detector’s scoring curve toward the frequency zones that matter for that source, without forcing preset bands.
+- `Source/DSP/FrequencyExplainer.h` — static frequency → semantic description map powering the Explain-on-hover UX (“Cutting mud (320 Hz)” / “Adding air (12 kHz)”).
+- `intent_mode` APVTS parameter — host-automatable, wired to editor dropdown.
+- Glowing suggestion-node overlay on the response curve (amber rings, confidence-scaled opacity).
+- One-click “apply suggestion” — drops a detected peak into the next unused band via APVTS (undo-able).
+- Explain-on-hover popup when mousing over any band or suggestion node.
+- Pre-ring warning overlay when DrumPunch + Linear Phase are active simultaneously.
 - Deterministic, allocation-free, UI-thread safe — piggybacks on the existing triple-buffered `SpectrumFIFO`.
 
-**Coming next (UI surfacing, tracked in [`docs/SMART_EQ_LAYER.md`](docs/SMART_EQ_LAYER.md)):**
-- glowing suggestion-node overlay on the response curve
-- one-click “apply suggestion” that drops a peak into the next unused band
-- Explain-on-hover popup when mousing over any band
-- `intent_mode` APVTS parameter + small editor dropdown
+**Coming next:**
 - Zero-Lag auto-switch between linear-phase (precision) and minimum-phase (real-time)
 
-No other free open-source 8-band EQ currently combines intent-aware resonance detection + explain-on-hover + one-click apply. See [`docs/SMART_EQ_LAYER.md`](docs/SMART_EQ_LAYER.md) for the full algorithm, status matrix, and next-commit plan.
+No other free open-source 8-band EQ currently combines intent-aware resonance detection + explain-on-hover + one-click apply. See [`docs/SMART_EQ_LAYER.md`](docs/SMART_EQ_LAYER.md) for the full algorithm and status matrix.
 
 
 ## 🔍 Code Audit
 
 A full line-by-line audit of the DSP, threading, and restriction system is
-published at [AUDIT.md](AUDIT.md). Summary: FreeEQ8 has **zero audio
-restrictions, zero feature locks, and zero nag interruptions**. All v2.2.1
-bug fixes are documented with root cause analysis.
+published at [AUDIT.md](AUDIT.md). Summary: FreeEQ8 has **zero feature locks
+and zero nag interruptions** during real-time playback. Offline export is
+limited to 4 minutes 30 seconds (ProEQ8 removes this limit). All bug fixes
+through v2.2.5 are documented with root cause analysis.
 
 ## 📊 Benchmarks & RT-safety
 
-FreeEQ8 / ProEQ8 v2.2.0 ships with a proven real-time-safe DSP engine:
+FreeEQ8 / ProEQ8 v2.2.5 ships with a proven real-time-safe DSP engine:
 - **Zero heap allocation on the audio thread** for any user action (pooled oversamplers).
 - **Canonical swap-chain triple-buffer** for both the spectrum FIFO and the linear-phase FIR kernel — verified under concurrent stress (3 runs × 400 ms, ~600 M samples, 0 tears).
 - **Linear-phase FIR rebuild on a dedicated `juce::Thread`** — no FFT work on the audio thread.
@@ -247,9 +249,10 @@ Full evidence and numbers:
 ### DSP Specifications
 - Stereo processing (or Mid/Side)
 - Sample rates: 44.1 kHz to 192 kHz+
-- Transposed Direct Form II biquad with double-precision (64-bit) internal arithmetic
-- RBJ Audio EQ Cookbook coefficients
+- Dual filter topology: RBJ TDF-II biquad (FreeEQ8) + Simper SVF via trapezoidal integration (ProEQ8) — de-cramped HF response
+- Double-precision (64-bit) internal arithmetic, float I/O
 - Zero latency in minimum-phase mode; linear phase adds 2048 samples
+- 0.62% single-core CPU budget at 44.1 kHz (SVF 8-band stereo, 161× headroom)
 - Low CPU usage (disable unused bands, lower oversampling to reduce load)
 
 ### Compatibility
@@ -457,14 +460,15 @@ Q: 0.7 (standard)
 ```
 
 ### DSP Implementation
-- **Filter Structure**: Transposed Direct Form II biquad (Biquad.h)
-- **Coefficient Calculation**: RBJ Audio EQ Cookbook
+- **Filter Structure**: Transposed Direct Form II biquad (Biquad.h) + Simper SVF (SvfBiquad.h) with tan() pre-warp
+- **Coefficient Calculation**: RBJ Audio EQ Cookbook (FreeEQ8) / Cytomic SVF (ProEQ8)
 - **Smoothing**: Linear interpolation over 20ms
-- **Update Rate**: Coefficients refreshed every sample when Dynamic EQ is active; every 16 samples during parameter smoothing (amortised cost)
+- **Update Rate**: Coefficients refreshed every sample when Dynamic EQ is active; every 16 samples during parameter smoothing (amortised cost). Variable-cadence engine (v2.2.3) batches to 4-sample intervals during stable envelopes.
 - **Precision**: Double-precision (64-bit) coefficients and internal state; float I/O
 - **Linear Phase**: 4096-tap symmetric FIR, 8192-point FFT, overlap-add convolution
 - **Dynamic EQ**: One-pole envelope follower with sidechain bandpass at band frequency
 - **Spectrum**: 4096-point FFT, Hann window, lock-free SPSC FIFO
+- **SIMD Scaffold**: SvfBandArray<8> with AVX2/SSE2/Neon dispatch (v2.2.4)
 
 ### Project Structure
 ```
@@ -472,34 +476,45 @@ FreeEQ8/
 ├── Source/
 │   ├── PluginProcessor.h/.cpp     # Main audio processor
 │   ├── PluginEditor.h/.cpp        # UI editor & layout
+│   ├── Config.h                   # Product config (FreeEQ8 vs ProEQ8)
 │   ├── DSP/
-│   │   ├── Biquad.h               # Biquad filter implementation
+│   │   ├── Biquad.h               # RBJ biquad filter (FreeEQ8 path)
+│   │   ├── SvfBiquad.h            # Simper SVF filter (ProEQ8 path)
+│   │   ├── SvfBandArray.h         # SIMD-vectorised SVF (AVX2/SSE2/Neon)
 │   │   ├── EQBand.h               # EQ band with smoothing, drive & dynamic EQ
-│   │   ├── SpectrumFIFO.h         # Lock-free FFT FIFO
+│   │   ├── SpectrumFIFO.h         # Lock-free SPSC triple-buffer FFT FIFO
 │   │   ├── LinearPhaseEngine.h    # FIR-based linear-phase EQ engine
-│   │   └── MatchEQ.h              # Reference capture & correction curve
+│   │   ├── NaturalPhaseEngine.h   # 256-tap natural-phase mode
+│   │   ├── MatchEQ.h              # Reference capture & correction curve
+│   │   ├── ResonanceDetector.h    # Allocation-free resonance peak finder
+│   │   ├── IntentMode.h           # Vocal/Drum/Guitar/Master weighting
+│   │   └── FrequencyExplainer.h   # Semantic frequency → label map
 │   ├── UI/
 │   │   ├── ResponseCurveComponent.h/.cpp  # EQ curve + spectrum + nodes
 │   │   └── LevelMeter.h           # Stereo peak/RMS level meter
 │   ├── Presets/
 │   │   └── PresetManager.h/.cpp   # Preset save/load system
 │   ├── UpdateChecker.h            # GitHub releases update checker
-│   └── LicenseValidator.h         # Offline license key validation
+│   └── LicenseValidator.h         # License + demo + export limit
+├── Tests/
+│   ├── BiquadTest.cpp             # RBJ coefficient correctness
+│   ├── SvfTest.cpp                # SVF correctness (11 assertions)
+│   ├── AuditRegressionTest.cpp    # Triple-buffer + chunking stress tests
+│   └── AuditBench.cpp             # RT-safety micro-benchmarks
 ├── server/
 │   ├── stripe-webhook.js          # Cloudflare Worker for Stripe → license
 │   ├── wrangler.toml              # Wrangler deployment config
 │   └── package.json               # Server dependencies (wrangler)
+├── PAPER.md                       # Technical paper (DAFx/AES submission)
+├── BENCHMARK.md                   # Full benchmark results & methodology
+├── AUDIT.md                       # Line-by-line code audit report
+├── ROADMAP_2_5_PLUS.md            # Long-horizon roadmap through v2.3.0
 ├── STRIPE_SETUP.md                # ProEQ8 Stripe deployment guide
+├── FeatureBench.cpp               # Standalone benchmark suite (no JUCE)
+├── CMakeLists.txt                 # CMake config (FreeEQ8 + ProEQ8 targets)
 ├── docs/                          # Screenshots & assets
 ├── JUCE/                          # JUCE framework (submodule)
-├── build/                         # Build output (ignored)
-├── CMakeLists.txt                 # CMake config (FreeEQ8 + ProEQ8 targets)
-├── build_macos.sh                 # macOS build script
-├── build_linux.sh                 # Linux build script
-├── build_windows.ps1              # Windows build script
-├── package_macos.sh               # macOS DMG packaging script
-├── .gitignore                     # Git ignore rules
-└── README.md                      # This file
+└── build/                         # Build output (ignored)
 ```
 
 ## 🛣️ Roadmap
@@ -532,7 +547,7 @@ FreeEQ8/
 - [x] Online license activation (2 devices per key) with Stripe checkout
 - [x] ProEQ8 commercial target (24 bands, 4 saturation modes, A/B, auto-gain)
 - [x] Cloudflare Worker license server + Resend email delivery
-- [x] Demo mode for unactivated ProEQ8 (mutes 30s every 5min)
+- [x] Demo mode for unactivated ProEQ8 (2 min clean + 30 s mute cycle)
 
 ### v2.1.0
 - [x] Standalone app included in all platform packages
@@ -541,7 +556,7 @@ FreeEQ8/
 - [x] Obfuscated signing secret in binary
 - [x] Fixed JUCE 7.0.12 API compatibility
 
-### v2.2.0 (Current Release)
+### v2.2.0
 - [x] Real-time safety: zero heap allocation on the audio thread for any user action (Milestone A / A1)
 - [x] `SpectrumFIFO` + `LinearPhaseEngine` kernel on canonical swap-chain triple-buffer (A4 / A5)
 - [x] Linear-phase FIR rebuild moved to a dedicated `juce::Thread` worker (A5)
@@ -550,15 +565,40 @@ FreeEQ8/
 - [x] Demo cadence: 2 minutes of clean playback + 30-second mute window
 - [x] `getTailLengthSeconds` reports the MatchEQ overlap-add tail for offline renders (A7)
 
-### v2.3.0 (In Progress) — Smart EQ Layer
-- [x] Resonance detector (log-frequency, intent-weighted peak finder)
-- [x] Intent Mode weighting curves (None / Vocal Clean / Drum Punch / Guitar Space / Master Polish)
-- [x] Frequency Explainer semantic map
-- [ ] `intent_mode` APVTS parameter + editor dropdown
-- [ ] Response-curve overlay with glowing suggestion nodes
-- [ ] Explain-on-hover popup on band nodes
-- [ ] One-click “apply suggestion” into next unused band
+### v2.2.1–2.2.2
+- [x] Transistor saturation gain bug fixed (ProEQ8)
+- [x] Dynamic EQ zero-lag coefficient update when `dynEnabled`
+- [x] MatchEQ `correctionGain[]` precompute (3× throughput improvement)
+- [x] Simper SVF engine (`SvfBiquad.h`) — de-cramped HF, trapezoidal integration
+
+### v2.2.3–2.2.4
+- [x] Variable-cadence Dynamic EQ (75% CPU savings on sustained signals)
+- [x] `intent_mode` APVTS parameter + editor dropdown
+- [x] ResonanceDetector wired to UI timer at 30 Hz
+- [x] Suggestion overlay (glowing amber nodes on response curve)
+- [x] One-click “apply suggestion” into next unused band
+- [x] Explain-on-hover popup on band + suggestion nodes
+- [x] Compact / mini-window mode (identical coordinate mapping)
+- [x] Pre-ring warning overlay (DrumPunch + Linear Phase)
+- [x] Oversampling crossfade buffer (128-sample, eliminates pop)
+- [x] SvfBandArray SIMD scaffold (AVX2/SSE2/Neon)
+- [x] NaturalPhaseEngine (256-tap, 128-sample latency)
+- [x] pluginval CI (strictness-level 10)
+
+### v2.2.5 (Current Release)
+- [x] Transistor saturation `invD*d` no-op bug fixed in shipped code
+- [x] MatchEQ hot-path `pow()` eliminated — `correctionGain[]` precompute
+- [x] SvfTest.cpp correctness suite (11 assertions, all passing)
+- [x] FreeEQ8 export limit (4:30 offline render)
+- [x] Version consistency across all docs (no fake v2.4/v2.5/v3.0 refs)
+- [x] PAPER.md section numbering fixed (§6 Benchmarks, §8 Compact View, §9 Future Work)
+
+### v2.3.0 (Planned) — ProEQ8 Launch
+- [ ] SVF wired into EQBand via `#if PROEQ8`
+- [ ] 24-band layout
 - [ ] Zero-Lag auto-switch between linear-phase and minimum-phase modes
+- [ ] Stripe checkout live
+- [ ] Cross-instance ARC-Core spine
 
 ## 🤝 Contributing
 
@@ -585,99 +625,7 @@ Contributions are welcome! Here's how you can help:
 
 ## 📝 Changelog
 
-### v2.3.0-dev (2026-04-23)
-- ✅ Smart EQ Layer DSP foundation: `ResonanceDetector`, `IntentMode`, `FrequencyExplainer` shipped as standalone headers with zero wiring into `processBlock` (no risk to existing users).
-- ✅ Design + roadmap documented in `docs/SMART_EQ_LAYER.md`; status matrix tracks what's shipped vs. pending UI surfacing.
-- Next cut will wire the `intent_mode` parameter, detector instance, and UI overlay.
-
-### v2.2.0 (2026-04-23)
-- ✅ Milestone A real-time safety + correctness pass: oversampler pool, triple-buffered SPSC for spectrum FIFO + linear-phase kernel, off-audio-thread FIR rebuild, MatchEQ chunking for oversized blocks, editor lifetime safety
-- ✅ Demo cadence: 2 min clean + 30 s mute (was 4:30 / 30 s)
-- ✅ `getTailLengthSeconds` covers MatchEQ tail (offline render correctness)
-- ✅ See `docs/MILESTONE_A_REPORT.md` for proofs, benchmarks, and stress-test evidence
-
-### v2.1.0 (2026-03-25)
-- ✅ Standalone app now included in macOS DMG, Windows ZIP, Linux tar.gz
-- ✅ Hardened ProEQ8 license system: device-bound activation (2 systems per key)
-- ✅ Periodic server re-verification every 7 days (30-day offline grace period)
-- ✅ XOR-obfuscated signing secret in binary
-- ✅ Server `/verify` endpoint for client re-validation
-- ✅ Background license re-verify on ProEQ8 editor open when overdue
-- ✅ Fixed `inPostBody` → `inPostData` for JUCE 7.0.12 API
-- ✅ Added `workflow_dispatch` trigger for manual CI runs
-
-### v2.0.0 (2026-03-25)
-- ✅ Online license activation for ProEQ8 (2-device limit per key)
-- ✅ Stripe Checkout → Cloudflare Worker webhook → HMAC-signed license key → email via Resend
-- ✅ Device fingerprinting (hardware UUID on macOS, MachineGuid on Windows, machine-id on Linux)
-- ✅ Demo mode for unactivated ProEQ8 (mutes 30s every 5min)
-- ✅ Deactivation support to free device slots
-
-### v1.1.0 (ProEQ8 + Enhancements)
-- ✅ ProEQ8 commercial target: 24-band parametric EQ (same source, PROEQ8=1 compile flag)
-- ✅ 4 saturation modes per band (Pro): Tanh, Tube, Tape, Transistor
-- ✅ A/B comparison (Pro): instant snapshot toggle with Copy A→B / B→A
-- ✅ Auto-gain bypass: RMS-matched loudness compensation for honest A/B listening
-- ✅ Piano roll overlay (Pro): musical note reference lines C1–C8 on the response curve
-- ✅ Collision detection (Pro): amber warning when bands overlap within 1/3 octave
-- ✅ Update checker: background thread checks GitHub releases, shows banner when new version available
-- ✅ License validator + activation dialog (Pro): offline license keys, demo mode (mute 30s every 5min)
-- ✅ Stripe webhook serverless function: Cloudflare Worker generates license keys, emails via Resend
-- ✅ 30 genre-specific factory presets
-- ✅ Fixed preset directory using product name (not hardcoded)
-- ✅ Fixed factory preset OOB access for ProEQ8's 24-band layout
-
-### v1.0.0 (2026-02-25)
-- ✅ Linear phase mode: symmetric FIR from combined biquad magnitude, overlap-add FFT convolution (2048-sample latency)
-- ✅ Dynamic EQ: per-band envelope follower with sidechain bandpass, threshold, ratio, attack & release
-- ✅ Band linking: link groups A/B propagate freq (ratio-based), gain & Q (delta-based) changes
-- ✅ Per-band saturation/drive: gain-compensated tanh waveshaper (0–100%)
-- ✅ Undo/Redo system via juce::UndoManager integrated with APVTS
-- ✅ Match EQ: capture reference spectrum, compute per-bin correction, FFT-based application
-- ✅ New parameters: drive, dynamic EQ (threshold/ratio/attack/release), link group per band
-- ✅ Updated UI: undo/redo buttons, dynamic EQ toggle + threshold, link group selector, drive knob
-
-### v0.5.0 (2026-02-25)
-- ✅ Multiple filter slopes: 12/24/48 dB/oct per band via cascaded biquad stages
-- ✅ Mid/Side processing mode with stereo encode/decode
-- ✅ Per-band channel routing: Both / Left(Mid) / Right(Side)
-- ✅ Oversampling: 1x / 2x / 4x / 8x using JUCE polyphase IIR
-- ✅ Output level metering with peak hold and RMS display
-- ✅ Resizable UI with proportional layout (750×550 to 1400×900)
-- ✅ New global controls: Oversampling selector, Processing Mode selector
-- ✅ Per-band controls: Slope selector, Channel routing selector
-
-### v0.4.0 (2026-02-25)
-- ✅ Real-time spectrum analyzer (4096-point FFT, pre/post EQ toggle)
-- ✅ Interactive frequency response curve display with grid
-- ✅ Draggable band nodes (click-drag for freq/gain, shift+drag for Q)
-- ✅ Per-band colored curves with composite response overlay
-- ✅ Adaptive Q DSP implementation (auto-scales Q with gain)
-- ✅ Band solo/audition mode ("S" button per band)
-- ✅ Preset management (save/load/delete, 8 factory presets)
-- ✅ Complete UI overhaul (900×620, dark theme, response curve on top)
-- ✅ Right-click context menu on band nodes (type change, enable/disable)
-- ✅ Attribution updated to Gary Doman (GareBear99)
-
-### v0.3.0 (2026-01-28)
-- ✅ Added output gain control (-24dB to +24dB)
-- ✅ Added global scale parameter (0.1x to 2x)
-- ✅ Added adaptive Q toggle (UI only, DSP pending)
-- ✅ Enhanced UI layout with global controls
-- ✅ Fixed JUCE 7.0.12 compatibility issues
-- ✅ Fixed VST3 build on macOS with Xcode 12
-- ✅ Improved parameter smoothing
-- ✅ Updated build scripts for reliability
-
-### v0.2.0
-- 8-band parametric EQ
-- RBJ biquad filters (Bell, Shelf, HP, LP)
-- Parameter smoothing (20ms)
-- State save/restore via APVTS
-- CMake build system for VST3/AU
-
-### v0.1.0
-- Initial prototype
+See [CHANGELOG.md](CHANGELOG.md) for the full version history with detailed per-file changes.
 
 ## 📄 License
 
@@ -695,17 +643,10 @@ FreeEQ8 is an **original implementation** of a parametric EQ plugin. It is:
 
 
 
-## 🔍 Code Audit
-
-A full line-by-line audit of the DSP, threading, and restriction system is
-published at [AUDIT.md](AUDIT.md). Summary: FreeEQ8 has **zero audio
-restrictions, zero feature locks, and zero nag interruptions**. All v2.2.1
-bug fixes are documented with root cause analysis.
-
 ## 📊 Benchmarks
 
 Every feature claim is backed by a reproducible standalone benchmark suite.
-All 33 features pass at **>10x CPU headroom** at 44.1 kHz / 512-sample blocks.
+All features pass at **>10x CPU headroom** at 44.1 kHz / 512-sample blocks.
 
 Key numbers (g++ -O3, x86-64, median of 16 trials):
 
