@@ -58,7 +58,12 @@ export default {
       return corsResponse(await handleVerify(request, env));
     }
 
-    // ── POST /webhook/stripe ─────────────────────────────────────
+    // ── POST /recover ───────────────────────────────────────
+    if (url.pathname === "/recover" && request.method === "POST") {
+      return corsResponse(await handleRecover(request, env));
+    }
+
+    // ── POST /webhook/stripe ─────────────────────────────
     if (url.pathname === "/webhook/stripe" && request.method === "POST") {
       return await handleStripeWebhook(request, env);
     }
@@ -339,7 +344,92 @@ async function handleVerify(request, env) {
   });
 }
 
-// ═══════════════════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════════
+//  KEY RECOVERY — re-send license keys to the purchase email
+// ═════════════════════════════════════════════════════════════════
+
+async function handleRecover(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: "Invalid JSON body" }, 400);
+  }
+
+  const { email } = body;
+  if (!email || !email.includes("@")) {
+    return jsonResponse({ error: "Valid email required" }, 400);
+  }
+
+  // Scan KV for all license records matching this email.
+  // KV list returns keys; we check each record's email field.
+  const allKeys = await env.LICENSES.list();
+  const matches = [];
+
+  for (const key of allKeys.keys) {
+    // Skip idempotency keys (session:...)
+    if (key.name.startsWith("session:")) continue;
+
+    const recordStr = await env.LICENSES.get(key.name);
+    if (!recordStr) continue;
+
+    try {
+      const record = JSON.parse(recordStr);
+      if (record.email && record.email.toLowerCase() === email.toLowerCase()) {
+        matches.push({
+          license_id: key.name,
+          product: record.product || "ProEQ8",
+          devices_used: record.used || 0,
+          devices_max: record.max_uses || 2,
+          created: record.created || "unknown",
+        });
+      }
+    } catch { /* skip malformed records */ }
+  }
+
+  if (matches.length === 0) {
+    return jsonResponse({ ok: false, message: "No licenses found for this email." });
+  }
+
+  // Send recovery email with all keys
+  const keyListHtml = matches.map(m =>
+    `<li><strong>${m.product}</strong> — License: <code>${m.license_id}</code><br>
+     Devices: ${m.devices_used}/${m.devices_max} — Created: ${m.created}</li>`
+  ).join("");
+
+  const html = `
+    <h2>Your TizWildin License Keys</h2>
+    <p>You requested a key recovery for <strong>${email}</strong>.</p>
+    <ul>${keyListHtml}</ul>
+    <p>To activate, open the plugin in your DAW and paste the license key.</p>
+    <p>&mdash; TizWildin Entertainment</p>
+  `;
+
+  try {
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "TizWildin <noreply@tizwildin.com>",
+        to: [email],
+        subject: "Your TizWildin License Keys",
+        html: html,
+      }),
+    });
+  } catch (e) {
+    return jsonResponse({ error: "Failed to send recovery email" }, 500);
+  }
+
+  return jsonResponse({
+    ok: true,
+    message: `Recovery email sent to ${email} with ${matches.length} license(s).`,
+  });
+}
+
+// ═════════════════════════════════════════════════════════════════
 //  CREATE CHECKOUT SESSION
 // ═══════════════════════════════════════════════════════════════════
 
