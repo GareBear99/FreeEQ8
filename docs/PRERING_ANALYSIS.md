@@ -128,7 +128,11 @@ LinearPhase mode should be reserved for non-transient material (pads, sustained 
 - `Tests/PreRingAnalysis.cpp` — C++ analysis tool
 - `Tests/GenerateSpectrograms.py` — Python visualization script
 - `Tests/prering_output/` — Generated WAV files
-- `Tests/spectrograms/` — Generated spectrogram images
+- `Tests/spectrograms/` — Generated spectrogram images:
+  - `summary_comparison.png` — Side-by-side comparison of all 4 modes
+  - `{signal}_spectrogram.png` — Full spectrogram for each test signal
+  - `{signal}_waveform.png` — Waveform overlay comparison
+  - `{signal}_prering_detail.png` — Zoomed pre-ring region
 
 ## References
 
