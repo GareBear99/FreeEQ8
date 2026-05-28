@@ -135,6 +135,18 @@ function validEmail(e) { return e && typeof e === "string" && e.length <= 254 &&
 function validKey(k) { return k && typeof k === "string" && k.length <= 2048 && k.includes("."); }
 function validDevice(d) { return d && typeof d === "string" && d.length >= 8 && d.length <= 128; }
 
+async function hasActiveMasterKeySeat(email, env) {
+  if (!validEmail(email)) return false;
+  const sub = await env.LICENSES.get(`master_key_sub:${email.toLowerCase()}`);
+  if (!sub) return false;
+  try {
+    const data = JSON.parse(sub);
+    return data.status === "active" && data.seats >= 1;
+  } catch {
+    return false;
+  }
+}
+
 // Stripe Webhook
 async function handleStripeWebhook(request, env, headers) {
   const body = await request.text();
@@ -152,6 +164,24 @@ async function handleStripeWebhook(request, env, headers) {
     const idempKey = `session:${session.id}`;
     if (await env.LICENSES.get(idempKey)) return jsonResponse({ ok: true, duplicate: true }, 200, headers);
 
+    // Distinguish ProEQ8 one-time purchase vs Master Key subscription
+    if (session.mode === "subscription") {
+      // Master Key subscription checkout — store seat count
+      const seats = session.line_items?.data?.[0]?.quantity || parseInt(session.metadata?.seats || "1");
+      await env.LICENSES.put(`master_key_sub:${email.toLowerCase()}`, JSON.stringify({
+        email: email.toLowerCase(),
+        seats: Math.min(3, Math.max(1, seats)),
+        status: "active",
+        subscriptionId: session.subscription,
+        created: new Date().toISOString(),
+      }));
+      await env.LICENSES.put(idempKey, `master_key_sub:${email.toLowerCase()}`, { expirationTtl: 2592000 });
+      await sendMasterKeyEmail(email, seats, env.RESEND_API_KEY);
+      await sendAdminNotification(email, `MasterKey (${seats} seats)`, session.id, env.RESEND_API_KEY);
+      return jsonResponse({ ok: true, type: "master_key", seats }, 200, headers);
+    }
+
+    // ProEQ8 one-time purchase — issue license
     const licenseId = crypto.randomUUID();
     const maxDevices = parseInt(env.MAX_DEVICES_PER_LICENSE || "2", 10);
     const license = await generateLicense(email, licenseId, env.LICENSE_SIGNING_SECRET);
@@ -170,7 +200,7 @@ async function handleStripeWebhook(request, env, headers) {
 
     await sendLicenseEmail(email, license, maxDevices, env.RESEND_API_KEY);
     await sendAdminNotification(email, licenseId, session.id, env.RESEND_API_KEY);
-    return jsonResponse({ ok: true }, 200, headers);
+    return jsonResponse({ ok: true, type: "proeq8" }, 200, headers);
   }
   return jsonResponse({ received: true }, 200, headers);
 }
@@ -283,6 +313,12 @@ async function handleDeactivate(request, env, headers) {
   const record = JSON.parse(recordStr);
   const idx = record.devices.indexOf(device_id);
   if (idx === -1) return jsonResponse({ ok: true, message: "Not activated", used: record.used, max: record.max_uses }, 200, headers);
+
+  // Require active Master Key seat to unlink a device
+  const hasSeat = await hasActiveMasterKeySeat(record.email, env);
+  if (!hasSeat) {
+    return jsonResponse({ error: "Master Key subscription required to unlink devices", needsMasterKey: true }, 403, headers);
+  }
 
   record.devices.splice(idx, 1);
   record.used = record.devices.length;
@@ -514,6 +550,15 @@ async function sendAdminNotification(email, licenseId, sessionId, apiKey) {
       body: JSON.stringify({ from: "Sales <onboarding@resend.dev>", to: [ADMIN], subject: `[ProEQ8] ${email}`, html: `<p>${email} — ${licenseId}</p>` }),
     });
   } catch {}
+}
+
+async function sendMasterKeyEmail(email, seats, apiKey) {
+  const html = `<h2>Master Key Subscription Active</h2><p>Your Master Key subscription with <strong>${seats} seat(s)</strong> is now active.</p><p>You can now unlink devices from your ProEQ8 licenses as needed. Manage your subscription in the TizWildin HUB.</p><p>— TizWildin</p>`;
+  await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ from: "TizWildin <onboarding@resend.dev>", to: [email], subject: "Master Key Subscription Confirmed", html }),
+  });
 }
 
 // Helpers
