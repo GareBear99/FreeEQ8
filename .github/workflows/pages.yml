@@ -1,0 +1,127 @@
+name: Build Paper & Deploy to Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'paper/**'
+      - 'PAPER.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install TeX Live
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-recommended \
+            texlive-fonts-recommended \
+            texlive-latex-extra \
+            texlive-science \
+            latexmk
+
+      - name: Compile LaTeX paper
+        run: |
+          cd paper
+          pdflatex -interaction=nonstopmode DAFx26_FreeEQ8.tex
+          pdflatex -interaction=nonstopmode DAFx26_FreeEQ8.tex
+          echo "PDF compiled successfully"
+
+      - name: Setup Pages directory
+        run: |
+          mkdir -p _site/pdf
+          cp paper/DAFx26_FreeEQ8.pdf _site/pdf/
+          
+          # Create index page
+          cat > _site/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>FreeEQ8 / ProEQ8 — Publications</title>
+            <style>
+              :root { --bg: #0d1117; --fg: #c9d1d9; --accent: #58a6ff; --card: #161b22; }
+              * { box-sizing: border-box; margin: 0; padding: 0; }
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                     background: var(--bg); color: var(--fg); line-height: 1.6; padding: 2rem; }
+              .container { max-width: 800px; margin: 0 auto; }
+              h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+              .subtitle { color: #8b949e; margin-bottom: 2rem; }
+              .card { background: var(--card); border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; 
+                      border: 1px solid #30363d; }
+              .card h2 { font-size: 1.25rem; margin-bottom: 0.5rem; }
+              .card p { color: #8b949e; font-size: 0.9rem; margin-bottom: 1rem; }
+              .btn { display: inline-block; background: var(--accent); color: #fff; padding: 0.5rem 1rem;
+                     border-radius: 6px; text-decoration: none; font-weight: 500; }
+              .btn:hover { background: #1f6feb; }
+              .meta { font-size: 0.85rem; color: #8b949e; margin-top: 1rem; }
+              a { color: var(--accent); }
+              footer { margin-top: 3rem; text-align: center; color: #8b949e; font-size: 0.85rem; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>📄 FreeEQ8 / ProEQ8</h1>
+              <p class="subtitle">Publications & Technical Papers</p>
+              
+              <div class="card">
+                <h2>DAFx26 Demo Paper</h2>
+                <p><strong>Real-Time State-Space Parameterization in Digital Equalization: A Production-Grade SVF Implementation</strong></p>
+                <p>4-page demo paper for the 29th International Conference on Digital Audio Effects (DAFx26), MIT, September 2026.</p>
+                <a href="pdf/DAFx26_FreeEQ8.pdf" class="btn">Download PDF</a>
+                <div class="meta">
+                  Covers: Simper SVF topology, lock-free SPSC triple-buffer, variable-cadence Dynamic EQ, benchmarks
+                </div>
+              </div>
+
+              <div class="card">
+                <h2>Full Technical Paper</h2>
+                <p>Comprehensive documentation of the FreeEQ8/ProEQ8 architecture (~15 pages).</p>
+                <a href="https://github.com/GareBear99/FreeEQ8/blob/main/PAPER.md" class="btn">View on GitHub</a>
+                <div class="meta">
+                  Includes: Pre-ring analysis, detector evaluation (F1=94.7%), ABX infrastructure, CI/CD validation
+                </div>
+              </div>
+
+              <footer>
+                <p>
+                  <a href="https://github.com/GareBear99/FreeEQ8">GitHub</a> · 
+                  FreeEQ8 (GPL-3.0) · ProEQ8 ($20)
+                </p>
+              </footer>
+            </div>
+          </body>
+          </html>
+          EOF
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
