@@ -4,8 +4,8 @@ compatibility_date = "2024-01-01"
 
 # Non-secret environment variables
 [vars]
-SUCCESS_URL = "https://github.com/GareBear99/FreeEQ8?purchase=success"
-CANCEL_URL  = "https://github.com/GareBear99/FreeEQ8?purchase=cancelled"
+SUCCESS_URL = "https://garebear99.github.io/FreeEQ8?purchase=success"
+CANCEL_URL  = "https://garebear99.github.io/FreeEQ8?purchase=cancelled"
 MAX_DEVICES_PER_LICENSE = "2"
 
 # KV namespace for license activation tracking.

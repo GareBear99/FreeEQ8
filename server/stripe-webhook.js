@@ -1,1024 +1,532 @@
 /**
- * Stripe Webhook + License Activation Server — Cloudflare Worker
- *
- * Handles:
- *   - POST /webhook/stripe     — Stripe checkout.session.completed → generate license → email
- *   - POST /create-checkout    — Create Stripe Checkout session
- *   - POST /activate           — Activate a license on a device (max 2 per license)
- *   - POST /deactivate         — Release a device slot
- *   - GET  /health             — Health check
- *
- * Environment variables (set via wrangler secret put):
- *   STRIPE_WEBHOOK_SECRET  — Stripe webhook signing secret (whsec_...)
- *   STRIPE_SECRET_KEY      — Stripe secret key (sk_live_... or sk_test_...)
- *   STRIPE_PRICE_ID        — Stripe price ID for ProEQ8
- *   RESEND_API_KEY         — Resend.com API key for sending email
- *   LICENSE_SIGNING_SECRET — Shared HMAC-SHA256 secret (must match LicenseValidator.h)
- *
- * KV Namespaces (bound in wrangler.toml):
- *   LICENSES — License activation state: { email, max_uses, used, devices[], created }
- *              Also stores idempotency keys: session:<stripe_session_id> → license_id
- *
- * Environment vars (wrangler.toml [vars]):
- *   MAX_DEVICES_PER_LICENSE — Default: "2"
- *   SUCCESS_URL, CANCEL_URL — Stripe Checkout redirect URLs
+ * TizWildin License Server — Cloudflare Worker (Production v3.0)
+ * 
+ * Endpoints:
+ *   POST /webhook/stripe        — Stripe checkout completed → license → email
+ *   POST /create-checkout       — Stripe Checkout (ProEQ8 $29.99 CAD)
+ *   POST /create-checkout/master-key — Master Key ($3 CAD/mo)
+ *   POST /activate              — Activate license (max 2 devices)
+ *   POST /deactivate            — Release device slot
+ *   POST /verify                — Verify license
+ *   POST /recover               — Email recovery
+ *   GET  /health                — Health check
+ *   GET  /hub/community-stats   — User count
+ *   GET  /hub/account           — Account status
+ *   POST /hub/signin            — OAuth sign-in tracking
+ *   POST /hub/master-key/*      — Master Key management
+ * 
+ * Security: HMAC-SHA256 signing, rate limiting, input validation, security headers
  */
+
+const VERSION = "3.0.0";
+const MAX_BODY_SIZE = 16384;
+const RATE_LIMIT_WINDOW = 60;
+const RATE_LIMIT_MAX = 30;
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    const method = request.method;
 
-    // ── CORS preflight ───────────────────────────────────────
-    if (request.method === "OPTIONS") {
-      return corsResponse(new Response(null, { status: 204 }), request);
+    const securityHeaders = {
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "X-Request-Id": crypto.randomUUID(),
+    };
+
+    if (method === "OPTIONS") {
+      return corsResponse(new Response(null, { status: 204, headers: securityHeaders }), request);
     }
 
-    // ── GET /health ──────────────────────────────────────────────
-    if (url.pathname === "/health" && request.method === "GET") {
-      return corsResponse(jsonResponse({ status: "ok", version: "2.2.5" }), request);
+    if (!url.pathname.startsWith("/webhook")) {
+      const clientIP = request.headers.get("CF-Connecting-IP") || "unknown";
+      const rateLimit = await checkRateLimit(clientIP, env);
+      if (!rateLimit.allowed) {
+        return corsResponse(jsonResponse({ error: "Rate limit exceeded", retry_after: rateLimit.retryAfter }, 429, securityHeaders), request);
+      }
     }
 
-    // ── POST /create-checkout ────────────────────────────────────
-    if (url.pathname === "/create-checkout" && request.method === "POST") {
-      return corsResponse(await handleCreateCheckout(env), request);
+    try {
+      const response = await routeRequest(url.pathname, method, request, env, securityHeaders);
+      return corsResponse(response, request);
+    } catch (err) {
+      console.error(`[ERROR] ${url.pathname}:`, err.message);
+      return corsResponse(jsonResponse({ error: "Internal server error" }, 500, securityHeaders), request);
     }
-
-    // ── POST /activate ───────────────────────────────────────────
-    if (url.pathname === "/activate" && request.method === "POST") {
-      return corsResponse(await handleActivate(request, env), request);
-    }
-
-    // ── POST /deactivate ─────────────────────────────────────────
-    if (url.pathname === "/deactivate" && request.method === "POST") {
-      return corsResponse(await handleDeactivate(request, env), request);
-    }
-
-    // ── POST /verify ──────────────────────────────────────────────
-    if (url.pathname === "/verify" && request.method === "POST") {
-      return corsResponse(await handleVerify(request, env), request);
-    }
-
-    // ── POST /recover ───────────────────────────────────────
-    if (url.pathname === "/recover" && request.method === "POST") {
-      return corsResponse(await handleRecover(request, env), request);
-    }
-
-    // ── POST /webhook/stripe ─────────────────────────────
-    if (url.pathname === "/webhook/stripe" && request.method === "POST") {
-      return await handleStripeWebhook(request, env);
-    }
-
-    // ═══════════════════════════════════════════════════════
-    //  HUB ACCOUNT & ECOSYSTEM ROUTES
-    // ═══════════════════════════════════════════════════════
-
-    // ── POST /hub/signin — track SoundCloud/Google sign-ins ──
-    if (url.pathname === "/hub/signin" && request.method === "POST") {
-      return corsResponse(await handleHubSignIn(request, env), request);
-    }
-
-    // ── GET /hub/community-stats — user count + capacity ──
-    if (url.pathname === "/hub/community-stats" && request.method === "GET") {
-      return corsResponse(await handleCommunityStats(env), request);
-    }
-
-    // ── GET /hub/account — full account status (licenses + verified + master key) ──
-    if (url.pathname === "/hub/account" && request.method === "GET") {
-      const email = url.searchParams.get("email");
-      return corsResponse(await handleAccountStatus(email, env), request);
-    }
-
-    // ── POST /hub/master-key/activate — link secondary email to master key ──
-    if (url.pathname === "/hub/master-key/activate" && request.method === "POST") {
-      return corsResponse(await handleMasterKeyActivate(request, env), request);
-    }
-
-    // ── POST /hub/master-key/reset — reset linked device ──
-    if (url.pathname === "/hub/master-key/reset" && request.method === "POST") {
-      return corsResponse(await handleMasterKeyReset(request, env), request);
-    }
-
-    // ── GET /hub/master-key/status — check master key state ──
-    if (url.pathname === "/hub/master-key/status" && request.method === "GET") {
-      const email = url.searchParams.get("email");
-      return corsResponse(await handleMasterKeyStatus(email, env), request);
-    }
-
-    // ── POST /create-checkout (multi-product) ────────────────
-    if (url.pathname === "/create-checkout/master-key" && request.method === "POST") {
-      return corsResponse(await handleCreateMasterKeyCheckout(request, env), request);
-    }
-
-    if (request.method !== "POST" && request.method !== "GET") {
-      return new Response("Method Not Allowed", { status: 405 });
-    }
-
-    return new Response("Not Found", { status: 404 });
   },
 };
 
-// ═══════════════════════════════════════════════════════════════════
-//  STRIPE WEBHOOK HANDLER
-// ═══════════════════════════════════════════════════════════════════
+async function routeRequest(path, method, request, env, headers) {
+  if (path === "/health" && method === "GET") {
+    return jsonResponse({ status: "ok", version: VERSION }, 200, headers);
+  }
+  if (path === "/webhook/stripe" && method === "POST") {
+    return handleStripeWebhook(request, env, headers);
+  }
+  if (path === "/create-checkout" && method === "POST") {
+    return handleCreateCheckout(request, env, headers);
+  }
+  if (path === "/create-checkout/master-key" && method === "POST") {
+    return handleCreateMasterKeyCheckout(request, env, headers);
+  }
+  if (path === "/activate" && method === "POST") {
+    return handleActivate(request, env, headers);
+  }
+  if (path === "/deactivate" && method === "POST") {
+    return handleDeactivate(request, env, headers);
+  }
+  if (path === "/verify" && method === "POST") {
+    return handleVerify(request, env, headers);
+  }
+  if (path === "/recover" && method === "POST") {
+    return handleRecover(request, env, headers);
+  }
+  if (path === "/hub/signin" && method === "POST") {
+    return handleHubSignIn(request, env, headers);
+  }
+  if (path === "/hub/community-stats" && method === "GET") {
+    return handleCommunityStats(env, headers);
+  }
+  if (path === "/hub/account" && method === "GET") {
+    const email = new URL(request.url).searchParams.get("email");
+    return handleAccountStatus(email, env, headers);
+  }
+  if (path === "/hub/master-key/activate" && method === "POST") {
+    return handleMasterKeyActivate(request, env, headers);
+  }
+  if (path === "/hub/master-key/reset" && method === "POST") {
+    return handleMasterKeyReset(request, env, headers);
+  }
+  if (path === "/hub/master-key/status" && method === "GET") {
+    const email = new URL(request.url).searchParams.get("email");
+    return handleMasterKeyStatus(email, env, headers);
+  }
+  return jsonResponse({ error: "Not found" }, 404, headers);
+}
 
-async function handleStripeWebhook(request, env) {
+// Rate Limiting
+async function checkRateLimit(clientIP, env) {
+  const key = `ratelimit:${clientIP}`;
+  const now = Math.floor(Date.now() / 1000);
+  const windowStart = now - RATE_LIMIT_WINDOW;
+  const data = await env.LICENSES.get(key);
+  let requests = data ? JSON.parse(data) : [];
+  requests = requests.filter(ts => ts > windowStart);
+  if (requests.length >= RATE_LIMIT_MAX) {
+    return { allowed: false, retryAfter: Math.min(...requests) + RATE_LIMIT_WINDOW - now };
+  }
+  requests.push(now);
+  await env.LICENSES.put(key, JSON.stringify(requests), { expirationTtl: RATE_LIMIT_WINDOW * 2 });
+  return { allowed: true };
+}
+
+// Validation
+async function parseBody(request) {
+  const len = request.headers.get("content-length");
+  if (len && parseInt(len) > MAX_BODY_SIZE) throw new Error("Body too large");
+  const text = await request.text();
+  if (text.length > MAX_BODY_SIZE) throw new Error("Body too large");
+  if (!text) return {};
+  try { return JSON.parse(text); } catch { throw new Error("Invalid JSON"); }
+}
+
+function validEmail(e) { return e && typeof e === "string" && e.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+function validKey(k) { return k && typeof k === "string" && k.length <= 2048 && k.includes("."); }
+function validDevice(d) { return d && typeof d === "string" && d.length >= 8 && d.length <= 128; }
+
+// Stripe Webhook
+async function handleStripeWebhook(request, env, headers) {
   const body = await request.text();
   const sig = request.headers.get("Stripe-Signature");
-
-  if (!sig) {
-    return new Response("Missing Stripe-Signature header", { status: 400 });
-  }
+  if (!sig) return jsonResponse({ error: "Missing signature" }, 400, headers);
 
   const event = await verifyStripeWebhook(body, sig, env.STRIPE_WEBHOOK_SECRET);
-  if (!event) {
-    return new Response("Invalid signature", { status: 400 });
-  }
+  if (!event) return jsonResponse({ error: "Invalid signature" }, 401, headers);
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     const email = session.customer_details?.email || session.customer_email;
+    if (!validEmail(email)) return jsonResponse({ error: "Invalid email" }, 400, headers);
 
-    if (!email) {
-      console.error("No customer email found in session:", session.id);
-      return new Response("No email", { status: 400 });
-    }
+    const idempKey = `session:${session.id}`;
+    if (await env.LICENSES.get(idempKey)) return jsonResponse({ ok: true, duplicate: true }, 200, headers);
 
-    // ── Idempotency: check if we already processed this session ──
-    const idempotencyKey = `session:${session.id}`;
-    const existingLicenseId = await env.LICENSES.get(idempotencyKey);
-    if (existingLicenseId) {
-      console.log(`Session ${session.id} already processed (license: ${existingLicenseId})`);
-      return jsonResponse({ ok: true, duplicate: true });
-    }
-
-    // ── Generate license ──
     const licenseId = crypto.randomUUID();
     const maxDevices = parseInt(env.MAX_DEVICES_PER_LICENSE || "2", 10);
-
     const license = await generateLicense(email, licenseId, env.LICENSE_SIGNING_SECRET);
 
-    // ── Store license record in KV ──
-    const licenseRecord = {
-      email,
-      max_uses: maxDevices,
-      used: 0,
-      devices: [],
-      created: new Date().toISOString(),
-      stripe_session_id: session.id,
-    };
-    await env.LICENSES.put(licenseId, JSON.stringify(licenseRecord));
+    await env.LICENSES.put(licenseId, JSON.stringify({
+      email: email.toLowerCase(), product: "ProEQ8", max_uses: maxDevices,
+      used: 0, devices: [], created: new Date().toISOString(), stripe_session_id: session.id,
+    }));
 
-    // ── Update email→license index for O(1) recovery lookups ──
     const emailKey = `email_index:${email.toLowerCase()}`;
-    const existingIndex = await env.LICENSES.get(emailKey);
-    const idList = existingIndex ? JSON.parse(existingIndex) : [];
-    if (!idList.includes(licenseId)) idList.push(licenseId);
-    await env.LICENSES.put(emailKey, JSON.stringify(idList));
+    const existing = await env.LICENSES.get(emailKey);
+    const ids = existing ? JSON.parse(existing) : [];
+    if (!ids.includes(licenseId)) ids.push(licenseId);
+    await env.LICENSES.put(emailKey, JSON.stringify(ids));
+    await env.LICENSES.put(idempKey, licenseId, { expirationTtl: 2592000 });
 
-    // ── Store idempotency key (TTL: 30 days) ──
-    await env.LICENSES.put(idempotencyKey, licenseId, {
-      expirationTtl: 60 * 60 * 24 * 30,
-    });
-
-    // ── Send license email to customer ──
     await sendLicenseEmail(email, license, maxDevices, env.RESEND_API_KEY);
-
-    // ── Send master list update to admin ──
     await sendAdminNotification(email, licenseId, session.id, env.RESEND_API_KEY);
-
-    console.log(`License ${licenseId} sent to ${email} for session ${session.id}`);
-    return jsonResponse({ ok: true });
+    return jsonResponse({ ok: true }, 200, headers);
   }
-
-  // Acknowledge other event types
-  return jsonResponse({ received: true });
+  return jsonResponse({ received: true }, 200, headers);
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  ACTIVATION ENDPOINT
-// ═══════════════════════════════════════════════════════════════════
+// Checkout
+async function handleCreateCheckout(request, env, headers) {
+  let body = {};
+  try { body = await parseBody(request); } catch (e) { return jsonResponse({ error: e.message }, 400, headers); }
 
-async function handleActivate(request, env) {
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return jsonResponse({ error: "Invalid JSON body" }, 400);
-  }
-
-  const { license_key, device_id } = body;
-  if (!license_key || !device_id) {
-    return jsonResponse({ error: "Missing license_key or device_id" }, 400);
-  }
-
-  // 1. Validate HMAC signature on the key
-  const payload = await validateLicenseSignature(license_key, env.LICENSE_SIGNING_SECRET);
-  if (!payload) {
-    return jsonResponse({ error: "Invalid license key" }, 401);
-  }
-
-  // 2. Check expiration
-  if (payload.expires) {
-    const expiry = new Date(payload.expires + "T23:59:59Z");
-    if (expiry < new Date()) {
-      return jsonResponse({ error: "License expired" }, 401);
-    }
-  }
-
-  // 3. Look up license record by license_id
-  const licenseId = payload.license_id;
-  if (!licenseId) {
-    return jsonResponse({ error: "License key missing license_id (legacy key?)" }, 400);
-  }
-
-  const recordStr = await env.LICENSES.get(licenseId);
-  if (!recordStr) {
-    return jsonResponse({ error: "License not found" }, 404);
-  }
-
-  const record = JSON.parse(recordStr);
-
-  // 4. Check if device is already activated
-  if (record.devices.includes(device_id)) {
-    return jsonResponse({
-      ok: true,
-      message: "Device already activated",
-      used: record.used,
-      max: record.max_uses,
-    });
-  }
-
-  // 5. Check activation limit
-  if (record.devices.length >= record.max_uses) {
-    return jsonResponse(
-      {
-        error: "Activation limit reached",
-        message: `This license allows ${record.max_uses} devices. Deactivate another device first.`,
-        used: record.used,
-        max: record.max_uses,
-      },
-      403
-    );
-  }
-
-  // 6. Activate: add device, increment count, save
-  record.devices.push(device_id);
-  record.used = record.devices.length;
-  await env.LICENSES.put(licenseId, JSON.stringify(record));
-
-  console.log(`Activated device ${device_id} for license ${licenseId} (${record.used}/${record.max_uses})`);
-
-  return jsonResponse({
-    ok: true,
-    message: "Activation successful",
-    used: record.used,
-    max: record.max_uses,
+  const params = new URLSearchParams({
+    mode: "payment",
+    "line_items[0][price]": env.STRIPE_PRICE_ID,
+    "line_items[0][quantity]": "1",
+    success_url: env.SUCCESS_URL || "https://garebear99.github.io/FreeEQ8?purchase=success",
+    cancel_url: env.CANCEL_URL || "https://garebear99.github.io/FreeEQ8?purchase=cancelled",
+    "payment_method_types[0]": "card",
   });
-}
+  if (body.email && validEmail(body.email)) params.set("customer_email", body.email);
 
-// ═══════════════════════════════════════════════════════════════════
-//  DEACTIVATION ENDPOINT
-// ═══════════════════════════════════════════════════════════════════
-
-async function handleDeactivate(request, env) {
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return jsonResponse({ error: "Invalid JSON body" }, 400);
-  }
-
-  const { license_key, device_id } = body;
-  if (!license_key || !device_id) {
-    return jsonResponse({ error: "Missing license_key or device_id" }, 400);
-  }
-
-  // Validate signature
-  const payload = await validateLicenseSignature(license_key, env.LICENSE_SIGNING_SECRET);
-  if (!payload) {
-    return jsonResponse({ error: "Invalid license key" }, 401);
-  }
-
-  const licenseId = payload.license_id;
-  if (!licenseId) {
-    return jsonResponse({ error: "License key missing license_id" }, 400);
-  }
-
-  const recordStr = await env.LICENSES.get(licenseId);
-  if (!recordStr) {
-    return jsonResponse({ error: "License not found" }, 404);
-  }
-
-  const record = JSON.parse(recordStr);
-
-  // Remove device if present
-  const idx = record.devices.indexOf(device_id);
-  if (idx === -1) {
-    return jsonResponse({
-      ok: true,
-      message: "Device was not activated",
-      used: record.used,
-      max: record.max_uses,
-    });
-  }
-
-  record.devices.splice(idx, 1);
-  record.used = record.devices.length;
-  await env.LICENSES.put(licenseId, JSON.stringify(record));
-
-  console.log(`Deactivated device ${device_id} for license ${licenseId} (${record.used}/${record.max_uses})`);
-
-  return jsonResponse({
-    ok: true,
-    message: "Device deactivated",
-    used: record.used,
-    max: record.max_uses,
-  });
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//  VERIFY ENDPOINT (periodic client re-validation)
-// ═══════════════════════════════════════════════════════════════════
-
-async function handleVerify(request, env) {
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return jsonResponse({ error: "Invalid JSON body" }, 400);
-  }
-
-  const { license_key, device_id } = body;
-  if (!license_key || !device_id) {
-    return jsonResponse({ error: "Missing license_key or device_id" }, 400);
-  }
-
-  // Validate signature
-  const payload = await validateLicenseSignature(license_key, env.LICENSE_SIGNING_SECRET);
-  if (!payload) {
-    return jsonResponse({ ok: false, error: "Invalid license key" }, 401);
-  }
-
-  // Check expiration
-  if (payload.expires) {
-    const expiry = new Date(payload.expires + "T23:59:59Z");
-    if (expiry < new Date()) {
-      return jsonResponse({ ok: false, error: "License expired" }, 401);
-    }
-  }
-
-  const licenseId = payload.license_id;
-  if (!licenseId) {
-    return jsonResponse({ ok: false, error: "Invalid key format" }, 400);
-  }
-
-  const recordStr = await env.LICENSES.get(licenseId);
-  if (!recordStr) {
-    return jsonResponse({ ok: false, error: "License not found" }, 404);
-  }
-
-  const record = JSON.parse(recordStr);
-
-  // Check if this device is still in the activated list
-  if (!record.devices.includes(device_id)) {
-    return jsonResponse({ ok: false, error: "Device not activated" }, 403);
-  }
-
-  return jsonResponse({
-    ok: true,
-    message: "Device verified",
-    used: record.used,
-    max: record.max_uses,
-  });
-}
-
-// ═════════════════════════════════════════════════════════════════
-//  KEY RECOVERY — re-send license keys to the purchase email
-// ═════════════════════════════════════════════════════════════════
-
-async function handleRecover(request, env) {
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return jsonResponse({ error: "Invalid JSON body" }, 400);
-  }
-
-  const { email } = body;
-  if (!email || !email.includes("@")) {
-    return jsonResponse({ error: "Valid email required" }, 400);
-  }
-
-  // Rate limit: 1 recovery per email per 10 minutes
-  const rateLimitKey = `recover_cooldown:${email.toLowerCase()}`;
-  const cooldown = await env.LICENSES.get(rateLimitKey);
-  if (cooldown) {
-    return jsonResponse({ error: "Recovery email already sent. Please wait 10 minutes before trying again." }, 429);
-  }
-  await env.LICENSES.put(rateLimitKey, "1", { expirationTtl: 600 });
-
-  // Check email→license index first (O(1) if available)
-  const emailIndexKey = `email_index:${email.toLowerCase()}`;
-  const indexedIds = await env.LICENSES.get(emailIndexKey);
-
-  let keysToCheck;
-  if (indexedIds) {
-    // Fast path: use pre-built index
-    keysToCheck = JSON.parse(indexedIds).map(id => ({ name: id }));
-  } else {
-    // Fallback: full KV scan (first-time recovery before index exists)
-    const allKeys = await env.LICENSES.list();
-    keysToCheck = allKeys.keys;
-  }
-  const matches = [];
-
-  for (const key of keysToCheck) {
-    // Skip idempotency keys (session:...)
-    if (key.name.startsWith("session:")) continue;
-
-    const recordStr = await env.LICENSES.get(key.name);
-    if (!recordStr) continue;
-
-    try {
-      const record = JSON.parse(recordStr);
-      if (record.email && record.email.toLowerCase() === email.toLowerCase()) {
-        matches.push({
-          license_id: key.name,
-          product: record.product || "ProEQ8",
-          devices_used: record.used || 0,
-          devices_max: record.max_uses || 2,
-          created: record.created || "unknown",
-        });
-      }
-    } catch { /* skip malformed records */ }
-  }
-
-  if (matches.length === 0) {
-    return jsonResponse({ ok: false, message: "No licenses found for this email." });
-  }
-
-  // Send recovery email with all keys
-  const keyListHtml = matches.map(m =>
-    `<li><strong>${m.product}</strong> — License: <code>${m.license_id}</code><br>
-     Devices: ${m.devices_used}/${m.devices_max} — Created: ${m.created}</li>`
-  ).join("");
-
-  const html = `
-    <h2>Your TizWildin License Keys</h2>
-    <p>You requested a key recovery for <strong>${email}</strong>.</p>
-    <ul>${keyListHtml}</ul>
-    <p>To activate, open the plugin in your DAW and paste the license key.</p>
-    <p>&mdash; TizWildin Entertainment</p>
-  `;
-
-  try {
-    await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${env.RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "TizWildin <noreply@tizwildin.com>",
-        to: [email],
-        subject: "Your TizWildin License Keys",
-        html: html,
-      }),
-    });
-  } catch (e) {
-    return jsonResponse({ error: "Failed to send recovery email" }, 500);
-  }
-
-  return jsonResponse({
-    ok: true,
-    message: `Recovery email sent to ${email} with ${matches.length} license(s).`,
-  });
-}
-
-// ═════════════════════════════════════════════════════════════════
-//  CREATE CHECKOUT SESSION
-// ═══════════════════════════════════════════════════════════════════
-
-async function handleCreateCheckout(env) {
   try {
     const resp = await fetch("https://api.stripe.com/v1/checkout/sessions", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        mode: "payment",
-        "line_items[0][price]": env.STRIPE_PRICE_ID,
-        "line_items[0][quantity]": "1",
-        success_url: env.SUCCESS_URL || "https://github.com/GareBear99/FreeEQ8?purchase=success",
-        cancel_url: env.CANCEL_URL || "https://github.com/GareBear99/FreeEQ8?purchase=cancelled",
-        "payment_method_types[0]": "card",
-      }),
+      headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`, "Content-Type": "application/x-www-form-urlencoded" },
+      body: params,
     });
-
     const session = await resp.json();
-    if (!resp.ok) {
-      console.error("Stripe checkout creation failed:", session);
-      return jsonResponse({ error: session.error?.message || "Unknown error" }, 500);
-    }
-
-    return jsonResponse({ url: session.url, id: session.id });
-  } catch (e) {
-    console.error("Checkout creation error:", e);
-    return jsonResponse({ error: "Internal error" }, 500);
-  }
+    if (!resp.ok) return jsonResponse({ error: "Checkout failed" }, 500, headers);
+    return jsonResponse({ url: session.url, id: session.id }, 200, headers);
+  } catch { return jsonResponse({ error: "Checkout failed" }, 500, headers); }
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  STRIPE WEBHOOK SIGNATURE VERIFICATION
-// ═══════════════════════════════════════════════════════════════════
+async function handleCreateMasterKeyCheckout(request, env, headers) {
+  let body = {};
+  try { body = await parseBody(request); } catch (e) { return jsonResponse({ error: e.message }, 400, headers); }
 
-async function verifyStripeWebhook(payload, sigHeader, secret) {
-  try {
-    const parts = sigHeader.split(",").reduce((acc, part) => {
-      const [key, value] = part.split("=");
-      acc[key.trim()] = value;
-      return acc;
-    }, {});
-
-    const timestamp = parts["t"];
-    const signature = parts["v1"];
-
-    if (!timestamp || !signature) return null;
-
-    // Reject if timestamp is older than 5 minutes
-    const now = Math.floor(Date.now() / 1000);
-    if (Math.abs(now - parseInt(timestamp)) > 300) return null;
-
-    const signedPayload = `${timestamp}.${payload}`;
-    const key = await crypto.subtle.importKey(
-      "raw",
-      new TextEncoder().encode(secret),
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["sign"]
-    );
-
-    const sigBytes = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(signedPayload));
-    const expected = Array.from(new Uint8Array(sigBytes))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-
-    // Timing-safe comparison
-    if (expected.length !== signature.length) return null;
-    let mismatch = 0;
-    for (let i = 0; i < expected.length; i++) {
-      mismatch |= expected.charCodeAt(i) ^ signature.charCodeAt(i);
-    }
-    if (mismatch !== 0) return null;
-
-    return JSON.parse(payload);
-  } catch (e) {
-    console.error("Webhook verification failed:", e);
-    return null;
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//  LICENSE KEY GENERATION
-// ═══════════════════════════════════════════════════════════════════
-
-// Format: <base64_payload>.<base64_signature>
-// Payload: { product, email, license_id, expires, issued }
-async function generateLicense(email, licenseId, signingSecret, product = "ProEQ8") {
-  const payload = JSON.stringify({
-    product: product,
-    email: email,
-    license_id: licenseId,
-    expires: getExpiryDate(),
-    issued: new Date().toISOString(),
+  const params = new URLSearchParams({
+    mode: "subscription",
+    "line_items[0][price]": env.MASTER_KEY_PRICE_ID,
+    "line_items[0][quantity]": "1",
+    success_url: "https://garebear99.github.io/TizWildinEntertainmentHUB/pages/account.html?master_key=success",
+    cancel_url: "https://garebear99.github.io/TizWildinEntertainmentHUB/pages/account.html",
+    "payment_method_types[0]": "card",
   });
-
-  const payloadB64 = btoa(payload);
-
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(signingSecret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-
-  const sigBytes = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payloadB64));
-  const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sigBytes)));
-
-  return `${payloadB64}.${sigB64}`;
-}
-
-function getExpiryDate() {
-  const d = new Date();
-  d.setFullYear(d.getFullYear() + 1);
-  return d.toISOString().split("T")[0]; // "YYYY-MM-DD"
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//  LICENSE KEY VALIDATION (server-side, mirrors client HMAC check)
-// ═══════════════════════════════════════════════════════════════════
-
-async function validateLicenseSignature(licenseKey, signingSecret) {
-  try {
-    const dotIdx = licenseKey.indexOf(".");
-    if (dotIdx < 0) return null;
-
-    const payloadB64 = licenseKey.substring(0, dotIdx);
-    const signatureB64 = licenseKey.substring(dotIdx + 1);
-
-    // Recompute HMAC
-    const key = await crypto.subtle.importKey(
-      "raw",
-      new TextEncoder().encode(signingSecret),
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["sign"]
-    );
-
-    const sigBytes = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payloadB64));
-    const expectedB64 = btoa(String.fromCharCode(...new Uint8Array(sigBytes)));
-
-    // Timing-safe comparison
-    const expected = expectedB64.trim();
-    const received = signatureB64.trim();
-    if (expected.length !== received.length) return null;
-    let mismatch = 0;
-    for (let i = 0; i < expected.length; i++) {
-      mismatch |= expected.charCodeAt(i) ^ received.charCodeAt(i);
-    }
-    if (mismatch !== 0) return null;
-
-    // Decode payload
-    const payloadStr = atob(payloadB64);
-    const payload = JSON.parse(payloadStr);
-
-    // Accept ProEQ8 and MasterKey product types
-    if (payload.product !== "ProEQ8" && payload.product !== "MasterKey") return null;
-
-    return payload;
-  } catch (e) {
-    console.error("License validation failed:", e);
-    return null;
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//  EMAIL DELIVERY VIA RESEND
-// ═══════════════════════════════════════════════════════════════════
-
-async function sendLicenseEmail(email, licenseKey, maxDevices, resendApiKey) {
-  const html = `
-    <h2>Your ProEQ8 License Key</h2>
-    <p>Thank you for purchasing ProEQ8!</p>
-    <p>Your license key:</p>
-    <pre style="background:#f4f4f4;padding:12px;border-radius:4px;font-size:14px;word-break:break-all;">${licenseKey}</pre>
-    <p><strong>To activate:</strong></p>
-    <ol>
-      <li>Open ProEQ8 in your DAW</li>
-      <li>Click the <strong>Activate</strong> button in the sidebar</li>
-      <li>Paste the license key above</li>
-      <li>Click <strong>Activate</strong></li>
-    </ol>
-    <p><strong>Important:</strong> This license can be activated on up to <strong>${maxDevices} devices</strong>.
-    You can deactivate a device from within the plugin to free up a slot.</p>
-    <p>If you have any issues, reply to this email.</p>
-    <p>&mdash; TizWildin Entertainment</p>
-  `;
-
-  const resp = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${resendApiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: "ProEQ8 <noreply@tizwildin.com>",
-      to: [email],
-      subject: "Your ProEQ8 License Key",
-      html: html,
-    }),
-  });
-
-  if (!resp.ok) {
-    const err = await resp.text();
-    console.error("Failed to send email:", err);
-    throw new Error("Email delivery failed");
-  }
-}
-
-// ═════════════════════════════════════════════════════════════════
-//  ADMIN NOTIFICATION — master list update on every purchase
-// ═════════════════════════════════════════════════════════════════
-
-const ADMIN_EMAIL = "gdoman99@gmail.com";
-
-async function sendAdminNotification(customerEmail, licenseId, stripeSessionId, resendApiKey) {
-  const now = new Date().toISOString();
-  const html = `
-    <h3>New ProEQ8 Purchase</h3>
-    <table style="border-collapse:collapse;font-family:monospace;font-size:14px;">
-      <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Customer:</td><td>${customerEmail}</td></tr>
-      <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">License ID:</td><td>${licenseId}</td></tr>
-      <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Stripe Session:</td><td>${stripeSessionId}</td></tr>
-      <tr><td style="padding:4px 12px 4px 0;font-weight:bold;">Time:</td><td>${now}</td></tr>
-    </table>
-  `;
+  if (body.email && validEmail(body.email)) params.set("customer_email", body.email);
 
   try {
-    await fetch("https://api.resend.com/emails", {
+    const resp = await fetch("https://api.stripe.com/v1/checkout/sessions", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "ProEQ8 Sales <noreply@tizwildin.com>",
-        to: [ADMIN_EMAIL],
-        subject: `[ProEQ8] New purchase: ${customerEmail}`,
-        html: html,
-      }),
+      headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`, "Content-Type": "application/x-www-form-urlencoded" },
+      body: params,
     });
-  } catch (e) {
-    // Non-fatal: don't block the purchase if admin email fails
-    console.error("Admin notification failed:", e);
-  }
+    const session = await resp.json();
+    if (!resp.ok) return jsonResponse({ error: "Checkout failed" }, 500, headers);
+    return jsonResponse({ url: session.url, id: session.id }, 200, headers);
+  } catch { return jsonResponse({ error: "Checkout failed" }, 500, headers); }
 }
 
-// ═════════════════════════════════════════════════════════════════
-//  HELPERS
-// ═══════════════════════════════════════════════════════════════════
-
-// ═══════════════════════════════════════════════════════════════════
-//  HUB: SIGN-IN TRACKING
-// ═══════════════════════════════════════════════════════════════════
-
-async function handleHubSignIn(request, env) {
+// License Activation
+async function handleActivate(request, env, headers) {
   let body;
-  try { body = await request.json(); } catch { return jsonResponse({ error: "Invalid JSON" }, 400); }
+  try { body = await parseBody(request); } catch (e) { return jsonResponse({ error: e.message }, 400, headers); }
+
+  const { license_key, device_id } = body;
+  if (!validKey(license_key)) return jsonResponse({ error: "Invalid license key" }, 400, headers);
+  if (!validDevice(device_id)) return jsonResponse({ error: "Invalid device ID" }, 400, headers);
+
+  const payload = await validateLicenseSignature(license_key, env.LICENSE_SIGNING_SECRET);
+  if (!payload) return jsonResponse({ error: "Invalid license key" }, 401, headers);
+
+  if (payload.expires && new Date(payload.expires + "T23:59:59Z") < new Date()) {
+    return jsonResponse({ error: "License expired" }, 401, headers);
+  }
+
+  const licenseId = payload.license_id;
+  if (!licenseId) return jsonResponse({ error: "Invalid key format" }, 400, headers);
+
+  const recordStr = await env.LICENSES.get(licenseId);
+  if (!recordStr) return jsonResponse({ error: "License not found" }, 404, headers);
+
+  const record = JSON.parse(recordStr);
+  if (record.devices.includes(device_id)) {
+    return jsonResponse({ ok: true, message: "Already activated", used: record.used, max: record.max_uses }, 200, headers);
+  }
+  if (record.devices.length >= record.max_uses) {
+    return jsonResponse({ error: "Activation limit reached", used: record.used, max: record.max_uses }, 403, headers);
+  }
+
+  record.devices.push(device_id);
+  record.used = record.devices.length;
+  await env.LICENSES.put(licenseId, JSON.stringify(record));
+  return jsonResponse({ ok: true, message: "Activated", used: record.used, max: record.max_uses }, 200, headers);
+}
+
+async function handleDeactivate(request, env, headers) {
+  let body;
+  try { body = await parseBody(request); } catch (e) { return jsonResponse({ error: e.message }, 400, headers); }
+
+  const { license_key, device_id } = body;
+  if (!validKey(license_key) || !validDevice(device_id)) return jsonResponse({ error: "Invalid input" }, 400, headers);
+
+  const payload = await validateLicenseSignature(license_key, env.LICENSE_SIGNING_SECRET);
+  if (!payload) return jsonResponse({ error: "Invalid license key" }, 401, headers);
+
+  const recordStr = await env.LICENSES.get(payload.license_id);
+  if (!recordStr) return jsonResponse({ error: "License not found" }, 404, headers);
+
+  const record = JSON.parse(recordStr);
+  const idx = record.devices.indexOf(device_id);
+  if (idx === -1) return jsonResponse({ ok: true, message: "Not activated", used: record.used, max: record.max_uses }, 200, headers);
+
+  record.devices.splice(idx, 1);
+  record.used = record.devices.length;
+  await env.LICENSES.put(payload.license_id, JSON.stringify(record));
+  return jsonResponse({ ok: true, message: "Deactivated", used: record.used, max: record.max_uses }, 200, headers);
+}
+
+async function handleVerify(request, env, headers) {
+  let body;
+  try { body = await parseBody(request); } catch (e) { return jsonResponse({ ok: false, error: e.message }, 400, headers); }
+
+  const { license_key, device_id } = body;
+  if (!validKey(license_key) || !validDevice(device_id)) return jsonResponse({ ok: false, error: "Invalid input" }, 400, headers);
+
+  const payload = await validateLicenseSignature(license_key, env.LICENSE_SIGNING_SECRET);
+  if (!payload) return jsonResponse({ ok: false, error: "Invalid key" }, 401, headers);
+  if (payload.expires && new Date(payload.expires + "T23:59:59Z") < new Date()) {
+    return jsonResponse({ ok: false, error: "Expired" }, 401, headers);
+  }
+
+  const recordStr = await env.LICENSES.get(payload.license_id);
+  if (!recordStr) return jsonResponse({ ok: false, error: "Not found" }, 404, headers);
+
+  const record = JSON.parse(recordStr);
+  if (!record.devices.includes(device_id)) return jsonResponse({ ok: false, error: "Device not activated" }, 403, headers);
+  return jsonResponse({ ok: true, used: record.used, max: record.max_uses }, 200, headers);
+}
+
+async function handleRecover(request, env, headers) {
+  let body;
+  try { body = await parseBody(request); } catch (e) { return jsonResponse({ error: e.message }, 400, headers); }
+
+  const { email } = body;
+  if (!validEmail(email)) return jsonResponse({ error: "Valid email required" }, 400, headers);
+
+  const rateKey = `recover:${email.toLowerCase()}`;
+  if (await env.LICENSES.get(rateKey)) return jsonResponse({ error: "Wait 10 minutes" }, 429, headers);
+  await env.LICENSES.put(rateKey, "1", { expirationTtl: 600 });
+
+  const indexKey = `email_index:${email.toLowerCase()}`;
+  const indexed = await env.LICENSES.get(indexKey);
+  if (!indexed) return jsonResponse({ ok: false, message: "No licenses found" }, 200, headers);
+
+  const ids = JSON.parse(indexed);
+  const matches = [];
+  for (const id of ids) {
+    const rec = await env.LICENSES.get(id);
+    if (rec) {
+      const r = JSON.parse(rec);
+      matches.push({ id, product: r.product || "ProEQ8", used: r.used || 0, max: r.max_uses || 2 });
+    }
+  }
+  if (!matches.length) return jsonResponse({ ok: false, message: "No licenses found" }, 200, headers);
+
+  const html = `<h2>Your Licenses</h2><ul>${matches.map(m => `<li><strong>${m.product}</strong> — ${m.id} (${m.used}/${m.max} devices)</li>`).join("")}</ul><p>— TizWildin</p>`;
+  await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ from: "TizWildin <onboarding@resend.dev>", to: [email], subject: "Your License Keys", html }),
+  });
+  return jsonResponse({ ok: true, message: `Sent to ${email}` }, 200, headers);
+}
+
+// HUB
+async function handleHubSignIn(request, env, headers) {
+  let body;
+  try { body = await parseBody(request); } catch (e) { return jsonResponse({ error: e.message }, 400, headers); }
 
   const { email, name, provider, picture } = body;
-  if (!email) return jsonResponse({ error: "email required" }, 400);
+  if (!validEmail(email)) return jsonResponse({ error: "Valid email required" }, 400, headers);
 
   const key = `hub_user:${email.toLowerCase()}`;
   const existing = await env.LICENSES.get(key);
   const now = new Date().toISOString();
-
-  let user = existing ? JSON.parse(existing) : {
-    email: email.toLowerCase(),
-    name: name || "",
-    provider: provider || "unknown",
-    picture: picture || "",
-    created: now,
-    radioSubmissions: 0,
-    acceptedSubmissions: 0,
-    verified: false,
-  };
+  let user = existing ? JSON.parse(existing) : { email: email.toLowerCase(), name: "", provider: "", picture: "", created: now, verified: false, acceptedSubmissions: 0 };
   user.lastSeen = now;
-  user.name = name || user.name;
-  user.provider = provider || user.provider;
-  if (picture) user.picture = picture;
-
+  if (name) user.name = String(name).slice(0, 100);
+  if (provider) user.provider = String(provider).slice(0, 50);
+  if (picture) user.picture = String(picture).slice(0, 500);
   await env.LICENSES.put(key, JSON.stringify(user));
 
-  // Update user count
-  const countStr = await env.LICENSES.get("hub_meta:user_count") || "0";
   if (!existing) {
-    await env.LICENSES.put("hub_meta:user_count", String(parseInt(countStr) + 1));
+    const cnt = await env.LICENSES.get("hub_meta:user_count") || "0";
+    await env.LICENSES.put("hub_meta:user_count", String(parseInt(cnt) + 1));
   }
-
-  return jsonResponse({
-    ok: true,
-    email: user.email,
-    verified: user.verified,
-    acceptedSubmissions: user.acceptedSubmissions,
-  });
+  return jsonResponse({ ok: true, email: user.email, verified: user.verified }, 200, headers);
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  HUB: COMMUNITY STATS
-// ═══════════════════════════════════════════════════════════════════
-
-async function handleCommunityStats(env) {
-  const countStr = await env.LICENSES.get("hub_meta:user_count") || "0";
-  const total = parseInt(countStr);
-  const capacity = 1200;
-  const warn = 1000;
+async function handleCommunityStats(env, headers) {
+  const total = parseInt(await env.LICENSES.get("hub_meta:user_count") || "0");
   return jsonResponse({
-    totalUsers: total,
-    capacity,
-    warningThreshold: warn,
-    capacityPercent: Math.min(100, Math.floor((total / capacity) * 100)),
-    signupsOpen: total < capacity,
-    warningActive: total >= warn,
-    slotsRemaining: Math.max(0, capacity - total),
-    giveawayTarget: 1000,
-    giveawayProgress: Math.min(100, Math.floor((total / 1000) * 100)),
+    totalUsers: total, capacity: 1200, warningThreshold: 1000,
+    capacityPercent: Math.min(100, Math.floor(total / 12)),
+    signupsOpen: total < 1200, warningActive: total >= 1000,
+    slotsRemaining: Math.max(0, 1200 - total),
+    giveawayTarget: 1000, giveawayProgress: Math.min(100, Math.floor(total / 10)),
     remaining: Math.max(0, 1000 - total),
-  });
+  }, 200, headers);
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  HUB: FULL ACCOUNT STATUS (licenses + verified + master key)
-// ═══════════════════════════════════════════════════════════════════
-
-async function handleAccountStatus(email, env) {
-  if (!email) return jsonResponse({ error: "email param required" }, 400);
-  const emailLower = email.toLowerCase();
-
-  // Get HUB user profile
-  const userStr = await env.LICENSES.get(`hub_user:${emailLower}`);
+async function handleAccountStatus(email, env, headers) {
+  if (!validEmail(email)) return jsonResponse({ error: "Valid email required" }, 400, headers);
+  const e = email.toLowerCase();
+  const userStr = await env.LICENSES.get(`hub_user:${e}`);
   const user = userStr ? JSON.parse(userStr) : null;
 
-  // Get licenses for this email
-  const emailIndexKey = `email_index:${emailLower}`;
-  const indexedIds = await env.LICENSES.get(emailIndexKey);
+  const indexStr = await env.LICENSES.get(`email_index:${e}`);
   const licenses = [];
-  if (indexedIds) {
-    const ids = JSON.parse(indexedIds);
-    for (const id of ids) {
+  if (indexStr) {
+    for (const id of JSON.parse(indexStr)) {
       const rec = await env.LICENSES.get(id);
-      if (rec) {
-        const r = JSON.parse(rec);
-        licenses.push({
-          licenseId: id,
-          product: r.product || "ProEQ8",
-          devicesUsed: r.used || 0,
-          devicesMax: r.max_uses || 2,
-          created: r.created,
-        });
-      }
+      if (rec) { const r = JSON.parse(rec); licenses.push({ licenseId: id, product: r.product || "ProEQ8", devicesUsed: r.used || 0, devicesMax: r.max_uses || 2 }); }
     }
   }
 
-  // Get Master Key status
-  const mkStr = await env.LICENSES.get(`master_key:${emailLower}`);
-  const masterKey = mkStr ? JSON.parse(mkStr) : null;
+  const mkStr = await env.LICENSES.get(`master_key:${e}`);
+  const mk = mkStr ? JSON.parse(mkStr) : null;
 
   return jsonResponse({
-    email: emailLower,
-    hubAccount: user ? {
-      name: user.name,
-      provider: user.provider,
-      verified: user.verified || false,
-      acceptedSubmissions: user.acceptedSubmissions || 0,
-      verifiedThreshold: 3,
-      created: user.created,
-    } : null,
+    email: e,
+    hubAccount: user ? { name: user.name, provider: user.provider, verified: user.verified, created: user.created } : null,
     licenses,
-    masterKey: masterKey ? {
-      linkedEmail: masterKey.linkedEmail,
-      deviceId: masterKey.deviceId,
-      activatedAt: masterKey.activatedAt,
-      status: masterKey.status,
-    } : null,
-  });
+    masterKey: mk ? { linkedEmail: mk.linkedEmail, status: mk.status } : null,
+  }, 200, headers);
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  MASTER KEY: $3/MONTH SEAT MANAGEMENT
-// ═══════════════════════════════════════════════════════════════════
-
-async function handleMasterKeyActivate(request, env) {
+async function handleMasterKeyActivate(request, env, headers) {
   let body;
-  try { body = await request.json(); } catch { return jsonResponse({ error: "Invalid JSON" }, 400); }
+  try { body = await parseBody(request); } catch (e) { return jsonResponse({ error: e.message }, 400, headers); }
 
-  const { primaryEmail, linkedEmail, deviceId } = body;
-  if (!primaryEmail || !linkedEmail) {
-    return jsonResponse({ error: "primaryEmail and linkedEmail required" }, 400);
-  }
+  const { primaryEmail, linkedEmail } = body;
+  if (!validEmail(primaryEmail) || !validEmail(linkedEmail)) return jsonResponse({ error: "Valid emails required" }, 400, headers);
 
-  const key = `master_key:${primaryEmail.toLowerCase()}`;
-
-  // Check subscription status (would verify with Stripe in production)
-  // For now, check if a master_key_sub exists
   const subKey = `master_key_sub:${primaryEmail.toLowerCase()}`;
-  const subStr = await env.LICENSES.get(subKey);
-  if (!subStr) {
-    return jsonResponse({ error: "No active Master Key subscription. Subscribe for $3/month first." }, 403);
-  }
+  if (!(await env.LICENSES.get(subKey))) return jsonResponse({ error: "No subscription" }, 403, headers);
 
-  const masterKey = {
-    primaryEmail: primaryEmail.toLowerCase(),
-    linkedEmail: linkedEmail.toLowerCase(),
-    deviceId: deviceId || "",
-    activatedAt: new Date().toISOString(),
-    status: "active",
-  };
+  const mk = { primaryEmail: primaryEmail.toLowerCase(), linkedEmail: linkedEmail.toLowerCase(), activatedAt: new Date().toISOString(), status: "active" };
+  await env.LICENSES.put(`master_key:${primaryEmail.toLowerCase()}`, JSON.stringify(mk));
 
-  await env.LICENSES.put(key, JSON.stringify(masterKey));
-
-  // Generate a Master Key license that works in all plugins
-  const mkLicense = await generateLicense(linkedEmail, `mk_${crypto.randomUUID()}`, env.LICENSE_SIGNING_SECRET, "MasterKey");
-
-  return jsonResponse({
-    ok: true,
-    message: "Master Key activated",
-    linkedEmail: masterKey.linkedEmail,
-    masterKeyLicense: mkLicense,
-  });
+  const license = await generateLicense(linkedEmail, `mk_${crypto.randomUUID()}`, env.LICENSE_SIGNING_SECRET, "MasterKey");
+  return jsonResponse({ ok: true, linkedEmail: mk.linkedEmail, masterKeyLicense: license }, 200, headers);
 }
 
-async function handleMasterKeyReset(request, env) {
+async function handleMasterKeyReset(request, env, headers) {
   let body;
-  try { body = await request.json(); } catch { return jsonResponse({ error: "Invalid JSON" }, 400); }
+  try { body = await parseBody(request); } catch (e) { return jsonResponse({ error: e.message }, 400, headers); }
 
   const { primaryEmail } = body;
-  if (!primaryEmail) return jsonResponse({ error: "primaryEmail required" }, 400);
+  if (!validEmail(primaryEmail)) return jsonResponse({ error: "Valid email required" }, 400, headers);
 
   const key = `master_key:${primaryEmail.toLowerCase()}`;
   const existing = await env.LICENSES.get(key);
-  if (!existing) return jsonResponse({ error: "No Master Key found" }, 404);
+  if (!existing) return jsonResponse({ error: "Not found" }, 404, headers);
 
-  // Reset: clear linked device, keep subscription
   const mk = JSON.parse(existing);
-  mk.linkedEmail = "";
-  mk.deviceId = "";
-  mk.status = "reset";
-  mk.resetAt = new Date().toISOString();
+  mk.linkedEmail = ""; mk.status = "reset"; mk.resetAt = new Date().toISOString();
   await env.LICENSES.put(key, JSON.stringify(mk));
-
-  return jsonResponse({ ok: true, message: "Master Key reset. You can link a new device." });
+  return jsonResponse({ ok: true }, 200, headers);
 }
 
-async function handleMasterKeyStatus(email, env) {
-  if (!email) return jsonResponse({ error: "email param required" }, 400);
-
-  const key = `master_key:${email.toLowerCase()}`;
-  const mkStr = await env.LICENSES.get(key);
-  if (!mkStr) return jsonResponse({ hasMasterKey: false });
-
+async function handleMasterKeyStatus(email, env, headers) {
+  if (!validEmail(email)) return jsonResponse({ error: "Valid email required" }, 400, headers);
+  const mkStr = await env.LICENSES.get(`master_key:${email.toLowerCase()}`);
+  if (!mkStr) return jsonResponse({ hasMasterKey: false }, 200, headers);
   const mk = JSON.parse(mkStr);
-  return jsonResponse({
-    hasMasterKey: true,
-    linkedEmail: mk.linkedEmail,
-    deviceId: mk.deviceId,
-    status: mk.status,
-    activatedAt: mk.activatedAt,
-  });
+  return jsonResponse({ hasMasterKey: true, linkedEmail: mk.linkedEmail, status: mk.status }, 200, headers);
 }
 
-async function handleCreateMasterKeyCheckout(request, env) {
-  let body;
-  try { body = await request.json(); } catch { body = {}; }
-  const email = body.email || "";
+// Crypto
+async function generateLicense(email, licenseId, secret, product = "ProEQ8") {
+  const payload = JSON.stringify({ product, email, license_id: licenseId, expires: getExpiry(), issued: new Date().toISOString() });
+  const payloadB64 = btoa(payload);
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payloadB64));
+  return `${payloadB64}.${btoa(String.fromCharCode(...new Uint8Array(sig)))}`;
+}
 
+function getExpiry() { const d = new Date(); d.setFullYear(d.getFullYear() + 1); return d.toISOString().split("T")[0]; }
+
+async function validateLicenseSignature(licenseKey, secret) {
   try {
-    const params = new URLSearchParams({
-      mode: "subscription",
-      "line_items[0][price]": env.MASTER_KEY_PRICE_ID || env.STRIPE_PRICE_ID,
-      "line_items[0][quantity]": "1",
-      success_url: env.SUCCESS_URL || "https://garebear99.github.io/TizWildinEntertainmentHUB/pages/account.html?master_key=success",
-      cancel_url: env.CANCEL_URL || "https://garebear99.github.io/TizWildinEntertainmentHUB/pages/account.html?master_key=cancelled",
-      "payment_method_types[0]": "card",
-    });
-    if (email) params.set("customer_email", email);
-
-    const resp = await fetch("https://api.stripe.com/v1/checkout/sessions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: params,
-    });
-
-    const session = await resp.json();
-    if (!resp.ok) return jsonResponse({ error: session.error?.message || "Unknown error" }, 500);
-    return jsonResponse({ url: session.url, id: session.id });
-  } catch (e) {
-    return jsonResponse({ error: "Checkout creation failed" }, 500);
-  }
+    const [payloadB64, sigB64] = licenseKey.split(".");
+    if (!payloadB64 || !sigB64) return null;
+    const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payloadB64));
+    const expected = btoa(String.fromCharCode(...new Uint8Array(sig)));
+    if (expected.length !== sigB64.length) return null;
+    let mismatch = 0;
+    for (let i = 0; i < expected.length; i++) mismatch |= expected.charCodeAt(i) ^ sigB64.charCodeAt(i);
+    if (mismatch) return null;
+    const payload = JSON.parse(atob(payloadB64));
+    if (payload.product !== "ProEQ8" && payload.product !== "MasterKey") return null;
+    return payload;
+  } catch { return null; }
 }
 
-function jsonResponse(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json" },
+async function verifyStripeWebhook(payload, sigHeader, secret) {
+  try {
+    const parts = Object.fromEntries(sigHeader.split(",").map(p => p.split("=")));
+    const { t, v1 } = parts;
+    if (!t || !v1 || Math.abs(Date.now() / 1000 - parseInt(t)) > 300) return null;
+    const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${t}.${payload}`));
+    const expected = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
+    if (expected.length !== v1.length) return null;
+    let mismatch = 0;
+    for (let i = 0; i < expected.length; i++) mismatch |= expected.charCodeAt(i) ^ v1.charCodeAt(i);
+    return mismatch ? null : JSON.parse(payload);
+  } catch { return null; }
+}
+
+// Email
+const ADMIN = "gdoman99@gmail.com";
+
+async function sendLicenseEmail(email, license, maxDevices, apiKey) {
+  const html = `<h2>ProEQ8 License</h2><p>Your key:</p><pre style="background:#f4f4f4;padding:12px;border-radius:4px;word-break:break-all;">${license}</pre><p>Paste in ProEQ8 → Activate. Up to ${maxDevices} devices.</p><p>— TizWildin</p>`;
+  await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ from: "ProEQ8 <onboarding@resend.dev>", to: [email], subject: "Your ProEQ8 License Key", html }),
   });
 }
 
-const ALLOWED_ORIGINS = [
-  "https://garebear99.github.io",
-  "http://localhost:5000",
-  "http://127.0.0.1:5000",
-];
+async function sendAdminNotification(email, licenseId, sessionId, apiKey) {
+  try {
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from: "Sales <onboarding@resend.dev>", to: [ADMIN], subject: `[ProEQ8] ${email}`, html: `<p>${email} — ${licenseId}</p>` }),
+    });
+  } catch {}
+}
+
+// Helpers
+function jsonResponse(data, status = 200, extra = {}) {
+  return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json", ...extra } });
+}
+
+const ORIGINS = ["https://garebear99.github.io", "http://localhost:5000", "http://localhost:3000"];
 
 function corsResponse(response, request) {
   const headers = new Headers(response.headers);
   const origin = request?.headers?.get("Origin") || "";
-  // Lock CORS to known origins in production. Plugins don't send Origin headers
-  // (native HTTP clients), so they bypass this check naturally.
-  const allowed = ALLOWED_ORIGINS.some(o => origin.startsWith(o)) ? origin : ALLOWED_ORIGINS[0];
+  const allowed = ORIGINS.find(o => origin.startsWith(o)) || ORIGINS[0];
   headers.set("Access-Control-Allow-Origin", allowed);
   headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   headers.set("Access-Control-Allow-Headers", "Content-Type");
   headers.set("Vary", "Origin");
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  });
+  return new Response(response.body, { status: response.status, headers });
 }
