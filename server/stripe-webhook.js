@@ -1002,7 +1002,6 @@ function jsonResponse(data, status = 200) {
 
 const ALLOWED_ORIGINS = [
   "https://garebear99.github.io",
-  "https://tizwildin.com",
   "http://localhost:5000",
   "http://127.0.0.1:5000",
 ];

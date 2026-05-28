@@ -1,4 +1,4 @@
-name = "proeq8-license-server"
+name = "tizwildin-hub"
 main = "stripe-webhook.js"
 compatibility_date = "2024-01-01"
 
