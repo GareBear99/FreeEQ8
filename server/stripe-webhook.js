@@ -1,5 +1,5 @@
 /**
- * TizWildin License Server — Cloudflare Worker (Production v3.0)
+ * TizWildin License Server — Cloudflare Worker (Production v3.1)
  * 
  * Endpoints:
  *   POST /webhook/stripe        — Stripe checkout completed → license → email
@@ -14,11 +14,21 @@
  *   GET  /hub/account           — Account status
  *   POST /hub/signin            — OAuth sign-in tracking
  *   POST /hub/master-key/*      — Master Key management
+ *   POST /auth/soundcloud/url   — Get SoundCloud OAuth URL
+ *   POST /auth/soundcloud/callback — Exchange OAuth code for token + profile
+ *   GET  /auth/soundcloud/follow-status — Check if user follows @TizWildin
+ *   POST /auth/google/signin    — Google sign-in tracking
  * 
  * Security: HMAC-SHA256 signing, rate limiting, input validation, security headers
  */
 
-const VERSION = "3.0.0";
+const VERSION = "3.1.0";
+
+// SoundCloud OAuth endpoints
+const SC_AUTH_URL = "https://api.soundcloud.com/connect";
+const SC_TOKEN_URL = "https://api.soundcloud.com/oauth2/token";
+const SC_ME_URL = "https://api.soundcloud.com/me";
+const SC_FOLLOWINGS_URL = "https://api.soundcloud.com/me/followings";
 const MAX_BODY_SIZE = 16384;
 const RATE_LIMIT_WINDOW = 60;
 const RATE_LIMIT_MAX = 30;
@@ -101,6 +111,21 @@ async function routeRequest(path, method, request, env, headers) {
   if (path === "/hub/master-key/status" && method === "GET") {
     const email = new URL(request.url).searchParams.get("email");
     return handleMasterKeyStatus(email, env, headers);
+  }
+  // SoundCloud OAuth
+  if (path === "/auth/soundcloud/url" && method === "POST") {
+    return handleSoundCloudAuthUrl(request, env, headers);
+  }
+  if (path === "/auth/soundcloud/callback" && method === "POST") {
+    return handleSoundCloudCallback(request, env, headers);
+  }
+  if (path === "/auth/soundcloud/follow-status" && method === "GET") {
+    const token = new URL(request.url).searchParams.get("token");
+    return handleSoundCloudFollowStatus(token, env, headers);
+  }
+  // Google sign-in tracking
+  if (path === "/auth/google/signin" && method === "POST") {
+    return handleGoogleSignIn(request, env, headers);
   }
   return jsonResponse({ error: "Not found" }, 404, headers);
 }
@@ -485,6 +510,237 @@ async function handleMasterKeyStatus(email, env, headers) {
   if (!mkStr) return jsonResponse({ hasMasterKey: false }, 200, headers);
   const mk = JSON.parse(mkStr);
   return jsonResponse({ hasMasterKey: true, linkedEmail: mk.linkedEmail, status: mk.status }, 200, headers);
+}
+
+// SoundCloud OAuth
+async function handleSoundCloudAuthUrl(request, env, headers) {
+  let body;
+  try { body = await parseBody(request); } catch (e) { return jsonResponse({ error: e.message }, 400, headers); }
+
+  const clientId = env.SOUNDCLOUD_CLIENT_ID;
+  if (!clientId) {
+    return jsonResponse({ approved: false, reason: "soundcloud_not_configured" }, 200, headers);
+  }
+
+  const redirectUri = body.redirectUri || "https://garebear99.github.io/TizWildinEntertainmentHUB/pages/account.html";
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: "code",
+    scope: "non-expiring",
+  });
+  return jsonResponse({ approved: true, url: `${SC_AUTH_URL}?${params}` }, 200, headers);
+}
+
+async function handleSoundCloudCallback(request, env, headers) {
+  let body;
+  try { body = await parseBody(request); } catch (e) { return jsonResponse({ error: e.message }, 400, headers); }
+
+  const { code, redirectUri } = body;
+  if (!code) return jsonResponse({ approved: false, reason: "missing_code" }, 400, headers);
+
+  const clientId = env.SOUNDCLOUD_CLIENT_ID;
+  const clientSecret = env.SOUNDCLOUD_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    return jsonResponse({ approved: false, reason: "soundcloud_not_configured" }, 200, headers);
+  }
+
+  // Exchange code for access token
+  let tokenData;
+  try {
+    const tokenResp = await fetch(SC_TOKEN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri || "https://garebear99.github.io/TizWildinEntertainmentHUB/pages/account.html",
+        code,
+      }),
+    });
+    tokenData = await tokenResp.json();
+    if (!tokenResp.ok || !tokenData.access_token) {
+      return jsonResponse({ approved: false, reason: "token_exchange_failed", detail: tokenData.error || "unknown" }, 200, headers);
+    }
+  } catch (e) {
+    return jsonResponse({ approved: false, reason: `token_exchange_error: ${e.message}` }, 200, headers);
+  }
+
+  const scAccessToken = tokenData.access_token;
+
+  // Fetch user profile
+  let profile;
+  try {
+    const meResp = await fetch(SC_ME_URL, {
+      headers: { Authorization: `OAuth ${scAccessToken}` },
+    });
+    profile = await meResp.json();
+    if (!meResp.ok) {
+      return jsonResponse({ approved: false, reason: "profile_fetch_failed" }, 200, headers);
+    }
+  } catch (e) {
+    return jsonResponse({ approved: false, reason: `profile_fetch_error: ${e.message}` }, 200, headers);
+  }
+
+  const scUserId = String(profile.id || "");
+  const scUsername = profile.username || "";
+  const scAvatar = profile.avatar_url || "";
+  const scEmail = profile.email || profile.primary_email || "";
+
+  // Generate account ID
+  const emailForId = scEmail || `sc_${scUserId}@soundcloud.local`;
+  const accountId = await makeAccountId(emailForId);
+
+  // Store SC link in KV
+  const linkKey = `sc_link:${scUserId}`;
+  await env.LICENSES.put(linkKey, JSON.stringify({
+    provider: "soundcloud",
+    scUserId,
+    accountId,
+    scUsername,
+    scAvatar,
+    scEmail,
+    scAccessToken,
+    linkedAt: new Date().toISOString(),
+  }));
+
+  // Also store by account for quick lookup
+  await env.LICENSES.put(`sc_account:${accountId}`, linkKey);
+
+  // Track user for community count
+  const userKey = `hub_user:${emailForId.toLowerCase()}`;
+  const existingUser = await env.LICENSES.get(userKey);
+  const now = new Date().toISOString();
+  if (!existingUser) {
+    await env.LICENSES.put(userKey, JSON.stringify({
+      email: emailForId.toLowerCase(),
+      name: scUsername,
+      provider: "soundcloud",
+      picture: scAvatar,
+      created: now,
+      lastSeen: now,
+      verified: false,
+    }));
+    const cnt = await env.LICENSES.get("hub_meta:user_count") || "0";
+    await env.LICENSES.put("hub_meta:user_count", String(parseInt(cnt) + 1));
+  } else {
+    const user = JSON.parse(existingUser);
+    user.lastSeen = now;
+    user.picture = scAvatar;
+    user.name = scUsername;
+    await env.LICENSES.put(userKey, JSON.stringify(user));
+  }
+
+  // Create session token (simple signed token)
+  const sessionToken = await generateSessionToken(accountId, scAccessToken, env.LICENSE_SIGNING_SECRET);
+
+  return jsonResponse({
+    approved: true,
+    token: sessionToken,
+    accountId,
+    scUsername,
+    scAvatar,
+    scEmail,
+    scUserId,
+  }, 200, headers);
+}
+
+async function handleSoundCloudFollowStatus(token, env, headers) {
+  if (!token) return jsonResponse({ following: false, reason: "no_token" }, 200, headers);
+
+  // Decode token to get SC access token
+  let scAccessToken;
+  try {
+    const decoded = await decodeSessionToken(token, env.LICENSE_SIGNING_SECRET);
+    if (!decoded || !decoded.scToken) {
+      return jsonResponse({ following: false, reason: "invalid_token" }, 200, headers);
+    }
+    scAccessToken = decoded.scToken;
+  } catch {
+    return jsonResponse({ following: false, reason: "token_decode_failed" }, 200, headers);
+  }
+
+  const tizwildinId = env.TIZWILDIN_SC_USER_ID;
+  if (!tizwildinId) {
+    return jsonResponse({ following: false, reason: "tizwildin_id_not_configured" }, 200, headers);
+  }
+
+  try {
+    const resp = await fetch(`${SC_FOLLOWINGS_URL}/${tizwildinId}`, {
+      headers: { Authorization: `OAuth ${scAccessToken}` },
+    });
+    if (resp.status === 200) {
+      return jsonResponse({ following: true }, 200, headers);
+    } else if (resp.status === 404) {
+      return jsonResponse({ following: false }, 200, headers);
+    } else {
+      return jsonResponse({ following: false, reason: `sc_api_${resp.status}` }, 200, headers);
+    }
+  } catch (e) {
+    return jsonResponse({ following: false, reason: e.message }, 200, headers);
+  }
+}
+
+// Google sign-in tracking (mirrors hub/signin but for Google)
+async function handleGoogleSignIn(request, env, headers) {
+  let body;
+  try { body = await parseBody(request); } catch (e) { return jsonResponse({ error: e.message }, 400, headers); }
+
+  const { email, name, picture } = body;
+  if (!validEmail(email)) return jsonResponse({ error: "Valid email required" }, 400, headers);
+
+  const key = `hub_user:${email.toLowerCase()}`;
+  const existing = await env.LICENSES.get(key);
+  const now = new Date().toISOString();
+  let user = existing ? JSON.parse(existing) : { email: email.toLowerCase(), name: "", provider: "", picture: "", created: now, verified: false };
+  user.lastSeen = now;
+  if (name) user.name = String(name).slice(0, 100);
+  user.provider = "google";
+  if (picture) user.picture = String(picture).slice(0, 500);
+  await env.LICENSES.put(key, JSON.stringify(user));
+
+  if (!existing) {
+    const cnt = await env.LICENSES.get("hub_meta:user_count") || "0";
+    await env.LICENSES.put("hub_meta:user_count", String(parseInt(cnt) + 1));
+  }
+
+  const accountId = await makeAccountId(email);
+  const token = await generateSessionToken(accountId, null, env.LICENSE_SIGNING_SECRET);
+  return jsonResponse({ ok: true, email: user.email, token, accountId }, 200, headers);
+}
+
+// Helper: Generate deterministic account ID from email
+async function makeAccountId(email) {
+  const data = new TextEncoder().encode(email.toLowerCase());
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.slice(0, 16).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+// Helper: Generate session token
+async function generateSessionToken(accountId, scToken, secret) {
+  const payload = JSON.stringify({ accountId, scToken, issued: new Date().toISOString() });
+  const payloadB64 = btoa(payload);
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payloadB64));
+  return `${payloadB64}.${btoa(String.fromCharCode(...new Uint8Array(sig)))}`;
+}
+
+// Helper: Decode session token
+async function decodeSessionToken(token, secret) {
+  try {
+    const [payloadB64, sigB64] = token.split(".");
+    if (!payloadB64 || !sigB64) return null;
+    const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payloadB64));
+    const expected = btoa(String.fromCharCode(...new Uint8Array(sig)));
+    if (expected.length !== sigB64.length) return null;
+    let mismatch = 0;
+    for (let i = 0; i < expected.length; i++) mismatch |= expected.charCodeAt(i) ^ sigB64.charCodeAt(i);
+    if (mismatch) return null;
+    return JSON.parse(atob(payloadB64));
+  } catch { return null; }
 }
 
 // Crypto
