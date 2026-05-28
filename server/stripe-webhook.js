@@ -4,7 +4,7 @@
  * Endpoints:
  *   POST /webhook/stripe        — Stripe checkout completed → license → email
  *   POST /create-checkout       — Stripe Checkout (ProEQ8 $29.99 CAD)
- *   POST /create-checkout/master-key — Master Key ($3 CAD/mo)
+ *   POST /create-checkout/master-key — Master Key ($3 CAD/seat/mo, max 3 seats = $9)
  *   POST /activate              — Activate license (max 2 devices)
  *   POST /deactivate            — Release device slot
  *   POST /verify                — Verify license
@@ -206,11 +206,14 @@ async function handleCreateMasterKeyCheckout(request, env, headers) {
   let body = {};
   try { body = await parseBody(request); } catch (e) { return jsonResponse({ error: e.message }, 400, headers); }
 
+  // Master Key: 1-3 seats at $3 CAD each (max $9 CAD)
+  const seats = Math.min(3, Math.max(1, parseInt(body.seats) || 1));
+
   const params = new URLSearchParams({
     mode: "subscription",
     "line_items[0][price]": env.MASTER_KEY_PRICE_ID,
-    "line_items[0][quantity]": "1",
-    success_url: "https://garebear99.github.io/TizWildinEntertainmentHUB/pages/account.html?master_key=success",
+    "line_items[0][quantity]": String(seats),
+    success_url: `https://garebear99.github.io/TizWildinEntertainmentHUB/pages/account.html?master_key=success&seats=${seats}`,
     cancel_url: "https://garebear99.github.io/TizWildinEntertainmentHUB/pages/account.html",
     "payment_method_types[0]": "card",
   });
