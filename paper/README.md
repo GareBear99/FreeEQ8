@@ -58,5 +58,11 @@ The live demo at DAFx26 will showcase:
 - Benchmark data: `Tests/response_data.csv`
 - CI validation: `pluginval` at strictness-level-10
 
+## Published Outreach
+
+- **dev.to announcement**: [We Eliminated EQ Frequency Cramping Without Oversampling — Here's How (DAFx26 Paper)](https://dev.to/tizwildin/we-eliminated-eq-frequency-cramping-without-oversampling-heres-how-dafx26-paper-4f7l)
+- **GitHub Pages PDF**: https://garebear99.github.io/FreeEQ8/pdf/DAFx26_FreeEQ8.pdf
+- **Landing page**: https://garebear99.github.io/FreeEQ8/
+
 ## Author
 Gary Doman (GareBear99 / TizWildin)

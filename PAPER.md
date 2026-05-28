@@ -576,6 +576,17 @@ both renderers read the same parameter values.
 
 ---
 
+## Published Outreach
+
+This paper has been summarized and published in accessible formats:
+
+- **dev.to**: [We Eliminated EQ Frequency Cramping Without Oversampling — Here's How (DAFx26 Paper)](https://dev.to/tizwildin/we-eliminated-eq-frequency-cramping-without-oversampling-heres-how-dafx26-paper-4f7l)
+- **dev.to**: [FreeEQ8 Technical Architecture](https://dev.to/tizwildin/real-time-state-space-parameterization-and-lock-free-semantic-analysis-in-digital-equalization-38jn)
+- **DAFx26 Demo Paper (PDF)**: https://garebear99.github.io/FreeEQ8/pdf/DAFx26_FreeEQ8.pdf
+- **TizWildin Hub Academics**: https://garebear99.github.io/TizWildinEntertainmentHUB/ (Academics tab)
+
+---
+
 ## Acknowledgments
 
 The Simper SVF topology is due to Andrew Simper (Cytomic). The RBJ biquad

@@ -107,6 +107,17 @@ FreeEQ8 is evolving from a free open-source parametric EQ into a smart, explaina
   https://www.midifan.com/modulenews-detailview-59241.htm  
   Names Gary Doman, FreeEQ8, full feature set, ProEQ8, and links to the official GitHub repo.
 
+## 📄 Publications & Papers
+
+| Title | Venue | Status |
+|-------|-------|--------|
+| [Real-Time State-Space Parameterization and Lock-Free Semantic Analysis in Digital Equalization](PAPER.md) | DAFx / AES target | 📝 Preprint |
+| [We Eliminated EQ Frequency Cramping Without Oversampling — DAFx26 Paper](https://dev.to/tizwildin/we-eliminated-eq-frequency-cramping-without-oversampling-heres-how-dafx26-paper-4f7l) | dev.to | ✅ Published |
+| [FreeEQ8 Technical Architecture](https://dev.to/tizwildin/real-time-state-space-parameterization-and-lock-free-semantic-analysis-in-digital-equalization-38jn) | dev.to | ✅ Published |
+| [DAFx26 Demo Paper (PDF)](https://garebear99.github.io/FreeEQ8/pdf/DAFx26_FreeEQ8.pdf) | GitHub Pages | 📄 Available |
+
+**Academic submission target:** DAFx26 Demo Track (MIT, September 2026) — deadline May 22, 2026.
+
 ## Listed, submitted, and under public testing review
 
 FreeEQ8 now has third-party English and Chinese audio-community coverage from [Rekkerd.org](https://rekkerd.org/free-freeeq8-parametric-eq-effect-plugin-by-gary-doman/) and [AudioApp.cn](https://www.audioapp.cn/thread-237167-1-1.html), plus verified open audio/software listings including [OpenAudio](https://github.com/webprofusion/OpenAudio), [awesome-music-production](https://github.com/ad-si/awesome-music-production#plugins), and the [Awesome Audio Dev List](https://github.com/GareBear99/awesome-audio-plugins-dev#equalizers). A live tracker for accepted listings, open PRs, and editorial submissions is maintained in [docs/FEATURED_ON.md](docs/FEATURED_ON.md) and [docs/SUBMISSIONS_2026.md](docs/SUBMISSIONS_2026.md). The most conservative cross-check is in [docs/outreach/CROSSCHECKED_SUBMISSION_STATUS_2026-05-21.md](docs/outreach/CROSSCHECKED_SUBMISSION_STATUS_2026-05-21.md).
