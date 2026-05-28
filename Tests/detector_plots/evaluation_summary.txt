@@ -1,0 +1,41 @@
+======================================================================
+ResonanceDetector Evaluation Summary
+======================================================================
+
+AGGREGATE METRICS:
+  Precision:     1.000 (100.0%)
+  Recall:        0.900 (90.0%)
+  F1 Score:      0.947 (94.7%)
+  PR-AUC:        0.985
+  True Pos:      18
+  False Pos:     0
+  False Neg:     2
+
+METRICS BY INTENT MODE:
+  Vocal Clean:
+    Signals: 2, P=1.00, R=1.00, F1=1.00
+  Drum Punch:
+    Signals: 2, P=1.00, R=0.75, F1=0.86
+  None:
+    Signals: 2, P=1.00, R=0.75, F1=0.86
+  Guitar Space:
+    Signals: 2, P=1.00, R=1.00, F1=1.00
+  Master Polish:
+    Signals: 2, P=1.00, R=1.00, F1=1.00
+
+PER-SIGNAL BREAKDOWN:
+  Signal                Planted   TP   FP   FN    Prec     Rec      F1
+  --------------------------------------------------------------------
+  vocal_sim                   2    2    0    0   1.00   1.00   1.00
+  vocal_clean                 0    0    0    0   1.00   1.00   1.00
+  drum_bus                    2    2    0    0   1.00   1.00   1.00
+  kick_heavy                  2    1    0    1   1.00   0.50   0.67
+  bass_di                     2    1    0    1   1.00   0.50   0.67
+  guitar_amp                  2    2    0    0   1.00   1.00   1.00
+  acoustic_guitar             2    2    0    0   1.00   1.00   1.00
+  full_mix                    3    3    0    0   1.00   1.00   1.00
+  synth_pad                   2    2    0    0   1.00   1.00   1.00
+  harsh_master                3    3    0    0   1.00   1.00   1.00
+
+SUCCESS CRITERIA: F1 ≥ 0.70 → PASSED ✓
+======================================================================
