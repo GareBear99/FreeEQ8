@@ -313,7 +313,8 @@ private:
         auto email   = json.getProperty("email", "").toString();
         auto expires = json.getProperty("expires", "").toString();
 
-        if (product != "ProEQ8") return false;
+        // Accept ProEQ8 individual key OR MasterKey (universal recovery key)
+        if (product != "ProEQ8" && product != "MasterKey") return false;
 
         // Check expiration
         auto expiryTime = juce::Time::fromISO8601(expires + "T23:59:59Z");

@@ -68,6 +68,47 @@ export default {
       return await handleStripeWebhook(request, env);
     }
 
+    // ═══════════════════════════════════════════════════════
+    //  HUB ACCOUNT & ECOSYSTEM ROUTES
+    // ═══════════════════════════════════════════════════════
+
+    // ── POST /hub/signin — track SoundCloud/Google sign-ins ──
+    if (url.pathname === "/hub/signin" && request.method === "POST") {
+      return corsResponse(await handleHubSignIn(request, env), request);
+    }
+
+    // ── GET /hub/community-stats — user count + capacity ──
+    if (url.pathname === "/hub/community-stats" && request.method === "GET") {
+      return corsResponse(await handleCommunityStats(env), request);
+    }
+
+    // ── GET /hub/account — full account status (licenses + verified + master key) ──
+    if (url.pathname === "/hub/account" && request.method === "GET") {
+      const email = url.searchParams.get("email");
+      return corsResponse(await handleAccountStatus(email, env), request);
+    }
+
+    // ── POST /hub/master-key/activate — link secondary email to master key ──
+    if (url.pathname === "/hub/master-key/activate" && request.method === "POST") {
+      return corsResponse(await handleMasterKeyActivate(request, env), request);
+    }
+
+    // ── POST /hub/master-key/reset — reset linked device ──
+    if (url.pathname === "/hub/master-key/reset" && request.method === "POST") {
+      return corsResponse(await handleMasterKeyReset(request, env), request);
+    }
+
+    // ── GET /hub/master-key/status — check master key state ──
+    if (url.pathname === "/hub/master-key/status" && request.method === "GET") {
+      const email = url.searchParams.get("email");
+      return corsResponse(await handleMasterKeyStatus(email, env), request);
+    }
+
+    // ── POST /create-checkout (multi-product) ────────────────
+    if (url.pathname === "/create-checkout/master-key" && request.method === "POST") {
+      return corsResponse(await handleCreateMasterKeyCheckout(request, env), request);
+    }
+
     if (request.method !== "POST" && request.method !== "GET") {
       return new Response("Method Not Allowed", { status: 405 });
     }
@@ -545,9 +586,9 @@ async function verifyStripeWebhook(payload, sigHeader, secret) {
 
 // Format: <base64_payload>.<base64_signature>
 // Payload: { product, email, license_id, expires, issued }
-async function generateLicense(email, licenseId, signingSecret) {
+async function generateLicense(email, licenseId, signingSecret, product = "ProEQ8") {
   const payload = JSON.stringify({
-    product: "ProEQ8",
+    product: product,
     email: email,
     license_id: licenseId,
     expires: getExpiryDate(),
@@ -614,7 +655,8 @@ async function validateLicenseSignature(licenseKey, signingSecret) {
     const payloadStr = atob(payloadB64);
     const payload = JSON.parse(payloadStr);
 
-    if (payload.product !== "ProEQ8") return null;
+    // Accept ProEQ8 and MasterKey product types
+    if (payload.product !== "ProEQ8" && payload.product !== "MasterKey") return null;
 
     return payload;
   } catch (e) {
@@ -709,6 +751,248 @@ async function sendAdminNotification(customerEmail, licenseId, stripeSessionId, 
 //  HELPERS
 // ═══════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════
+//  HUB: SIGN-IN TRACKING
+// ═══════════════════════════════════════════════════════════════════
+
+async function handleHubSignIn(request, env) {
+  let body;
+  try { body = await request.json(); } catch { return jsonResponse({ error: "Invalid JSON" }, 400); }
+
+  const { email, name, provider, picture } = body;
+  if (!email) return jsonResponse({ error: "email required" }, 400);
+
+  const key = `hub_user:${email.toLowerCase()}`;
+  const existing = await env.LICENSES.get(key);
+  const now = new Date().toISOString();
+
+  let user = existing ? JSON.parse(existing) : {
+    email: email.toLowerCase(),
+    name: name || "",
+    provider: provider || "unknown",
+    picture: picture || "",
+    created: now,
+    radioSubmissions: 0,
+    acceptedSubmissions: 0,
+    verified: false,
+  };
+  user.lastSeen = now;
+  user.name = name || user.name;
+  user.provider = provider || user.provider;
+  if (picture) user.picture = picture;
+
+  await env.LICENSES.put(key, JSON.stringify(user));
+
+  // Update user count
+  const countStr = await env.LICENSES.get("hub_meta:user_count") || "0";
+  if (!existing) {
+    await env.LICENSES.put("hub_meta:user_count", String(parseInt(countStr) + 1));
+  }
+
+  return jsonResponse({
+    ok: true,
+    email: user.email,
+    verified: user.verified,
+    acceptedSubmissions: user.acceptedSubmissions,
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  HUB: COMMUNITY STATS
+// ═══════════════════════════════════════════════════════════════════
+
+async function handleCommunityStats(env) {
+  const countStr = await env.LICENSES.get("hub_meta:user_count") || "0";
+  const total = parseInt(countStr);
+  const capacity = 1200;
+  const warn = 1000;
+  return jsonResponse({
+    totalUsers: total,
+    capacity,
+    warningThreshold: warn,
+    capacityPercent: Math.min(100, Math.floor((total / capacity) * 100)),
+    signupsOpen: total < capacity,
+    warningActive: total >= warn,
+    slotsRemaining: Math.max(0, capacity - total),
+    giveawayTarget: 1000,
+    giveawayProgress: Math.min(100, Math.floor((total / 1000) * 100)),
+    remaining: Math.max(0, 1000 - total),
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  HUB: FULL ACCOUNT STATUS (licenses + verified + master key)
+// ═══════════════════════════════════════════════════════════════════
+
+async function handleAccountStatus(email, env) {
+  if (!email) return jsonResponse({ error: "email param required" }, 400);
+  const emailLower = email.toLowerCase();
+
+  // Get HUB user profile
+  const userStr = await env.LICENSES.get(`hub_user:${emailLower}`);
+  const user = userStr ? JSON.parse(userStr) : null;
+
+  // Get licenses for this email
+  const emailIndexKey = `email_index:${emailLower}`;
+  const indexedIds = await env.LICENSES.get(emailIndexKey);
+  const licenses = [];
+  if (indexedIds) {
+    const ids = JSON.parse(indexedIds);
+    for (const id of ids) {
+      const rec = await env.LICENSES.get(id);
+      if (rec) {
+        const r = JSON.parse(rec);
+        licenses.push({
+          licenseId: id,
+          product: r.product || "ProEQ8",
+          devicesUsed: r.used || 0,
+          devicesMax: r.max_uses || 2,
+          created: r.created,
+        });
+      }
+    }
+  }
+
+  // Get Master Key status
+  const mkStr = await env.LICENSES.get(`master_key:${emailLower}`);
+  const masterKey = mkStr ? JSON.parse(mkStr) : null;
+
+  return jsonResponse({
+    email: emailLower,
+    hubAccount: user ? {
+      name: user.name,
+      provider: user.provider,
+      verified: user.verified || false,
+      acceptedSubmissions: user.acceptedSubmissions || 0,
+      verifiedThreshold: 3,
+      created: user.created,
+    } : null,
+    licenses,
+    masterKey: masterKey ? {
+      linkedEmail: masterKey.linkedEmail,
+      deviceId: masterKey.deviceId,
+      activatedAt: masterKey.activatedAt,
+      status: masterKey.status,
+    } : null,
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  MASTER KEY: $3/MONTH SEAT MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════
+
+async function handleMasterKeyActivate(request, env) {
+  let body;
+  try { body = await request.json(); } catch { return jsonResponse({ error: "Invalid JSON" }, 400); }
+
+  const { primaryEmail, linkedEmail, deviceId } = body;
+  if (!primaryEmail || !linkedEmail) {
+    return jsonResponse({ error: "primaryEmail and linkedEmail required" }, 400);
+  }
+
+  const key = `master_key:${primaryEmail.toLowerCase()}`;
+
+  // Check subscription status (would verify with Stripe in production)
+  // For now, check if a master_key_sub exists
+  const subKey = `master_key_sub:${primaryEmail.toLowerCase()}`;
+  const subStr = await env.LICENSES.get(subKey);
+  if (!subStr) {
+    return jsonResponse({ error: "No active Master Key subscription. Subscribe for $3/month first." }, 403);
+  }
+
+  const masterKey = {
+    primaryEmail: primaryEmail.toLowerCase(),
+    linkedEmail: linkedEmail.toLowerCase(),
+    deviceId: deviceId || "",
+    activatedAt: new Date().toISOString(),
+    status: "active",
+  };
+
+  await env.LICENSES.put(key, JSON.stringify(masterKey));
+
+  // Generate a Master Key license that works in all plugins
+  const mkLicense = await generateLicense(linkedEmail, `mk_${crypto.randomUUID()}`, env.LICENSE_SIGNING_SECRET, "MasterKey");
+
+  return jsonResponse({
+    ok: true,
+    message: "Master Key activated",
+    linkedEmail: masterKey.linkedEmail,
+    masterKeyLicense: mkLicense,
+  });
+}
+
+async function handleMasterKeyReset(request, env) {
+  let body;
+  try { body = await request.json(); } catch { return jsonResponse({ error: "Invalid JSON" }, 400); }
+
+  const { primaryEmail } = body;
+  if (!primaryEmail) return jsonResponse({ error: "primaryEmail required" }, 400);
+
+  const key = `master_key:${primaryEmail.toLowerCase()}`;
+  const existing = await env.LICENSES.get(key);
+  if (!existing) return jsonResponse({ error: "No Master Key found" }, 404);
+
+  // Reset: clear linked device, keep subscription
+  const mk = JSON.parse(existing);
+  mk.linkedEmail = "";
+  mk.deviceId = "";
+  mk.status = "reset";
+  mk.resetAt = new Date().toISOString();
+  await env.LICENSES.put(key, JSON.stringify(mk));
+
+  return jsonResponse({ ok: true, message: "Master Key reset. You can link a new device." });
+}
+
+async function handleMasterKeyStatus(email, env) {
+  if (!email) return jsonResponse({ error: "email param required" }, 400);
+
+  const key = `master_key:${email.toLowerCase()}`;
+  const mkStr = await env.LICENSES.get(key);
+  if (!mkStr) return jsonResponse({ hasMasterKey: false });
+
+  const mk = JSON.parse(mkStr);
+  return jsonResponse({
+    hasMasterKey: true,
+    linkedEmail: mk.linkedEmail,
+    deviceId: mk.deviceId,
+    status: mk.status,
+    activatedAt: mk.activatedAt,
+  });
+}
+
+async function handleCreateMasterKeyCheckout(request, env) {
+  let body;
+  try { body = await request.json(); } catch { body = {}; }
+  const email = body.email || "";
+
+  try {
+    const params = new URLSearchParams({
+      mode: "subscription",
+      "line_items[0][price]": env.MASTER_KEY_PRICE_ID || env.STRIPE_PRICE_ID,
+      "line_items[0][quantity]": "1",
+      success_url: env.SUCCESS_URL || "https://garebear99.github.io/TizWildinEntertainmentHUB/pages/account.html?master_key=success",
+      cancel_url: env.CANCEL_URL || "https://garebear99.github.io/TizWildinEntertainmentHUB/pages/account.html?master_key=cancelled",
+      "payment_method_types[0]": "card",
+    });
+    if (email) params.set("customer_email", email);
+
+    const resp = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: params,
+    });
+
+    const session = await resp.json();
+    if (!resp.ok) return jsonResponse({ error: session.error?.message || "Unknown error" }, 500);
+    return jsonResponse({ url: session.url, id: session.id });
+  } catch (e) {
+    return jsonResponse({ error: "Checkout creation failed" }, 500);
+  }
+}
+
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -719,6 +1003,8 @@ function jsonResponse(data, status = 200) {
 const ALLOWED_ORIGINS = [
   "https://garebear99.github.io",
   "https://tizwildin.com",
+  "http://localhost:5000",
+  "http://127.0.0.1:5000",
 ];
 
 function corsResponse(response, request) {
