@@ -1,0 +1,99 @@
+{
+  "metadata": {
+    "description": "Ground truth resonance annotations for ResonanceDetector evaluation",
+    "tolerance_octaves": 0.15,
+    "sample_rate": 44100,
+    "fft_size": 4096
+  },
+  "signals": [
+    {
+      "name": "vocal_sim",
+      "description": "Filtered noise simulating vocal with mud and presence issues",
+      "resonances": [
+        {"freq_hz": 300, "type": "mud", "deviation_db": 8, "q_hint": 3.0},
+        {"freq_hz": 3200, "type": "harshness", "deviation_db": -6, "q_hint": 4.0}
+      ],
+      "intent": "VocalClean"
+    },
+    {
+      "name": "vocal_clean",
+      "description": "Clean vocal simulation with minimal resonance issues",
+      "resonances": [],
+      "intent": "VocalClean"
+    },
+    {
+      "name": "drum_bus",
+      "description": "Impulse train with boxiness and cymbal ring",
+      "resonances": [
+        {"freq_hz": 400, "type": "boxiness", "deviation_db": 10, "q_hint": 2.5},
+        {"freq_hz": 8000, "type": "sibilance", "deviation_db": 7, "q_hint": 5.0}
+      ],
+      "intent": "DrumPunch"
+    },
+    {
+      "name": "kick_heavy",
+      "description": "Kick drum with sub emphasis and low-mid mud",
+      "resonances": [
+        {"freq_hz": 60, "type": "sub rumble", "deviation_db": 12, "q_hint": 2.0},
+        {"freq_hz": 250, "type": "mud", "deviation_db": 6, "q_hint": 3.0}
+      ],
+      "intent": "DrumPunch"
+    },
+    {
+      "name": "bass_di",
+      "description": "Bass guitar with fundamental and cabinet honk",
+      "resonances": [
+        {"freq_hz": 80, "type": "low thump", "deviation_db": 9, "q_hint": 2.0},
+        {"freq_hz": 800, "type": "boxiness", "deviation_db": 7, "q_hint": 4.0}
+      ],
+      "intent": "None"
+    },
+    {
+      "name": "guitar_amp",
+      "description": "Guitar with comb-filtered amp resonances",
+      "resonances": [
+        {"freq_hz": 1200, "type": "nasal", "deviation_db": 8, "q_hint": 5.0},
+        {"freq_hz": 2500, "type": "honk", "deviation_db": 6, "q_hint": 4.0}
+      ],
+      "intent": "GuitarSpace"
+    },
+    {
+      "name": "acoustic_guitar",
+      "description": "Acoustic guitar body resonance simulation",
+      "resonances": [
+        {"freq_hz": 180, "type": "low thump", "deviation_db": 7, "q_hint": 3.0},
+        {"freq_hz": 3000, "type": "honk", "deviation_db": 5, "q_hint": 3.5}
+      ],
+      "intent": "GuitarSpace"
+    },
+    {
+      "name": "full_mix",
+      "description": "Sum of multiple sources with overlapping issues",
+      "resonances": [
+        {"freq_hz": 280, "type": "mud", "deviation_db": 6, "q_hint": 2.5},
+        {"freq_hz": 700, "type": "boxiness", "deviation_db": 5, "q_hint": 3.0},
+        {"freq_hz": 4500, "type": "harshness", "deviation_db": 7, "q_hint": 4.0}
+      ],
+      "intent": "MasterPolish"
+    },
+    {
+      "name": "synth_pad",
+      "description": "Sustained synth with harmonic resonances",
+      "resonances": [
+        {"freq_hz": 440, "type": "mud", "deviation_db": 8, "q_hint": 6.0},
+        {"freq_hz": 880, "type": "boxiness", "deviation_db": 6, "q_hint": 6.0}
+      ],
+      "intent": "None"
+    },
+    {
+      "name": "harsh_master",
+      "description": "Over-compressed master with harsh upper mids",
+      "resonances": [
+        {"freq_hz": 2800, "type": "honk", "deviation_db": 9, "q_hint": 3.5},
+        {"freq_hz": 6000, "type": "harshness", "deviation_db": 8, "q_hint": 4.0},
+        {"freq_hz": 10000, "type": "sibilance", "deviation_db": 5, "q_hint": 5.0}
+      ],
+      "intent": "MasterPolish"
+    }
+  ]
+}
