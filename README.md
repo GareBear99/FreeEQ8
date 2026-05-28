@@ -20,6 +20,7 @@
   <a href="https://github.com/webprofusion/OpenAudio"><img src="https://img.shields.io/badge/Listed-OpenAudio-1f6feb?style=for-the-badge&logo=awesomelists&logoColor=white" alt="Listed on webprofusion/OpenAudio" /></a>
   <a href="https://github.com/ad-si/awesome-music-production#plugins"><img src="https://img.shields.io/badge/Listed-Awesome_Music_Production-fc6d26?style=for-the-badge&logo=awesomelists&logoColor=white" alt="Listed on ad-si/awesome-music-production" /></a>
   <a href="https://www.audioapp.cn/thread-237167-1-1.html"><img src="https://img.shields.io/badge/Covered-AudioApp.cn-dc2626?style=for-the-badge&logo=rss&logoColor=white" alt="Covered by AudioApp.cn" /></a>
+  <a href="https://www.midifan.com/modulenews-detailview-59241.htm"><img src="https://img.shields.io/badge/Covered-Midifan.com-f59e0b?style=for-the-badge&logo=rss&logoColor=white" alt="Covered by Midifan.com" /></a>
   <a href="docs/SUBMISSIONS_2026.md"><img src="https://img.shields.io/badge/Submission_Tracker-2026-22c55e?style=for-the-badge&logo=github&logoColor=white" alt="FreeEQ8 submission tracker" /></a>
 </div>
 
@@ -96,11 +97,14 @@ FreeEQ8 is evolving from a free open-source parametric EQ into a smart, explaina
 
 ## Press / Coverage
 
-- Rekkerd.org — “FREE: FreeEQ8 parametric EQ effect plugin by Gary Doman”  
+- Rekkerd.org — "FREE: FreeEQ8 parametric EQ effect plugin by Gary Doman"  
   https://rekkerd.org/free-freeeq8-parametric-eq-effect-plugin-by-gary-doman/
-- AudioApp.cn — “Bonus: Gary Doman launches FreeEQ8 free and open source parametric equalizer effects plugin” / “福利：Gary Doman 推出 FreeEQ8 免费开源的参量均衡器效果插件”  
+- AudioApp.cn — "Bonus: Gary Doman launches FreeEQ8 free and open source parametric equalizer effects plugin" / "福利：Gary Doman 推出 FreeEQ8 免费开源的参量均衡器效果插件"  
   https://www.audioapp.cn/thread-237167-1-1.html  
   Screenshot-verified Chinese/English audio-community pickup: names Gary Doman, FreeEQ8, the feature set, ProEQ8, and links to the official GitHub repo.
+- Midifan.com — Major Chinese audio technology media coverage  
+  https://www.midifan.com/modulenews-detailview-59241.htm  
+  Names Gary Doman, FreeEQ8, full feature set, ProEQ8, and links to the official GitHub repo.
 
 ## Listed, submitted, and under public testing review
 

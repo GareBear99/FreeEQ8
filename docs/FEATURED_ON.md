@@ -10,6 +10,7 @@ This file separates **verified public wins** from **pending submissions** and **
 |---|---:|---|
 | [Rekkerd.org](https://rekkerd.org/free-freeeq8-parametric-eq-effect-plugin-by-gary-doman/) | ✅ Featured | Article: `FREE: FreeEQ8 parametric EQ effect plugin by Gary Doman`, published 2026-05-19. Gmail confirms Ronnie accepted the submission and acknowledged the version typo correction. |
 | [AudioApp.cn](https://www.audioapp.cn/thread-237167-1-1.html) | ✅ Screenshot-verified coverage | Chinese/English audio-community pickup titled `Bonus: Gary Doman launches FreeEQ8 free and open source parametric equalizer effects plugin` / `福利：Gary Doman 推出 FreeEQ8 免费开源的参量均衡器效果插件`. Screenshot evidence stored in `docs/press/`; page names Gary Doman, FreeEQ8, feature set, ProEQ8, and the official GitHub URL. |
+| [Midifan.com](https://www.midifan.com/modulenews-detailview-59241.htm) | ✅ Verified coverage | Major Chinese audio technology media outlet. Names Gary Doman, FreeEQ8, full feature set, ProEQ8, and links to official GitHub. Evidence in `docs/press/MIDIFAN_COVERAGE.md`. |
 | [webprofusion / OpenAudio](https://github.com/webprofusion/OpenAudio) | ✅ Listed | Current OpenAudio public page shows `FreeEQ8` in Audio Plugins. Issue [#207](https://github.com/webprofusion/OpenAudio/issues/207) is closed. |
 | [ad-si / awesome-music-production](https://github.com/ad-si/awesome-music-production#apps) | ✅ Listed | [PR #197](https://github.com/ad-si/awesome-music-production/pull/197) merged on 2026-03-16; current public README shows `FreeEQ8` under Apps. |
 | [GareBear99 / awesome-audio-plugins-dev](https://github.com/GareBear99/awesome-audio-plugins-dev#equalizers) | ✅ Self-maintained listing | Useful SEO/index route, but mark as self-maintained rather than third-party validation. |
@@ -75,7 +76,7 @@ This file separates **verified public wins** from **pending submissions** and **
 
 ### Short
 
-> FreeEQ8 is a free, open-source JUCE/C++ 8-band parametric EQ plugin featured by Rekkerd.org and AudioApp.cn, and listed on OpenAudio, awesome-music-production, and the Awesome Audio Dev List.
+> FreeEQ8 is a free, open-source JUCE/C++ 8-band parametric EQ plugin featured by Rekkerd.org, AudioApp.cn, and Midifan.com, and listed on OpenAudio, awesome-music-production, and the Awesome Audio Dev List.
 
 ### Directory / listing
 

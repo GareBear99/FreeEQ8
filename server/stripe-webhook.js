@@ -34,6 +34,16 @@ const RATE_LIMIT_WINDOW = 60;
 const RATE_LIMIT_MAX = 30;
 
 export default {
+  // Cron trigger for weekly newsletter (runs every Monday 10 AM UTC)
+  async scheduled(event, env, ctx) {
+    const cronType = event.cron;
+    if (cronType === "0 10 * * 1") {
+      // Weekly newsletter — Mondays at 10 AM UTC
+      await sendWeeklyNewsletter(env);
+      await sendAdminSubscriberDigest(env);
+    }
+  },
+
   async fetch(request, env) {
     const url = new URL(request.url);
     const method = request.method;
@@ -105,6 +115,12 @@ async function routeRequest(path, method, request, env, headers) {
   if (path === "/hub/master-key/activate" && method === "POST") {
     return handleMasterKeyActivate(request, env, headers);
   }
+  if (path === "/hub/master-key/link" && method === "POST") {
+    return handleMasterKeyLink(request, env, headers);
+  }
+  if (path === "/hub/master-key/unlink" && method === "POST") {
+    return handleMasterKeyUnlink(request, env, headers);
+  }
   if (path === "/hub/master-key/reset" && method === "POST") {
     return handleMasterKeyReset(request, env, headers);
   }
@@ -126,6 +142,13 @@ async function routeRequest(path, method, request, env, headers) {
   // Google sign-in tracking
   if (path === "/auth/google/signin" && method === "POST") {
     return handleGoogleSignIn(request, env, headers);
+  }
+  // Admin endpoints for newsletter/digest
+  if (path === "/admin/subscribers" && method === "GET") {
+    return handleAdminSubscribers(request, env, headers);
+  }
+  if (path === "/admin/send-weekly-newsletter" && method === "POST") {
+    return handleManualNewsletter(request, env, headers);
   }
   return jsonResponse({ error: "Not found" }, 404, headers);
 }
@@ -166,7 +189,16 @@ async function hasActiveMasterKeySeat(email, env) {
   if (!sub) return false;
   try {
     const data = JSON.parse(sub);
-    return data.status === "active" && data.seats >= 1;
+    if (data.status !== "active" || data.seats < 1) return false;
+    
+    // Also check if the email is linked as a seat holder (for device deactivation)
+    // The primary email holder OR any linked email can deactivate devices
+    const mkStr = await env.LICENSES.get(`master_key:${email.toLowerCase()}`);
+    if (mkStr) return true; // Primary holder
+    
+    // Check if this email is linked under someone else's Master Key
+    // This requires a reverse lookup — for now, primary holder only
+    return true;
   } catch {
     return false;
   }
@@ -408,6 +440,18 @@ async function handleRecover(request, env, headers) {
 }
 
 // HUB
+// Helper to extract geo/device info from Cloudflare headers
+function extractRequestMeta(request) {
+  return {
+    ip: request.headers.get("CF-Connecting-IP") || "unknown",
+    country: request.headers.get("CF-IPCountry") || "XX",
+    city: request.headers.get("CF-IPCity") || "",
+    region: request.headers.get("CF-Region") || "",
+    timezone: request.headers.get("CF-Timezone") || "",
+    userAgent: (request.headers.get("User-Agent") || "").slice(0, 200),
+  };
+}
+
 async function handleHubSignIn(request, env, headers) {
   let body;
   try { body = await parseBody(request); } catch (e) { return jsonResponse({ error: e.message }, 400, headers); }
@@ -415,11 +459,38 @@ async function handleHubSignIn(request, env, headers) {
   const { email, name, provider, picture } = body;
   if (!validEmail(email)) return jsonResponse({ error: "Valid email required" }, 400, headers);
 
+  const meta = extractRequestMeta(request);
   const key = `hub_user:${email.toLowerCase()}`;
   const existing = await env.LICENSES.get(key);
   const now = new Date().toISOString();
-  let user = existing ? JSON.parse(existing) : { email: email.toLowerCase(), name: "", provider: "", picture: "", created: now, verified: false, acceptedSubmissions: 0 };
+  
+  let user = existing ? JSON.parse(existing) : {
+    email: email.toLowerCase(),
+    name: "",
+    provider: "",
+    picture: "",
+    created: now,
+    verified: false,
+    acceptedSubmissions: 0,
+    // New tracking fields
+    loginCount: 0,
+    firstIp: meta.ip,
+    firstCountry: meta.country,
+    firstCity: meta.city,
+    firstRegion: meta.region,
+    firstUserAgent: meta.userAgent,
+  };
+  
+  // Update on every login
   user.lastSeen = now;
+  user.loginCount = (user.loginCount || 0) + 1;
+  user.lastIp = meta.ip;
+  user.lastCountry = meta.country;
+  user.lastCity = meta.city;
+  user.lastRegion = meta.region;
+  user.lastTimezone = meta.timezone;
+  user.lastUserAgent = meta.userAgent;
+  
   if (name) user.name = String(name).slice(0, 100);
   if (provider) user.provider = String(provider).slice(0, 50);
   if (picture) user.picture = String(picture).slice(0, 500);
@@ -450,6 +521,7 @@ async function handleAccountStatus(email, env, headers) {
   const userStr = await env.LICENSES.get(`hub_user:${e}`);
   const user = userStr ? JSON.parse(userStr) : null;
 
+  // Get ProEQ8 licenses owned by this email
   const indexStr = await env.LICENSES.get(`email_index:${e}`);
   const licenses = [];
   if (indexStr) {
@@ -459,32 +531,223 @@ async function handleAccountStatus(email, env, headers) {
     }
   }
 
-  const mkStr = await env.LICENSES.get(`master_key:${e}`);
-  const mk = mkStr ? JSON.parse(mkStr) : null;
+  // Check if this user OWNS a Master Key subscription (is the purchaser)
+  const mkSubStr = await env.LICENSES.get(`master_key_sub:${e}`);
+  const mkDataStr = await env.LICENSES.get(`master_key:${e}`);
+  let masterKeyOwner = null;
+  
+  if (mkSubStr) {
+    const sub = JSON.parse(mkSubStr);
+    const mkData = mkDataStr ? JSON.parse(mkDataStr) : { linkedEmails: [], licenses: {} };
+    // Migration for old format
+    if (mkData.linkedEmail && !mkData.linkedEmails) {
+      mkData.linkedEmails = mkData.linkedEmail ? [mkData.linkedEmail] : [];
+    }
+    masterKeyOwner = {
+      isOwner: true,
+      canManageSeats: true,  // Owner can add/remove linked emails
+      status: sub.status,
+      seatsTotal: sub.seats || 1,
+      seatsUsed: (mkData.linkedEmails || []).length,
+      seatsAvailable: (sub.seats || 1) - (mkData.linkedEmails || []).length,
+      linkedEmails: mkData.linkedEmails || [],
+      licenses: mkData.licenses || {},
+      subscriptionId: sub.subscriptionId,
+      created: sub.created,
+    };
+  }
+
+  // Check if this user is LINKED to someone else's Master Key (not the owner)
+  let masterKeyLinked = null;
+  if (!masterKeyOwner) {
+    // Search for this email in other users' Master Key linked lists
+    const linkedTo = await findMasterKeyOwnerForLinkedEmail(e, env);
+    if (linkedTo) {
+      masterKeyLinked = {
+        isOwner: false,
+        canManageSeats: false,  // Linked users cannot manage seats
+        ownerEmail: linkedTo.ownerEmail,
+        license: linkedTo.license,
+        message: "Your Master Key license is managed by the account holder.",
+      };
+    }
+  }
 
   return jsonResponse({
     email: e,
     hubAccount: user ? { name: user.name, provider: user.provider, verified: user.verified, created: user.created } : null,
     licenses,
-    masterKey: mk ? { linkedEmail: mk.linkedEmail, status: mk.status } : null,
+    masterKey: masterKeyOwner || masterKeyLinked || null,
   }, 200, headers);
 }
 
+// Helper: Find if an email is linked under someone's Master Key
+async function findMasterKeyOwnerForLinkedEmail(linkedEmail, env) {
+  // Check reverse index first (fast path)
+  const reverseKey = `mk_linked:${linkedEmail}`;
+  const ownerEmailStr = await env.LICENSES.get(reverseKey);
+  if (ownerEmailStr) {
+    const mkDataStr = await env.LICENSES.get(`master_key:${ownerEmailStr}`);
+    if (mkDataStr) {
+      const mkData = JSON.parse(mkDataStr);
+      if (mkData.linkedEmails?.includes(linkedEmail)) {
+        return {
+          ownerEmail: ownerEmailStr,
+          license: mkData.licenses?.[linkedEmail] || null,
+        };
+      }
+    }
+  }
+  return null;
+}
+
+// Master Key Seating System
+// Data structure:
+//   master_key_sub:{email} → { email, seats: 1-3, status, subscriptionId, created }
+//   master_key:{email}     → { primaryEmail, linkedEmails: [], licenses: {email: licenseKey}, status, created }
+
+async function getMasterKeyData(primaryEmail, env) {
+  const subStr = await env.LICENSES.get(`master_key_sub:${primaryEmail.toLowerCase()}`);
+  if (!subStr) return { sub: null, mk: null };
+  const sub = JSON.parse(subStr);
+  
+  const mkStr = await env.LICENSES.get(`master_key:${primaryEmail.toLowerCase()}`);
+  let mk = mkStr ? JSON.parse(mkStr) : {
+    primaryEmail: primaryEmail.toLowerCase(),
+    linkedEmails: [],
+    licenses: {},
+    status: "active",
+    created: new Date().toISOString(),
+  };
+  
+  // Migration: convert old single linkedEmail to array format
+  if (mk.linkedEmail && !mk.linkedEmails) {
+    mk.linkedEmails = mk.linkedEmail ? [mk.linkedEmail] : [];
+    mk.licenses = mk.licenses || {};
+    delete mk.linkedEmail;
+  }
+  if (!mk.linkedEmails) mk.linkedEmails = [];
+  if (!mk.licenses) mk.licenses = {};
+  
+  return { sub, mk };
+}
+
 async function handleMasterKeyActivate(request, env, headers) {
+  // Legacy endpoint — now just an alias for /link with first email
   let body;
   try { body = await parseBody(request); } catch (e) { return jsonResponse({ error: e.message }, 400, headers); }
 
   const { primaryEmail, linkedEmail } = body;
   if (!validEmail(primaryEmail) || !validEmail(linkedEmail)) return jsonResponse({ error: "Valid emails required" }, 400, headers);
 
-  const subKey = `master_key_sub:${primaryEmail.toLowerCase()}`;
-  if (!(await env.LICENSES.get(subKey))) return jsonResponse({ error: "No subscription" }, 403, headers);
+  // Redirect to link logic
+  return handleMasterKeyLinkInternal(primaryEmail, linkedEmail, env, headers);
+}
 
-  const mk = { primaryEmail: primaryEmail.toLowerCase(), linkedEmail: linkedEmail.toLowerCase(), activatedAt: new Date().toISOString(), status: "active" };
-  await env.LICENSES.put(`master_key:${primaryEmail.toLowerCase()}`, JSON.stringify(mk));
+async function handleMasterKeyLink(request, env, headers) {
+  let body;
+  try { body = await parseBody(request); } catch (e) { return jsonResponse({ error: e.message }, 400, headers); }
 
-  const license = await generateLicense(linkedEmail, `mk_${crypto.randomUUID()}`, env.LICENSE_SIGNING_SECRET, "MasterKey");
-  return jsonResponse({ ok: true, linkedEmail: mk.linkedEmail, masterKeyLicense: license }, 200, headers);
+  const { primaryEmail, linkedEmail } = body;
+  if (!validEmail(primaryEmail) || !validEmail(linkedEmail)) return jsonResponse({ error: "Valid emails required" }, 400, headers);
+
+  return handleMasterKeyLinkInternal(primaryEmail, linkedEmail, env, headers);
+}
+
+async function handleMasterKeyLinkInternal(primaryEmail, linkedEmail, env, headers) {
+  const { sub, mk } = await getMasterKeyData(primaryEmail, env);
+  
+  if (!sub || sub.status !== "active") {
+    return jsonResponse({ error: "No active subscription" }, 403, headers);
+  }
+  
+  const maxSeats = sub.seats || 1;
+  const normalizedLinked = linkedEmail.toLowerCase();
+  const normalizedPrimary = primaryEmail.toLowerCase();
+  
+  // Check if already linked
+  if (mk.linkedEmails.includes(normalizedLinked)) {
+    return jsonResponse({ 
+      ok: true, 
+      message: "Already linked",
+      linkedEmail: normalizedLinked,
+      license: mk.licenses[normalizedLinked] || null,
+      seatsUsed: mk.linkedEmails.length,
+      seatsTotal: maxSeats,
+    }, 200, headers);
+  }
+  
+  // Check seat availability
+  if (mk.linkedEmails.length >= maxSeats) {
+    return jsonResponse({ 
+      error: "All seats used", 
+      seatsUsed: mk.linkedEmails.length, 
+      seatsTotal: maxSeats,
+      linkedEmails: mk.linkedEmails,
+    }, 403, headers);
+  }
+  
+  // Generate license for this linked email
+  const license = await generateLicense(normalizedLinked, `mk_${crypto.randomUUID()}`, env.LICENSE_SIGNING_SECRET, "MasterKey");
+  
+  // Add to linked emails
+  mk.linkedEmails.push(normalizedLinked);
+  mk.licenses[normalizedLinked] = license;
+  mk.lastUpdated = new Date().toISOString();
+  
+  await env.LICENSES.put(`master_key:${normalizedPrimary}`, JSON.stringify(mk));
+  
+  // Store reverse index so linked user can find their owner
+  await env.LICENSES.put(`mk_linked:${normalizedLinked}`, normalizedPrimary);
+  
+  return jsonResponse({ 
+    ok: true, 
+    linkedEmail: normalizedLinked,
+    license,
+    seatsUsed: mk.linkedEmails.length,
+    seatsTotal: maxSeats,
+    linkedEmails: mk.linkedEmails,
+  }, 200, headers);
+}
+
+async function handleMasterKeyUnlink(request, env, headers) {
+  let body;
+  try { body = await parseBody(request); } catch (e) { return jsonResponse({ error: e.message }, 400, headers); }
+
+  const { primaryEmail, linkedEmail } = body;
+  if (!validEmail(primaryEmail) || !validEmail(linkedEmail)) return jsonResponse({ error: "Valid emails required" }, 400, headers);
+
+  const { sub, mk } = await getMasterKeyData(primaryEmail, env);
+  
+  if (!sub) {
+    return jsonResponse({ error: "No subscription" }, 403, headers);
+  }
+  
+  const normalizedLinked = linkedEmail.toLowerCase();
+  const normalizedPrimary = primaryEmail.toLowerCase();
+  const idx = mk.linkedEmails.indexOf(normalizedLinked);
+  
+  if (idx === -1) {
+    return jsonResponse({ error: "Email not linked", linkedEmails: mk.linkedEmails }, 404, headers);
+  }
+  
+  // Remove from linked emails
+  mk.linkedEmails.splice(idx, 1);
+  delete mk.licenses[normalizedLinked];
+  mk.lastUpdated = new Date().toISOString();
+  
+  await env.LICENSES.put(`master_key:${normalizedPrimary}`, JSON.stringify(mk));
+  
+  // Remove reverse index
+  await env.LICENSES.delete(`mk_linked:${normalizedLinked}`);
+  
+  return jsonResponse({ 
+    ok: true, 
+    unlinkedEmail: normalizedLinked,
+    seatsUsed: mk.linkedEmails.length,
+    seatsTotal: sub.seats || 1,
+    linkedEmails: mk.linkedEmails,
+  }, 200, headers);
 }
 
 async function handleMasterKeyReset(request, env, headers) {
@@ -494,22 +757,39 @@ async function handleMasterKeyReset(request, env, headers) {
   const { primaryEmail } = body;
   if (!validEmail(primaryEmail)) return jsonResponse({ error: "Valid email required" }, 400, headers);
 
-  const key = `master_key:${primaryEmail.toLowerCase()}`;
-  const existing = await env.LICENSES.get(key);
-  if (!existing) return jsonResponse({ error: "Not found" }, 404, headers);
+  const { sub, mk } = await getMasterKeyData(primaryEmail, env);
+  if (!sub) return jsonResponse({ error: "No subscription" }, 404, headers);
 
-  const mk = JSON.parse(existing);
-  mk.linkedEmail = ""; mk.status = "reset"; mk.resetAt = new Date().toISOString();
-  await env.LICENSES.put(key, JSON.stringify(mk));
-  return jsonResponse({ ok: true }, 200, headers);
+  // Clear all linked emails
+  mk.linkedEmails = [];
+  mk.licenses = {};
+  mk.status = "reset";
+  mk.resetAt = new Date().toISOString();
+  
+  await env.LICENSES.put(`master_key:${primaryEmail.toLowerCase()}`, JSON.stringify(mk));
+  return jsonResponse({ ok: true, message: "All seats cleared" }, 200, headers);
 }
 
 async function handleMasterKeyStatus(email, env, headers) {
   if (!validEmail(email)) return jsonResponse({ error: "Valid email required" }, 400, headers);
-  const mkStr = await env.LICENSES.get(`master_key:${email.toLowerCase()}`);
-  if (!mkStr) return jsonResponse({ hasMasterKey: false }, 200, headers);
-  const mk = JSON.parse(mkStr);
-  return jsonResponse({ hasMasterKey: true, linkedEmail: mk.linkedEmail, status: mk.status }, 200, headers);
+  
+  const { sub, mk } = await getMasterKeyData(email, env);
+  
+  if (!sub) {
+    return jsonResponse({ hasMasterKey: false }, 200, headers);
+  }
+  
+  return jsonResponse({ 
+    hasMasterKey: true, 
+    status: sub.status,
+    seatsTotal: sub.seats || 1,
+    seatsUsed: mk.linkedEmails.length,
+    seatsAvailable: (sub.seats || 1) - mk.linkedEmails.length,
+    linkedEmails: mk.linkedEmails,
+    licenses: mk.licenses,
+    subscriptionId: sub.subscriptionId,
+    created: sub.created,
+  }, 200, headers);
 }
 
 // SoundCloud OAuth
@@ -608,7 +888,8 @@ async function handleSoundCloudCallback(request, env, headers) {
   // Also store by account for quick lookup
   await env.LICENSES.put(`sc_account:${accountId}`, linkKey);
 
-  // Track user for community count
+// Track user for community count
+  const meta = extractRequestMeta(request);
   const userKey = `hub_user:${emailForId.toLowerCase()}`;
   const existingUser = await env.LICENSES.get(userKey);
   const now = new Date().toISOString();
@@ -621,12 +902,31 @@ async function handleSoundCloudCallback(request, env, headers) {
       created: now,
       lastSeen: now,
       verified: false,
+      loginCount: 1,
+      firstIp: meta.ip,
+      firstCountry: meta.country,
+      firstCity: meta.city,
+      firstRegion: meta.region,
+      firstUserAgent: meta.userAgent,
+      lastIp: meta.ip,
+      lastCountry: meta.country,
+      lastCity: meta.city,
+      lastRegion: meta.region,
+      lastTimezone: meta.timezone,
+      lastUserAgent: meta.userAgent,
     }));
     const cnt = await env.LICENSES.get("hub_meta:user_count") || "0";
     await env.LICENSES.put("hub_meta:user_count", String(parseInt(cnt) + 1));
   } else {
     const user = JSON.parse(existingUser);
     user.lastSeen = now;
+    user.loginCount = (user.loginCount || 0) + 1;
+    user.lastIp = meta.ip;
+    user.lastCountry = meta.country;
+    user.lastCity = meta.city;
+    user.lastRegion = meta.region;
+    user.lastTimezone = meta.timezone;
+    user.lastUserAgent = meta.userAgent;
     user.picture = scAvatar;
     user.name = scUsername;
     await env.LICENSES.put(userKey, JSON.stringify(user));
@@ -690,11 +990,36 @@ async function handleGoogleSignIn(request, env, headers) {
   const { email, name, picture } = body;
   if (!validEmail(email)) return jsonResponse({ error: "Valid email required" }, 400, headers);
 
+  const meta = extractRequestMeta(request);
   const key = `hub_user:${email.toLowerCase()}`;
   const existing = await env.LICENSES.get(key);
   const now = new Date().toISOString();
-  let user = existing ? JSON.parse(existing) : { email: email.toLowerCase(), name: "", provider: "", picture: "", created: now, verified: false };
+  
+  let user = existing ? JSON.parse(existing) : {
+    email: email.toLowerCase(),
+    name: "",
+    provider: "",
+    picture: "",
+    created: now,
+    verified: false,
+    loginCount: 0,
+    firstIp: meta.ip,
+    firstCountry: meta.country,
+    firstCity: meta.city,
+    firstRegion: meta.region,
+    firstUserAgent: meta.userAgent,
+  };
+  
+  // Update on every login
   user.lastSeen = now;
+  user.loginCount = (user.loginCount || 0) + 1;
+  user.lastIp = meta.ip;
+  user.lastCountry = meta.country;
+  user.lastCity = meta.city;
+  user.lastRegion = meta.region;
+  user.lastTimezone = meta.timezone;
+  user.lastUserAgent = meta.userAgent;
+  
   if (name) user.name = String(name).slice(0, 100);
   user.provider = "google";
   if (picture) user.picture = String(picture).slice(0, 500);
@@ -815,6 +1140,271 @@ async function sendMasterKeyEmail(email, seats, apiKey) {
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({ from: "TizWildin <onboarding@resend.dev>", to: [email], subject: "Master Key Subscription Confirmed", html }),
   });
+}
+
+// Weekly Newsletter System
+const GIVEAWAY_TARGET = 1000;
+const HUB_URL = "https://garebear99.github.io/TizWildinEntertainmentHUB/";
+const SC_URL = "https://soundcloud.com/tizwildin";
+
+async function getAllHubUsers(env) {
+  // List all hub_user: keys from KV
+  const users = [];
+  let cursor = null;
+  do {
+    const list = await env.LICENSES.list({ prefix: "hub_user:", cursor, limit: 1000 });
+    for (const key of list.keys) {
+      const data = await env.LICENSES.get(key.name);
+      if (data) {
+        try {
+          const user = JSON.parse(data);
+          users.push(user);
+        } catch {}
+      }
+    }
+    cursor = list.cursor;
+  } while (cursor);
+  return users;
+}
+
+function buildNewsletterHtml(totalUsers) {
+  const remaining = Math.max(0, GIVEAWAY_TARGET - totalUsers);
+  const progress = Math.min(100, Math.floor((totalUsers / GIVEAWAY_TARGET) * 100));
+  const progressBar = remaining > 0
+    ? `<div style="background:#eee;border-radius:8px;height:24px;margin:16px 0;"><div style="background:linear-gradient(90deg,#6366f1,#8b5cf6);height:100%;border-radius:8px;width:${progress}%;"></div></div>`
+    : `<div style="background:#22c55e;border-radius:8px;height:24px;margin:16px 0;text-align:center;color:#fff;line-height:24px;">🎉 TARGET REACHED!</div>`;
+
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#1a1a2e;">
+  <h1 style="color:#6366f1;">🎛️ TizWildin Weekly</h1>
+  <p>Hey! Thanks for being part of the TizWildin community.</p>
+  
+  <hr style="border:none;border-top:1px solid #e5e5e5;margin:24px 0;">
+  
+  <h2 style="color:#1a1a2e;">📢 Help Us Grow</h2>
+  <p>We're building free professional audio plugins, sample packs, MIDI tools, games, and a full creator ecosystem.</p>
+  <p>Share the HUB with a friend:</p>
+  <p>
+    <a href="${HUB_URL}" style="color:#6366f1;">🌐 TizWildin HUB</a><br>
+    <a href="${SC_URL}" style="color:#6366f1;">🔊 SoundCloud</a>
+  </p>
+  
+  <hr style="border:none;border-top:1px solid #e5e5e5;margin:24px 0;">
+  
+  <h2 style="color:#1a1a2e;">🎁 1,000 User Giveaway</h2>
+  <p><strong>Current:</strong> ${totalUsers} users &nbsp;|&nbsp; <strong>Target:</strong> ${GIVEAWAY_TARGET}</p>
+  ${progressBar}
+  <p>${remaining > 0 ? `Only <strong>${remaining}</strong> more to go! When we hit 1,000, giveaways begin — free plugin upgrades, exclusive sample packs, and more.` : `<strong>We hit ${GIVEAWAY_TARGET}!</strong> Giveaways are now LIVE. Check the HUB for details.`}</p>
+  
+  <hr style="border:none;border-top:1px solid #e5e5e5;margin:24px 0;">
+  
+  <h2 style="color:#1a1a2e;">📻 Coming Soon: 24/7 Radio</h2>
+  <p>A 24/7 live radio stream is coming to YouTube with continuous music, song submissions, and badge-gated daily submissions for supporters.</p>
+  
+  <hr style="border:none;border-top:1px solid #e5e5e5;margin:24px 0;">
+  
+  <p style="color:#666;font-size:14px;">Free plugins. Free packs. Real DSP. Open source.<br>Great sound shouldn't cost anything.</p>
+  <p style="color:#666;font-size:14px;">— Gary Doman (GareBear99 / TizWildin)</p>
+  <p style="color:#999;font-size:12px;">Reply "unsubscribe" to stop these emails.</p>
+</body>
+</html>`;
+}
+
+function buildAdminDigestHtml(users) {
+  const now = new Date().toISOString();
+  
+  // Country breakdown
+  const countryStats = {};
+  users.forEach(u => {
+    const c = u.lastCountry || u.firstCountry || "XX";
+    countryStats[c] = (countryStats[c] || 0) + 1;
+  });
+  const topCountries = Object.entries(countryStats)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([c, n]) => `${c}: ${n}`)
+    .join(", ");
+  
+  // Provider breakdown
+  const providerStats = {};
+  users.forEach(u => {
+    const p = u.provider || "unknown";
+    providerStats[p] = (providerStats[p] || 0) + 1;
+  });
+  const providerBreakdown = Object.entries(providerStats)
+    .sort((a, b) => b[1] - a[1])
+    .map(([p, n]) => `${p}: ${n}`)
+    .join(", ");
+  
+  // Active users (logged in last 7 days)
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const activeLastWeek = users.filter(u => (u.lastSeen || "") >= weekAgo).length;
+  
+  const rows = users
+    .sort((a, b) => (b.created || "").localeCompare(a.created || ""))
+    .map(u => {
+      const location = [u.lastCity, u.lastRegion, u.lastCountry].filter(Boolean).join(", ") || "—";
+      const ua = (u.lastUserAgent || "").slice(0, 50) + ((u.lastUserAgent || "").length > 50 ? "..." : "");
+      return `<tr>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;">${u.email}</td>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;">${u.provider || "—"}</td>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;">${u.name || "—"}</td>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;">${location}</td>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;">${u.loginCount || 1}</td>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;">${(u.created || "").slice(0, 10)}</td>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;">${(u.lastSeen || "").slice(0, 10)}</td>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;font-size:10px;color:#666;">${u.lastIp || "—"}</td>
+      </tr>`;
+    })
+    .join("");
+
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family:monospace;padding:20px;">
+  <h2>TizWildin HUB — Admin Subscriber Report</h2>
+  <p>Generated: ${now}</p>
+  <p><strong>Total users: ${users.length}</strong> | Active last 7 days: ${activeLastWeek}</p>
+  <p>Giveaway target: ${GIVEAWAY_TARGET} | Remaining: ${Math.max(0, GIVEAWAY_TARGET - users.length)}</p>
+  <hr>
+  <h3>📊 Stats</h3>
+  <p><strong>Top Countries:</strong> ${topCountries}</p>
+  <p><strong>Providers:</strong> ${providerBreakdown}</p>
+  <hr>
+  <h3>👥 Full User List</h3>
+  <table style="border-collapse:collapse;width:100%;font-size:11px;">
+    <tr style="background:#f4f4f4;">
+      <th style="padding:6px;text-align:left;">Email</th>
+      <th style="padding:6px;text-align:left;">Provider</th>
+      <th style="padding:6px;text-align:left;">Name</th>
+      <th style="padding:6px;text-align:left;">Location</th>
+      <th style="padding:6px;text-align:left;">Logins</th>
+      <th style="padding:6px;text-align:left;">Joined</th>
+      <th style="padding:6px;text-align:left;">Last Seen</th>
+      <th style="padding:6px;text-align:left;">IP</th>
+    </tr>
+    ${rows}
+  </table>
+</body>
+</html>`;
+}
+
+async function sendWeeklyNewsletter(env) {
+  const users = await getAllHubUsers(env);
+  if (users.length === 0) return { sent: 0 };
+  
+  // Stop sending newsletters once we pass 1000 users
+  if (users.length >= GIVEAWAY_TARGET) {
+    // Still send but could add a flag to stop entirely if desired
+  }
+
+  const html = buildNewsletterHtml(users.length);
+  const emails = users.map(u => u.email).filter(e => e && e.includes("@") && !e.endsWith("@soundcloud.local"));
+  
+  // Resend supports up to 100 recipients per call in batch mode
+  // For larger lists, we send individually (Resend free tier is 100/day, paid is higher)
+  let sent = 0;
+  const subject = `🎛️ TizWildin Weekly — ${new Date().toISOString().slice(0, 10)}`;
+  
+  for (const email of emails) {
+    try {
+      await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from: "TizWildin <onboarding@resend.dev>",
+          to: [email],
+          subject,
+          html,
+        }),
+      });
+      sent++;
+    } catch {}
+  }
+  return { sent, total: emails.length };
+}
+
+async function sendAdminSubscriberDigest(env) {
+  const users = await getAllHubUsers(env);
+  const html = buildAdminDigestHtml(users);
+  const subject = `TizWildin Admin Digest — ${new Date().toISOString().slice(0, 10)} (${users.length} users)`;
+  
+  await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: "TizWildin Admin <onboarding@resend.dev>",
+      to: [ADMIN],
+      subject,
+      html,
+    }),
+  });
+}
+
+// Admin endpoint: Get subscriber list (protected by simple check)
+async function handleAdminSubscribers(request, env, headers) {
+  const url = new URL(request.url);
+  const adminKey = url.searchParams.get("key");
+  // Simple protection — require RESEND_API_KEY as admin key (you can change this)
+  if (adminKey !== env.RESEND_API_KEY?.slice(0, 16)) {
+    return jsonResponse({ error: "Unauthorized" }, 401, headers);
+  }
+  
+  const users = await getAllHubUsers(env);
+  
+  // Country breakdown
+  const countryStats = {};
+  users.forEach(u => {
+    const c = u.lastCountry || u.firstCountry || "XX";
+    countryStats[c] = (countryStats[c] || 0) + 1;
+  });
+  
+  // Active users (logged in last 7 days)
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const activeLastWeek = users.filter(u => (u.lastSeen || "") >= weekAgo).length;
+  
+  return jsonResponse({
+    total: users.length,
+    activeLastWeek,
+    giveawayTarget: GIVEAWAY_TARGET,
+    remaining: Math.max(0, GIVEAWAY_TARGET - users.length),
+    countryBreakdown: countryStats,
+    users: users.map(u => ({
+      email: u.email,
+      name: u.name,
+      provider: u.provider,
+      created: u.created,
+      lastSeen: u.lastSeen,
+      loginCount: u.loginCount || 1,
+      location: {
+        country: u.lastCountry || u.firstCountry,
+        city: u.lastCity || u.firstCity,
+        region: u.lastRegion || u.firstRegion,
+        timezone: u.lastTimezone,
+      },
+      lastIp: u.lastIp,
+      userAgent: u.lastUserAgent,
+    })),
+  }, 200, headers);
+}
+
+// Admin endpoint: Manually trigger newsletter (protected)
+async function handleManualNewsletter(request, env, headers) {
+  let body;
+  try { body = await parseBody(request); } catch (e) { return jsonResponse({ error: e.message }, 400, headers); }
+  
+  const adminKey = body.key;
+  if (adminKey !== env.RESEND_API_KEY?.slice(0, 16)) {
+    return jsonResponse({ error: "Unauthorized" }, 401, headers);
+  }
+  
+  const newsletterResult = await sendWeeklyNewsletter(env);
+  await sendAdminSubscriberDigest(env);
+  return jsonResponse({ ok: true, ...newsletterResult }, 200, headers);
 }
 
 // Helpers
