@@ -50,6 +50,33 @@ jobs:
           file build/ProEQ8_artefacts/Release/VST3/ProEQ8.vst3/Contents/MacOS/ProEQ8
           lipo -info build/ProEQ8_artefacts/Release/VST3/ProEQ8.vst3/Contents/MacOS/ProEQ8
 
+      - name: Download pluginval
+        run: |
+          curl -LO https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip
+          unzip pluginval_macOS.zip
+          chmod +x pluginval.app/Contents/MacOS/pluginval
+
+      - name: Validate FreeEQ8 VST3
+        run: |
+          pluginval.app/Contents/MacOS/pluginval \
+            --validate "build/FreeEQ8_artefacts/Release/VST3/FreeEQ8.vst3" \
+            --strictness-level 10 \
+            --timeout-ms 120000
+
+      - name: Validate FreeEQ8 AU
+        run: |
+          pluginval.app/Contents/MacOS/pluginval \
+            --validate "build/FreeEQ8_artefacts/Release/AU/FreeEQ8.component" \
+            --strictness-level 10 \
+            --timeout-ms 120000
+
+      - name: Validate ProEQ8 VST3
+        run: |
+          pluginval.app/Contents/MacOS/pluginval \
+            --validate "build/ProEQ8_artefacts/Release/VST3/ProEQ8.vst3" \
+            --strictness-level 10 \
+            --timeout-ms 120000
+
       - name: Package DMG
         run: ./package_macos.sh build
 
@@ -89,6 +116,26 @@ jobs:
       - name: Build ProEQ8
         run: cmake --build build --config Release --target ProEQ8_All -j$(nproc)
 
+      - name: Download pluginval
+        run: |
+          curl -LO https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Linux.zip
+          unzip pluginval_Linux.zip
+          chmod +x pluginval
+
+      - name: Validate FreeEQ8 VST3
+        run: |
+          ./pluginval \
+            --validate "build/FreeEQ8_artefacts/Release/VST3/FreeEQ8.vst3" \
+            --strictness-level 10 \
+            --timeout-ms 120000
+
+      - name: Validate ProEQ8 VST3
+        run: |
+          ./pluginval \
+            --validate "build/ProEQ8_artefacts/Release/VST3/ProEQ8.vst3" \
+            --strictness-level 10 \
+            --timeout-ms 120000
+
       - name: Package tar.gz
         run: |
           VERSION=$(grep 'project(FreeEQ8 VERSION' CMakeLists.txt | sed 's/.*VERSION \([0-9.]*\).*/\1/')
@@ -121,6 +168,28 @@ jobs:
 
       - name: Build FreeEQ8 + ProEQ8
         run: cmake --build build --config Release
+
+      - name: Download pluginval
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip" -OutFile pluginval.zip
+          Expand-Archive -Path pluginval.zip -DestinationPath pluginval
+
+      - name: Validate FreeEQ8 VST3
+        shell: pwsh
+        run: |
+          .\pluginval\pluginval.exe `
+            --validate "build\FreeEQ8_artefacts\Release\VST3\FreeEQ8.vst3" `
+            --strictness-level 10 `
+            --timeout-ms 120000
+
+      - name: Validate ProEQ8 VST3
+        shell: pwsh
+        run: |
+          .\pluginval\pluginval.exe `
+            --validate "build\ProEQ8_artefacts\Release\VST3\ProEQ8.vst3" `
+            --strictness-level 10 `
+            --timeout-ms 120000
 
       - name: Package zip
         shell: pwsh

@@ -500,9 +500,12 @@ tagged release:
 - **Windows**: x64 VST3 built on windows-latest with MSVC
 
 Unit tests (`FreeEQ8_Tests`) run automatically on the Linux CI pipeline.
-`pluginval` integration at strictness-level-10 is planned for v2.4.0 to verify
-buffer size changes, sample rate switches, and thread-safety compliance before
-each release.
+
+**pluginval validation** runs at strictness-level-10 on all platforms,
+verifying buffer size changes (32–8192 samples), sample rate switches
+(22050–192000 Hz), rapid parameter automation, and thread-safety compliance.
+Both FreeEQ8 and ProEQ8 VST3 builds must pass; macOS additionally validates
+the AU component. Failures block release artifact upload.
 
 CI configuration: `.github/workflows/release.yml`
 
