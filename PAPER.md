@@ -544,7 +544,7 @@ framework. The infrastructure is available in `Tests/ABXListeningTest.cpp` and
 - d-prime: 0.25 (near zero = no discrimination)
 - Interpretation: Not significantly different from chance guessing
 
-Formal study with N≥20 participants planned for v2.3.0 to achieve statistical
+Formal study with N≥20 participants planned for v2.4.0 to achieve statistical
 power >0.85 for detecting d-prime ≥ 0.5.
 
 ---
@@ -563,7 +563,7 @@ both renderers read the same parameter values.
 
 ---
 
-## 9. Future Work (v2.2.5+)
+## 9. Future Work (v2.4.0+)
 
 - **Explicit SIMD vectorisation**: group 8 bands into `juce::dsp::SIMDRegister<float>`,
   processing 4 bands per SSE instruction or 8 via AVX2.
