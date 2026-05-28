@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FreeEQ8 / ProEQ8 — Publications</title>
+  <style>
+    :root { --bg: #0d1117; --fg: #c9d1d9; --accent: #58a6ff; --card: #161b22; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+           background: var(--bg); color: var(--fg); line-height: 1.6; padding: 2rem; }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+    .subtitle { color: #8b949e; margin-bottom: 2rem; }
+    .card { background: var(--card); border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; 
+            border: 1px solid #30363d; }
+    .card h2 { font-size: 1.25rem; margin-bottom: 0.5rem; }
+    .card p { color: #8b949e; font-size: 0.9rem; margin-bottom: 1rem; }
+    .card .title { color: var(--fg); font-weight: 600; }
+    .btn { display: inline-block; background: var(--accent); color: #fff; padding: 0.5rem 1rem;
+           border-radius: 6px; text-decoration: none; font-weight: 500; margin-right: 0.5rem; }
+    .btn:hover { background: #1f6feb; }
+    .btn-outline { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+    .btn-outline:hover { background: var(--accent); color: #fff; }
+    .meta { font-size: 0.85rem; color: #8b949e; margin-top: 1rem; }
+    a { color: var(--accent); }
+    footer { margin-top: 3rem; text-align: center; color: #8b949e; font-size: 0.85rem; }
+    .badge { display: inline-block; background: #238636; color: #fff; padding: 0.2rem 0.5rem; 
+             border-radius: 4px; font-size: 0.75rem; margin-left: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📄 FreeEQ8 / ProEQ8</h1>
+    <p class="subtitle">Publications & Technical Papers</p>
+    
+    <div class="card">
+      <h2>DAFx26 Demo Paper <span class="badge">NEW</span></h2>
+      <p class="title">Real-Time State-Space Parameterization in Digital Equalization: A Production-Grade SVF Implementation</p>
+      <p>2-page demo paper for the 29th International Conference on Digital Audio Effects (DAFx26), MIT, September 2026.</p>
+      <a href="pdf/DAFx26_FreeEQ8.pdf" class="btn">Download PDF</a>
+      <a href="https://github.com/GareBear99/FreeEQ8/blob/main/paper/DAFx26_FreeEQ8.tex" class="btn btn-outline">LaTeX Source</a>
+      <div class="meta">
+        Covers: Simper SVF topology, lock-free SPSC triple-buffer, variable-cadence Dynamic EQ, benchmarks (0.62% CPU, 161× headroom)
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Full Technical Paper</h2>
+      <p class="title">Real-Time State-Space Parameterization and Lock-Free Semantic Analysis in Digital Equalization</p>
+      <p>Comprehensive documentation of the FreeEQ8/ProEQ8 architecture (~15 pages, A- grade, publication-ready).</p>
+      <a href="https://github.com/GareBear99/FreeEQ8/blob/main/PAPER.md" class="btn">View on GitHub</a>
+      <div class="meta">
+        Includes: Pre-ring analysis, detector evaluation (F1=94.7%), ABX infrastructure, CI/CD validation with pluginval
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Downloads</h2>
+      <p>Production-ready audio plugins for macOS, Windows, and Linux.</p>
+      <a href="https://github.com/GareBear99/FreeEQ8/releases" class="btn">GitHub Releases</a>
+      <div class="meta">
+        FreeEQ8 (8-band, GPL-3.0, free) · ProEQ8 (24-band, $20)
+      </div>
+    </div>
+
+    <footer>
+      <p>
+        <a href="https://github.com/GareBear99/FreeEQ8">GitHub</a> · 
+        <a href="https://github.com/GareBear99/FreeEQ8/blob/main/LICENSE">GPL-3.0</a> · 
+        © 2026 Gary Doman
+      </p>
+    </footer>
+  </div>
+</body>
+</html>
