@@ -8,11 +8,11 @@ https://github.com/GareBear99/FreeEQ8
 
 ## Abstract
 
-This paper presents the architecture of a production-grade 8-band parametric
-equalizer designed to eliminate high-frequency magnitude cramping without the
-computational overhead of brute-force oversampling. By utilizing a 64-bit
-double-precision implementation of the Simper State Variable Filter (SVF)
-topology via trapezoidal integration, the system achieves a de-cramped
+This paper presents the architecture of a production-grade parametric
+equalizer (8-band free / 24-band commercial) designed to eliminate high-frequency
+magnitude cramping without the computational overhead of brute-force oversampling.
+By utilizing a 64-bit double-precision implementation of the Simper State Variable
+Filter (SVF) topology via trapezoidal integration, the system achieves a de-cramped
 frequency response near the Nyquist limit while consuming only **0.62% of a
 single-core real-time CPU budget** at 44.1 kHz (161× headroom). To ensure
 absolute real-time safety within modern Digital Audio Workstations (DAWs), a
@@ -489,6 +489,22 @@ g++ -std=c++17 -O3 -DNDEBUG Tests/ArcBenchIntegration.cpp -o ArcBench -I.
 
 Numbers will vary by CPU and compiler. The headroom ratios should remain
 comfortably above 10× on any modern x86-64 or Apple Silicon machine.
+
+### 6.8 Continuous Integration
+
+The project uses GitHub Actions for automated build verification on every
+tagged release:
+
+- **macOS**: Universal binary (arm64 + x86_64) built on macos-14 runner
+- **Linux**: x86_64 VST3 built on ubuntu-latest with JUCE dependencies
+- **Windows**: x64 VST3 built on windows-latest with MSVC
+
+Unit tests (`FreeEQ8_Tests`) run automatically on the Linux CI pipeline.
+`pluginval` integration at strictness-level-10 is planned for v2.4.0 to verify
+buffer size changes, sample rate switches, and thread-safety compliance before
+each release.
+
+CI configuration: `.github/workflows/release.yml`
 
 ---
 
