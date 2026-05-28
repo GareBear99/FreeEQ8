@@ -103,14 +103,19 @@ For each test signal:
 
 ### Aggregate Performance
 
-*Results populated after running evaluation:*
+```
+Precision:     100.0%
+Recall:        90.0%
+F1 Score:      94.7%
+PR-AUC:        0.985
+True Positives:  18
+False Positives: 0
+False Negatives: 2
+```
 
-```
-Precision:     XX.X%
-Recall:        XX.X%
-F1 Score:      XX.X%
-PR-AUC:        X.XXX
-```
+The two false negatives occur in low-frequency detection:
+- `kick_heavy`: Missed 60 Hz sub resonance (below detector's effective range)
+- `bass_di`: Missed 80 Hz thump resonance (edge of effective range)
 
 ### Performance by Signal Type
 
