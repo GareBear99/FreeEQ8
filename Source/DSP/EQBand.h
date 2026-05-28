@@ -1,6 +1,9 @@
 #pragma once
 #include <juce_dsp/juce_dsp.h>
 #include "Biquad.h"
+#if PROEQ8
+#include "SvfBiquad.h"
+#endif
 #include "../Config.h"
 #include <array>
 
@@ -43,7 +46,13 @@ struct EQBand
     // Cascaded biquad stages: 1 = 12 dB/oct, 2 = 24 dB/oct, 4 = 48 dB/oct
     int numStages = 1;
     static constexpr int maxStages = 4;
+#if PROEQ8
+    // ProEQ8: use de-cramped Cytomic SVF for accurate HF response
+    std::array<SvfBiquad, maxStages> svfFilters;
+#else
+    // FreeEQ8: use classic RBJ biquad
     std::array<Biquad, maxStages> biquads;
+#endif
 
     // Smoothers
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> freqSm;
@@ -56,8 +65,13 @@ struct EQBand
 
     void reset(double sampleRate)
     {
+#if PROEQ8
+        for (auto& f : svfFilters)
+            f.reset();
+#else
         for (auto& bq : biquads)
             bq.reset();
+#endif
         scBiquad.reset();
 
         freqSm.reset(sampleRate, 0.02);   // 20ms
@@ -169,7 +183,7 @@ struct EQBand
     {
         if (!enabled) return;
 
-        // Dynamic gain modulation is baked into biquad coefficients via setAllStages(),
+        // Dynamic gain modulation is baked into filter coefficients via setAllStages(),
         // so no separate pre-filter volume adjustment is needed here.
 
         switch (channelRoute)
@@ -177,19 +191,32 @@ struct EQBand
             case ChannelRoute::Both:
                 for (int s = 0; s < numStages; ++s)
                 {
+#if PROEQ8
+                    l = svfFilters[(size_t)s].processL(l);
+                    r = svfFilters[(size_t)s].processR(r);
+#else
                     l = biquads[(size_t)s].processL(l);
                     r = biquads[(size_t)s].processR(r);
+#endif
                 }
                 break;
 
             case ChannelRoute::LeftOrMid:
                 for (int s = 0; s < numStages; ++s)
+#if PROEQ8
+                    l = svfFilters[(size_t)s].processL(l);
+#else
                     l = biquads[(size_t)s].processL(l);
+#endif
                 break;
 
             case ChannelRoute::RightOrSide:
                 for (int s = 0; s < numStages; ++s)
+#if PROEQ8
+                    r = svfFilters[(size_t)s].processR(r);
+#else
                     r = biquads[(size_t)s].processR(r);
+#endif
                 break;
         }
 
@@ -247,7 +274,7 @@ struct EQBand
     }
 
 private:
-    // Sidechain bandpass for dynamic EQ envelope
+    // Sidechain bandpass for dynamic EQ envelope (always RBJ — not audible)
     Biquad scBiquad;
 
     void setAllStages(double sampleRate)
@@ -255,8 +282,25 @@ private:
         // Incorporate dynamic gain modulation into the filter coefficients
         const float effectiveGainDb = gainDb + dynGainMod;
 
+#if PROEQ8
+        // ProEQ8: map Biquad::Type to SvfBiquad::Type and use de-cramped SVF
+        SvfBiquad::Type svfType = SvfBiquad::Type::Bell;
+        switch (type)
+        {
+            case Biquad::Type::Bell:      svfType = SvfBiquad::Type::Bell;      break;
+            case Biquad::Type::LowShelf:  svfType = SvfBiquad::Type::LowShelf;  break;
+            case Biquad::Type::HighShelf: svfType = SvfBiquad::Type::HighShelf; break;
+            case Biquad::Type::HighPass:  svfType = SvfBiquad::Type::HighPass;  break;
+            case Biquad::Type::LowPass:   svfType = SvfBiquad::Type::LowPass;   break;
+            case Biquad::Type::Bandpass:  svfType = SvfBiquad::Type::Bandpass;  break;
+        }
+        for (int s = 0; s < numStages; ++s)
+            svfFilters[(size_t)s].set(svfType, sampleRate, freqHz, Q, effectiveGainDb);
+#else
+        // FreeEQ8: classic RBJ biquad
         for (int s = 0; s < numStages; ++s)
             biquads[(size_t)s].set(type, sampleRate, freqHz, Q, effectiveGainDb);
+#endif
 
         // Sidechain bandpass tracks band center frequency for envelope detection
         scBiquad.set(Biquad::Type::Bandpass, sampleRate, freqHz, 2.0, 0.0);

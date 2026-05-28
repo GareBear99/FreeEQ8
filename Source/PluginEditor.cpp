@@ -482,12 +482,28 @@ void FreeEQ8AudioProcessorEditor::resized()
 
     // Band selector strip
     {
-        const int btnW = std::min(60, (w - 20) / kNumBands);
         const int stripY = titleH + curveH;
+#if PROEQ8
+        // ProEQ8: 24 bands in 2 rows of 12
+        constexpr int bandsPerRow = 12;
+        const int btnW = std::min(72, (w - 20) / bandsPerRow);
+        const int rowH = (stripH - 2) / 2;  // half height per row
+        const int totalW = btnW * bandsPerRow;
+        const int startX = (w - totalW) / 2;
+        for (int i = 0; i < kNumBands; ++i)
+        {
+            const int row = i / bandsPerRow;
+            const int col = i % bandsPerRow;
+            bandBtns[(size_t)i].setBounds(startX + col * btnW, stripY + 1 + row * rowH, btnW - 2, rowH - 2);
+        }
+#else
+        // FreeEQ8: 8 bands in single row
+        const int btnW = std::min(60, (w - 20) / kNumBands);
         const int totalW = btnW * kNumBands;
         const int startX = (w - totalW) / 2;
         for (int i = 0; i < kNumBands; ++i)
             bandBtns[(size_t)i].setBounds(startX + i * btnW, stripY + 2, btnW - 2, stripH - 4);
+#endif
     }
 
     // ── Selected band controls ──
