@@ -22,6 +22,6 @@ static constexpr const char* kGitHubOwner = "GareBear99";
 static constexpr const char* kGitHubRepo  = "FreeEQ8";
 
 // License activation server URL (Cloudflare Worker)
-// Replace with your deployed worker URL before shipping.
+// Production: tizwildin-hub handles all license operations
 static constexpr const char* kActivationServerURL =
-    "https://proeq8-license-server.admension.workers.dev";
+    "https://tizwildin-hub.admension.workers.dev";
