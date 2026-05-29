@@ -22,7 +22,36 @@
  * Security: HMAC-SHA256 signing, rate limiting, input validation, security headers
  */
 
-const VERSION = "3.1.0";
+const VERSION = "3.2.0";
+
+// Hub Product Catalog (mirrors arc_service products.catalog.json)
+const HUB_PRODUCTS = {
+  // Pro products (one-time purchase)
+  proeq8: { name: "ProEQ8", price: 2999, free: false },
+  therum: { name: "Therum", price: 1999, free: false },
+  wurp: { name: "WURP", price: 1499, free: false },
+  aether: { name: "AETHER", price: 1999, free: false },
+  paintmask: { name: "PaintMask", price: 2499, free: false },
+  bassmaid: { name: "BassMaid", price: 999, free: false },
+  gluemaid: { name: "GlueMaid", price: 999, free: false },
+  spacemaid: { name: "SpaceMaid", price: 999, free: false },
+  mixmaid: { name: "MixMaid", price: 999, free: false },
+  waveform_pro: { name: "WaveForm Pro", price: 1999, free: false },
+  riftsynth_pro: { name: "RiftSynth Pro", price: 1999, free: false },
+  // Bundle
+  complete_collection: { name: "Complete Collection", price: 9999, free: false, bundle: true },
+  // Free products (no checkout needed, auto-entitled)
+  freeeq8: { name: "FreeEQ8", price: 0, free: true },
+  whispergate: { name: "WhisperGate", price: 0, free: true },
+  waveform_riftsynth_lite: { name: "WaveForm/RiftSynth Lite", price: 0, free: true },
+};
+
+// Products included in Complete Collection bundle
+const BUNDLE_PRODUCTS = [
+  "therum", "wurp", "aether", "paintmask",
+  "bassmaid", "gluemaid", "spacemaid", "mixmaid",
+  "waveform_pro", "riftsynth_pro"
+];
 
 // SoundCloud OAuth endpoints
 const SC_AUTH_URL = "https://api.soundcloud.com/connect";
@@ -89,6 +118,15 @@ async function routeRequest(path, method, request, env, headers) {
   }
   if (path === "/create-checkout/master-key" && method === "POST") {
     return handleCreateMasterKeyCheckout(request, env, headers);
+  }
+  // Hub product checkout (any product from catalog)
+  if (path === "/create-checkout/product" && method === "POST") {
+    return handleCreateProductCheckout(request, env, headers);
+  }
+  // Get owned products for an account
+  if (path === "/hub/products" && method === "GET") {
+    const email = new URL(request.url).searchParams.get("email");
+    return handleGetOwnedProducts(email, env, headers);
   }
   if (path === "/activate" && method === "POST") {
     return handleActivate(request, env, headers);
@@ -221,7 +259,7 @@ async function handleStripeWebhook(request, env, headers) {
     const idempKey = `session:${session.id}`;
     if (await env.LICENSES.get(idempKey)) return jsonResponse({ ok: true, duplicate: true }, 200, headers);
 
-    // Distinguish ProEQ8 one-time purchase vs Master Key subscription
+    // Distinguish ProEQ8 one-time purchase vs Master Key subscription vs Hub product
     if (session.mode === "subscription") {
       // Master Key subscription checkout — store seat count
       const seats = session.line_items?.data?.[0]?.quantity || parseInt(session.metadata?.seats || "1");
@@ -238,7 +276,32 @@ async function handleStripeWebhook(request, env, headers) {
       return jsonResponse({ ok: true, type: "master_key", seats }, 200, headers);
     }
 
-    // ProEQ8 one-time purchase — issue license
+    // Check for Hub product purchase via metadata
+    const productId = session.metadata?.product_id;
+    if (productId && HUB_PRODUCTS[productId]) {
+      const product = HUB_PRODUCTS[productId];
+      const owned = await getOwnedProducts(email, env);
+      
+      // Generate license key for this product
+      const licenseId = `${productId}_${crypto.randomUUID()}`;
+      const license = await generateLicense(email, licenseId, env.LICENSE_SIGNING_SECRET, product.name);
+      
+      // Add to owned products
+      if (product.bundle) {
+        if (!owned.bundles.includes(productId)) owned.bundles.push(productId);
+      } else {
+        if (!owned.products.includes(productId)) owned.products.push(productId);
+      }
+      owned.licenses[productId] = { licenseId, license, purchasedAt: new Date().toISOString() };
+      await saveOwnedProducts(email, owned, env);
+      
+      await env.LICENSES.put(idempKey, licenseId, { expirationTtl: 2592000 });
+      await sendProductEmail(email, product.name, license, env.RESEND_API_KEY);
+      await sendAdminNotification(email, `${product.name} (${licenseId})`, session.id, env.RESEND_API_KEY);
+      return jsonResponse({ ok: true, type: "hub_product", product: productId }, 200, headers);
+    }
+
+    // ProEQ8 one-time purchase (legacy) — issue license
     const licenseId = crypto.randomUUID();
     const maxDevices = parseInt(env.MAX_DEVICES_PER_LICENSE || "2", 10);
     const license = await generateLicense(email, licenseId, env.LICENSE_SIGNING_SECRET);
@@ -316,6 +379,147 @@ async function handleCreateMasterKeyCheckout(request, env, headers) {
     if (!resp.ok) return jsonResponse({ error: "Checkout failed" }, 500, headers);
     return jsonResponse({ url: session.url, id: session.id }, 200, headers);
   } catch { return jsonResponse({ error: "Checkout failed" }, 500, headers); }
+}
+
+// Generic product checkout (for any Hub product)
+async function handleCreateProductCheckout(request, env, headers) {
+  let body = {};
+  try { body = await parseBody(request); } catch (e) { return jsonResponse({ error: e.message }, 400, headers); }
+
+  const { email, productId } = body;
+  if (!validEmail(email)) return jsonResponse({ error: "Valid email required" }, 400, headers);
+  
+  const product = HUB_PRODUCTS[productId];
+  if (!product) return jsonResponse({ error: "Unknown product" }, 400, headers);
+  if (product.free) return jsonResponse({ error: "This product is free — no checkout needed" }, 400, headers);
+
+  // Check if user already owns this product
+  const owned = await getOwnedProducts(email, env);
+  if (owned.products.includes(productId)) {
+    return jsonResponse({ error: "You already own this product" }, 400, headers);
+  }
+  // If user owns Complete Collection, they already have access
+  if (owned.bundles.includes("complete_collection") && BUNDLE_PRODUCTS.includes(productId)) {
+    return jsonResponse({ error: "You already have access via Complete Collection" }, 400, headers);
+  }
+
+  // Get price ID from env (format: STRIPE_PRICE_ID_<PRODUCT_ID>)
+  const priceIdKey = `STRIPE_PRICE_ID_${productId.toUpperCase()}`;
+  const priceId = env[priceIdKey];
+  if (!priceId) {
+    // If no specific price ID, use inline price
+    return handleCreateInlineCheckout(email, productId, product, env, headers);
+  }
+
+  const params = new URLSearchParams({
+    mode: "payment",
+    "line_items[0][price]": priceId,
+    "line_items[0][quantity]": "1",
+    success_url: `https://garebear99.github.io/TizWildinEntertainmentHUB/pages/account.html?purchase=success&product=${productId}`,
+    cancel_url: `https://garebear99.github.io/TizWildinEntertainmentHUB/pages/account.html`,
+    "payment_method_types[0]": "card",
+    customer_email: email,
+    "metadata[product_id]": productId,
+    "metadata[product_name]": product.name,
+  });
+
+  try {
+    const resp = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`, "Content-Type": "application/x-www-form-urlencoded" },
+      body: params,
+    });
+    const session = await resp.json();
+    if (!resp.ok) return jsonResponse({ error: "Checkout failed", detail: session.error?.message }, 500, headers);
+    return jsonResponse({ url: session.url, id: session.id, product: productId }, 200, headers);
+  } catch { return jsonResponse({ error: "Checkout failed" }, 500, headers); }
+}
+
+// Inline price checkout (when no pre-created Stripe Price ID exists)
+async function handleCreateInlineCheckout(email, productId, product, env, headers) {
+  const params = new URLSearchParams({
+    mode: "payment",
+    "line_items[0][price_data][currency]": "cad",
+    "line_items[0][price_data][product_data][name]": product.name,
+    "line_items[0][price_data][product_data][description]": `TizWildin ${product.name} — lifetime license`,
+    "line_items[0][price_data][unit_amount]": String(product.price),
+    "line_items[0][quantity]": "1",
+    success_url: `https://garebear99.github.io/TizWildinEntertainmentHUB/pages/account.html?purchase=success&product=${productId}`,
+    cancel_url: `https://garebear99.github.io/TizWildinEntertainmentHUB/pages/account.html`,
+    "payment_method_types[0]": "card",
+    customer_email: email,
+    "metadata[product_id]": productId,
+    "metadata[product_name]": product.name,
+  });
+
+  try {
+    const resp = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`, "Content-Type": "application/x-www-form-urlencoded" },
+      body: params,
+    });
+    const session = await resp.json();
+    if (!resp.ok) return jsonResponse({ error: "Checkout failed", detail: session.error?.message }, 500, headers);
+    return jsonResponse({ url: session.url, id: session.id, product: productId }, 200, headers);
+  } catch { return jsonResponse({ error: "Checkout failed" }, 500, headers); }
+}
+
+// Get all owned products for an email
+async function getOwnedProducts(email, env) {
+  const e = email.toLowerCase();
+  const ownedKey = `owned_products:${e}`;
+  const ownedStr = await env.LICENSES.get(ownedKey);
+  if (ownedStr) {
+    return JSON.parse(ownedStr);
+  }
+  return { products: [], bundles: [], licenses: {} };
+}
+
+async function saveOwnedProducts(email, data, env) {
+  const e = email.toLowerCase();
+  const ownedKey = `owned_products:${e}`;
+  await env.LICENSES.put(ownedKey, JSON.stringify(data));
+}
+
+async function handleGetOwnedProducts(email, env, headers) {
+  if (!validEmail(email)) return jsonResponse({ error: "Valid email required" }, 400, headers);
+  
+  const owned = await getOwnedProducts(email, env);
+  
+  // Also include ProEQ8 licenses from the old system
+  const indexStr = await env.LICENSES.get(`email_index:${email.toLowerCase()}`);
+  const proeq8Licenses = [];
+  if (indexStr) {
+    for (const id of JSON.parse(indexStr)) {
+      const rec = await env.LICENSES.get(id);
+      if (rec) {
+        const r = JSON.parse(rec);
+        proeq8Licenses.push({ licenseId: id, product: r.product || "ProEQ8", devicesUsed: r.used || 0, devicesMax: r.max_uses || 2 });
+      }
+    }
+  }
+  
+  // Free products are always available
+  const freeProducts = Object.entries(HUB_PRODUCTS)
+    .filter(([_, p]) => p.free)
+    .map(([id, _]) => id);
+  
+  // Build full entitlements
+  const allProducts = [...new Set([...owned.products, ...freeProducts])];
+  
+  // If owns Complete Collection, add all bundle products
+  if (owned.bundles.includes("complete_collection")) {
+    allProducts.push(...BUNDLE_PRODUCTS.filter(p => !allProducts.includes(p)));
+  }
+  
+  return jsonResponse({
+    email: email.toLowerCase(),
+    ownedProducts: allProducts,
+    bundles: owned.bundles,
+    licenses: { ...owned.licenses, proeq8: proeq8Licenses },
+    freeProducts,
+    catalog: HUB_PRODUCTS,
+  }, 200, headers);
 }
 
 // License Activation
@@ -1091,7 +1295,8 @@ async function validateLicenseSignature(licenseKey, secret) {
     for (let i = 0; i < expected.length; i++) mismatch |= expected.charCodeAt(i) ^ sigB64.charCodeAt(i);
     if (mismatch) return null;
     const payload = JSON.parse(atob(payloadB64));
-    if (payload.product !== "ProEQ8" && payload.product !== "MasterKey") return null;
+    // Accept all valid products (ProEQ8, MasterKey, or any Hub product)
+    if (!payload.product || !payload.license_id) return null;
     return payload;
   } catch { return null; }
 }
@@ -1139,6 +1344,19 @@ async function sendMasterKeyEmail(email, seats, apiKey) {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({ from: "TizWildin <onboarding@resend.dev>", to: [email], subject: "Master Key Subscription Confirmed", html }),
+  });
+}
+
+async function sendProductEmail(email, productName, license, apiKey) {
+  const html = `<h2>${productName} — License Activated</h2>
+<p>Thank you for your purchase! Your license key:</p>
+<pre style="background:#f4f4f4;padding:12px;border-radius:4px;word-break:break-all;font-size:11px;">${license}</pre>
+<p>Your license is tied to your TizWildin HUB account (<strong>${email}</strong>). You can view all your products at <a href="https://garebear99.github.io/TizWildinEntertainmentHUB/pages/account.html">your account page</a>.</p>
+<p>— TizWildin</p>`;
+  await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ from: "TizWildin <onboarding@resend.dev>", to: [email], subject: `Your ${productName} License`, html }),
   });
 }
 
