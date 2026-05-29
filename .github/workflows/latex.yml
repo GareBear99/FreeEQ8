@@ -19,19 +19,19 @@ jobs:
       - name: Compile LaTeX document
         uses: xu-cheng/latex-action@v3
         with:
-          root_file: DAFx26_STANDALONE.tex
+          root_file: DAFx26_SIMPLE.tex
           working_directory: paper/dafx_submit
 
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
         with:
           name: DAFx26_FreeEQ8_Paper
-          path: paper/dafx_submit/DAFx26_STANDALONE.pdf
+          path: paper/dafx_submit/DAFx26_SIMPLE.pdf
 
       - name: Copy PDF for GitHub Pages
         run: |
           mkdir -p docs/pdf
-          cp paper/dafx_submit/DAFx26_STANDALONE.pdf docs/pdf/DAFx26_FreeEQ8_SUBMIT.pdf
+          cp paper/dafx_submit/DAFx26_SIMPLE.pdf docs/pdf/DAFx26_FreeEQ8_SUBMIT.pdf
 
       - name: Commit PDF
         run: |

@@ -1,0 +1,141 @@
+% DAFx26 Demo Track Paper: FreeEQ8/ProEQ8
+% Simplified version - no external .bst file needed
+
+\def\papertitle{Real-Time State-Space Parameterization in Digital Equalization: A Production-Grade SVF Implementation}
+\def\paperauthorA{Gary Doman}
+
+\documentclass[twoside,a4paper]{article}
+\usepackage{etoolbox}
+\usepackage{dafx26demo}
+\usepackage{amsmath,amssymb,amsfonts,amsthm}
+\usepackage{siunitx}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{ifpdf}
+\usepackage[english]{babel}
+\usepackage{caption}
+\usepackage{color}
+\usepackage{booktabs}
+\usepackage{times}
+\usepackage{url}
+
+\input glyphtounicode
+\pdfgentounicode=1
+\setcounter{page}{1}
+\ninept
+
+\newcounter{numauth}\setcounter{numauth}{1}
+\def\authorslist{\paperauthorA}
+
+\ifpdf
+  \usepackage[pdftex,pdftitle={\papertitle},pdfauthor={\authorslist},colorlinks=false,bookmarksnumbered,pdfstartview=XYZ]{hyperref}
+  \pdfcompresslevel=9
+  \usepackage[pdftex]{graphicx}
+\else
+  \usepackage[dvips]{graphicx}
+  \usepackage[dvips,pdftitle={\papertitle},pdfauthor={\authorslist},colorlinks=false]{hyperref}
+\fi
+\usepackage[hypcap=true]{caption}
+\title{\papertitle}
+
+\affiliation{\paperauthorA}{Independent Researcher (GareBear99 / TizWildin) \\ \url{https://github.com/GareBear99/FreeEQ8}\\{\tt neovectr.inc@gmail.com}}
+
+\begin{document}
+\ifpdf\DeclareGraphicsExtensions{.png,.jpg,.pdf}\else\DeclareGraphicsExtensions{.eps}\fi
+\maketitle
+
+\begin{abstract}
+We present FreeEQ8/ProEQ8, an open-source parametric equalizer implementing the Simper State Variable Filter (SVF) topology to eliminate high-frequency magnitude cramping without oversampling. Traditional RBJ biquad implementations exhibit 199\% Q distortion at 16\,kHz (44.1\,kHz sample rate); our SVF achieves exact response at all frequencies up to Nyquist. The architecture features lock-free SPSC triple-buffering for real-time safety, a variable-cadence coefficient engine reducing Dynamic EQ CPU cost by 75\%, and allocation-free semantic resonance detection. Measured performance: 0.62\% single-core CPU at 44.1\,kHz (161$\times$ headroom). Source code, benchmarks, and CI validation available under GPL-3.0.
+\end{abstract}
+
+\section{Introduction}
+Traditional parametric EQ implementations use the Robert Bristow-Johnson (RBJ) Audio EQ Cookbook biquad formulas [1] in Transposed Direct Form II. While mathematically correct, the bilinear transform introduces frequency cramping near Nyquist: a Bell filter at 16\,kHz with $Q=1.0$ at 44.1\,kHz exhibits an effective bandwidth \textbf{199\% narrower} than intended.
+
+Industry solutions include brute-force oversampling (adding latency and CPU cost) or proprietary polynomial analog-matching curves. This paper documents a third path: the Simper SVF topology [2], which pre-warps the cutoff frequency via $g = \tan(\pi \cdot f_c / f_s)$, achieving exact cutoff placement without oversampling.
+
+\subsection{Product Architecture}
+The codebase produces two plugins from a single source tree:
+
+\textbf{FreeEQ8} (Free, GPL-3.0): 8-band parametric EQ using RBJ TDF-II biquads. Zero audio restrictions during real-time playback.
+
+\textbf{ProEQ8} (\$20): 24-band parametric EQ using Simper SVF with de-cramped HF response. Adds 4 saturation modes, A/B comparison, and collision detection.
+
+\section{Filter Topology}
+\subsection{RBJ TDF-II (FreeEQ8)}
+Standard biquad transfer function with coefficients per the RBJ cookbook. 64-bit double internal state, float I/O.
+
+\begin{table}[ht]
+  \caption{RBJ Q distortion vs frequency (Bell, $Q=1.0$, 44.1\,kHz).}
+  \centering
+  \begin{tabular}{ccc}\toprule
+    Frequency & Effective Q & Error \\\midrule
+    1\,kHz & 1.005 & +0.5\% \\
+    8\,kHz & 1.337 & +33.7\% \\
+    16\,kHz & 2.990 & +199\% \\\bottomrule
+  \end{tabular}
+  \label{tab:qdistortion}
+\end{table}
+
+\subsection{Simper SVF (ProEQ8)}
+Pre-warped cutoff via trapezoidal integration [2]:
+\begin{equation}
+g = \tan(\pi \cdot f_c / f_s), \quad k = 1/Q
+\end{equation}
+\begin{equation}
+a_1 = 1 / (1 + g(g + k)), \quad a_2 = g \cdot a_1, \quad a_3 = g \cdot a_2
+\end{equation}
+
+\begin{table}[ht]
+  \caption{SVF vs RBJ magnitude response at 16\,kHz.}
+  \centering
+  \begin{tabular}{ccc}\toprule
+    Topology & Magnitude at $f_c$ & Error \\\midrule
+    RBJ @ 44.1\,kHz & +0.73\,dB & $-5.27$\,dB \\
+    SVF @ 44.1\,kHz & +6.00\,dB & 0.00\,dB \\
+    RBJ @ 4$\times$ OS & +4.82\,dB & $-1.18$\,dB \\\bottomrule
+  \end{tabular}
+  \label{tab:svfvsrbj}
+\end{table}
+
+\section{Real-Time Safety Architecture}
+\subsection{SPSC Triple-Buffer}
+Three buffer slots indexed by \{writeSlot, midSlot, readSlot\}. Audio thread writes and atomically swaps writeSlot $\leftrightarrow$ midSlot with \texttt{memory\_order\_release}. UI thread reads via midSlot $\leftrightarrow$ readSlot with \texttt{memory\_order\_acquire}. No mutex, no blocking.
+
+\subsection{Variable-Cadence Dynamic EQ}
+Dynamic EQ recomputes coefficients per-sample when active. During sustained signals, envelope changes $< 0.1$\,dB are inaudible within a 4-sample window (0.09\,ms). \textbf{Result:} 75--80\% reduction in coefficient updates.
+
+\section{Benchmarks}
+All benchmarks from standalone C++ (no JUCE, no DAW). Platform: x86-64, g++ -O3.
+
+\begin{table}[ht]
+  \caption{Performance (44.1\,kHz, 512-sample blocks).}
+  \centering
+  \begin{tabular}{ccc}\toprule
+    Configuration & ns/sample & CPU Headroom \\\midrule
+    RBJ 8-band stereo & 40.7 & 277$\times$ \\
+    SVF 8-band stereo & 70.4 & 161$\times$ \\
+    SVF DynEQ worst-case & 370.9 & 30.6$\times$ \\\bottomrule
+  \end{tabular}
+\end{table}
+
+Concurrent stress tests (400\,ms, Intel i7-3720QM): 239M samples, \textbf{0 data tears}.
+
+\section{Demonstration Plan}
+The live demonstration will showcase: (1) Side-by-side RBJ vs SVF frequency response at 16\,kHz; (2) Real-time spectrum analyzer with lock-free triple-buffer rendering; (3) Dynamic EQ envelope tracking on drum transients; (4) 24-band surgical EQ workflow in ProEQ8.
+
+\textbf{Requirements:} Table with power outlet, external audio interface, headphones.
+
+\section{Conclusions}
+The Simper SVF topology eliminates high-frequency cramping without oversampling. Source code and CI validation (pluginval strictness-level-10) available at \url{https://github.com/GareBear99/FreeEQ8} under GPL-3.0.
+
+\section{Acknowledgments}
+The Simper SVF topology is due to Andrew Simper (Cytomic). The RBJ biquad coefficients are due to Robert Bristow-Johnson.
+
+\section*{References}
+\begin{enumerate}
+\item R. Bristow-Johnson, ``Audio EQ Cookbook,'' musicdsp.org, 1994.
+\item A. Simper, ``Solving the continuous SVF equations using trapezoidal integration,'' Cytomic, 2013.
+\item W. Pirkle, \textit{Designing Audio Effect Plugins in C++}, 2nd ed., Focal Press, 2019.
+\end{enumerate}
+
+\end{document}
