@@ -737,6 +737,175 @@ both renderers read the same parameter values.
 
 ---
 
+# Advanced Runtime Stability & Temporal Coherence
+
+FreeEQ8’s architecture extends beyond static frequency-domain correctness and addresses the significantly harder problem of *dynamic realtime stability under live parameter mutation*.
+
+Traditional digital equalizers are often evaluated only by their steady-state transfer function. However, professional realtime DSP systems must also maintain temporal coherence during:
+
+* rapid automation sweeps
+* live node dragging
+* oversampling mode transitions
+* FIR kernel rebuilds
+* nonlinear stage updates
+* host buffer-size changes
+* sample-rate switching
+* transport discontinuities
+
+FreeEQ8 explicitly treats these as first-class DSP engineering problems rather than GUI-layer concerns.
+
+---
+
+# Decramped High-Frequency Response
+
+Conventional bilinear-transform EQ topologies suffer from frequency warping near the Nyquist boundary. As center frequencies approach Nyquist, bell and shelving responses become compressed and distorted ("cramped"), causing:
+
+* narrowed bandwidth
+* asymmetric curves
+* exaggerated resonance
+* brittle high-end behavior
+* loss of analog-like openness
+
+FreeEQ8 implements decramped recursive filter behavior to preserve intended analog-style response geometry at extreme high frequencies.
+
+This improves:
+
+* high-shelf smoothness
+* perceptual air retention
+* phase consistency
+* upper-octave proportionality
+* mastering-grade top-end behavior
+
+The result is a high-frequency response that remains spatially open and tonally stable rather than collapsing toward the Nyquist boundary.
+
+---
+
+# Deterministic Zero-Allocation Audio Pipeline
+
+Realtime audio systems cannot tolerate nondeterministic memory operations on the render thread.
+
+Dynamic allocation inside the audio callback introduces:
+
+* scheduler stalls
+* cache invalidation
+* priority inversion risk
+* render underruns
+* audible clicks/pops
+
+FreeEQ8 enforces allocation-free audio processing by preallocating critical DSP structures during initialization and prepareToPlay() stages.
+
+This includes:
+
+* FFT buffers
+* FIR staging regions
+* linear-phase magnitude buffers
+* oversampling workspaces
+* SIMD-aligned processing blocks
+* analyzer accumulation memory
+
+By eliminating heap activity from the realtime render path, FreeEQ8 maintains deterministic execution timing compatible with professional DAW environments.
+
+---
+
+# FIR Rebuild Safety & Latency-Coherent Kernel Swapping
+
+Linear-phase FIR systems inherently introduce latency that must remain synchronized with host Automatic Delay Compensation (ADC).
+
+The more difficult engineering problem occurs when FIR kernels rebuild dynamically during playback due to:
+
+* node movement
+* Q adjustment
+* mode switching
+* oversampling changes
+* linear-phase state mutation
+
+Instantaneous kernel replacement can produce:
+
+* zipper noise
+* impulse discontinuities
+* phase jumps
+* transient pops
+* convolution boundary artifacts
+
+FreeEQ8’s architecture is designed around latency-coherent rebuild safety principles including:
+
+* staged coefficient generation
+* deferred kernel activation
+* smoothed transition handling
+* realtime-safe synchronization boundaries
+* interpolation-aware state mutation
+
+Future revisions target:
+
+* dual-kernel crossfading
+* partitioned convolution interpolation
+* sample-accurate kernel morphing
+* overlap-save transition blending
+
+These techniques represent the same class of DSP problems solved in elite mastering processors and high-end linear-phase equalizers.
+
+---
+
+# Oversampling Integrity & Anti-Aliasing Rejection
+
+Oversampling alone does not eliminate aliasing.
+
+Nonlinear DSP stages such as:
+
+* saturation
+* harmonic enhancement
+* clipping
+* nonlinear drive
+* dynamic waveshaping
+
+generate harmonic content above Nyquist that must be aggressively filtered before downsampling.
+
+Insufficient stopband attenuation allows folded harmonics to re-enter the audible spectrum as:
+
+* intermodulation distortion
+* metallic high-frequency artifacts
+* transient smearing
+* unstable stereo imaging
+
+FreeEQ8’s oversampling architecture is designed around:
+
+* polyphase filter structures
+* half-band reconstruction filters
+* steep transition-band control
+* high stopband attenuation
+* alias-rejection-aware nonlinear processing
+
+Future optimization targets include:
+
+* > 96 dB stopband rejection
+* adaptive oversampling topology
+* SIMD-optimized polyphase stages
+* latency-aware oversampling switching
+* dynamic quality scaling under CPU pressure
+
+This positions the engine toward mastering-grade nonlinear processing integrity.
+
+---
+
+# Numerical Stability Under Extreme Automation
+
+As DSP systems become more sophisticated, the dominant engineering challenge shifts from static coefficient correctness toward temporal numerical stability.
+
+FreeEQ8’s evolving architecture targets resilience under:
+
+* high-rate automation
+* denormal conditions
+* coefficient interpolation stress
+* host timing jitter
+* SIMD state synchronization
+* oversampled nonlinear phase alignment
+* multithreaded analyzer interaction
+
+This class of engineering is rarely addressed in independent DSP projects despite being essential for commercial-grade reliability.
+
+The FreeEQ8 engine is therefore designed not merely as a feature-rich equalizer, but as a realtime-safe DSP platform engineered around deterministic execution, temporal coherence, and mathematically stable signal transformation under hostile runtime conditions.
+
+
 ## 10. Real-Time Safety & Security Audit
 
 This section documents the engineering measures that ensure FreeEQ8/ProEQ8 meet
