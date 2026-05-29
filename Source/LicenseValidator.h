@@ -222,12 +222,13 @@ private:
         constexpr int blockSize = 64;
         constexpr int hashSize  = 32;
 
-        auto sha256 = [](const void* data, size_t len) -> juce::MemoryBlock
+        // MSVC requires explicit capture of constexpr in lambdas
+        auto sha256 = [hashSize](const void* data, size_t len) -> juce::MemoryBlock
         {
             juce::SHA256 hasher(data, len);
             auto result = hasher.toHexString();
             juce::MemoryBlock mb;
-            mb.setSize(hashSize);
+            mb.setSize((size_t)hashSize);
             auto* dst = static_cast<uint8_t*>(mb.getData());
             for (int i = 0; i < hashSize; ++i)
                 dst[i] = (uint8_t)result.substring(i * 2, i * 2 + 2).getHexValue32();

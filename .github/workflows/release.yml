@@ -52,7 +52,11 @@ jobs:
 
       - name: Download pluginval
         run: |
-          curl -LO https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip
+          for i in 1 2 3; do
+            curl -LO https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip && break
+            echo "Retry $i..."
+            sleep 5
+          done
           unzip pluginval_macOS.zip
           chmod +x pluginval.app/Contents/MacOS/pluginval
 
@@ -97,14 +101,15 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update -qq
+          # Try webkit2gtk-4.1 first (Ubuntu 24.04+), fall back to 4.0
           sudo apt-get install -y --no-install-recommends \
             build-essential cmake pkg-config \
             libasound2-dev libjack-jackd2-dev \
             libfreetype6-dev libx11-dev libxcomposite-dev \
             libxcursor-dev libxext-dev libxfixes-dev \
             libxinerama-dev libxrandr-dev libxrender-dev \
-            libwebkit2gtk-4.0-dev libcurl4-openssl-dev \
-            ladspa-sdk
+            libcurl4-openssl-dev ladspa-sdk
+          sudo apt-get install -y libwebkit2gtk-4.1-dev || sudo apt-get install -y libwebkit2gtk-4.0-dev
 
       - name: Build & run tests
         run: |
