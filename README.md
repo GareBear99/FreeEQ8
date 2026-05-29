@@ -116,7 +116,28 @@ FreeEQ8 is evolving from a free open-source parametric EQ into a smart, explaina
 | [FreeEQ8 Technical Architecture](https://dev.to/tizwildin/real-time-state-space-parameterization-and-lock-free-semantic-analysis-in-digital-equalization-38jn) | dev.to | ✅ Published |
 | [DAFx26 Demo Paper (PDF)](https://garebear99.github.io/FreeEQ8/pdf/DAFx26_FreeEQ8.pdf) | GitHub Pages | 📄 Available |
 
-**Academic submission target:** DAFx26 Demo Track (MIT, September 2026) — deadline May 22, 2026.
+**Academic submission target:** DAFx26 Demo Track (MIT, September 2026) — ✅ Submitted May 29, 2026 (Submission #109).
+
+## 🎁 TizWildin Hub — Account Creation & User Tracking
+
+<div align="center">
+
+**We're tracking our first 1,200 users!**
+
+[![Create Account](https://img.shields.io/badge/🔑_Create_Account-22c55e?style=for-the-badge)](https://garebear99.github.io/TizWildinEntertainmentHUB/account)
+[![View Docs](https://img.shields.io/badge/📚_User_Docs-6c7bbd?style=for-the-badge)](https://garebear99.github.io/TizWildinEntertainmentHUB/docs)
+
+</div>
+
+The [TizWildin Hub](https://garebear99.github.io/TizWildinEntertainmentHUB/) now supports **account creation** and **user documentation tracking**. We're capping early access at **1,200 users** — once we hit **1,000 registered users**, we'll start running giveaways:
+
+- 🎹 Free ProEQ8 license keys
+- 🎧 Sample packs & preset bundles
+- 🎁 Exclusive early access to new plugins
+
+**Get in early:**
+- [Create your account →](https://garebear99.github.io/TizWildinEntertainmentHUB/account)
+- [Browse user docs →](https://garebear99.github.io/TizWildinEntertainmentHUB/docs)
 
 ## Listed, submitted, and under public testing review
 
