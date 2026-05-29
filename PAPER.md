@@ -285,32 +285,180 @@ the first sample of any transient immediately restores per-sample accuracy.
 
 ---
 
-## 5. Allocation-Free Semantic Analysis (ResonanceDetector)
+## 5. Smart EQ Layer — Allocation-Free Semantic Analysis
 
 Traditional "smart EQ" products apply machine-learning inference models (Soothe2,
-iZotope Neutron) — opaque, CPU-heavy, non-deterministic. We introduce a
-deterministic alternative that adds zero latency and allocates no memory:
+iZotope Neutron) — opaque, CPU-heavy, non-deterministic. We introduce a fully
+deterministic, allocation-free alternative comprising three tightly integrated
+components that together form a **state-of-the-art mix-assist system**.
 
-1. Take the 2048-bin log-magnitude spectrum from `SpectrumFIFO` (UI thread rate).
-2. Re-sample into a 96-bin log-frequency grid (20 Hz → Nyquist).
-3. Estimate local baseline via ±0.5-octave moving average.
-4. Flag peaks where `(magnitude − baseline) ≥ 3 dB` and peak is local max in
-   ±3-bin neighbourhood.
-5. Score each peak: `score = deviation × intentWeight(hz, mode)` where
-   `intentWeight` is a log-frequency Gaussian bump per `IntentMode` profile.
-6. Return top-4 suggestions: `{freqHz, gainDb, q, confidence, label}`.
+### 5.1 Architecture Overview
 
-The `intentWeight` function encodes instrument-specific problem zones:
+The Smart EQ layer consists of three header-only components:
 
-| Mode | Primary Bump | Zone |
-|------|-------------|------|
-| VocalClean | ×1.6 at 300 Hz | mud |
-| DrumPunch | ×1.5 at 300 Hz | boxiness |
-| GuitarSpace | ×1.5 at 250 Hz | mud |
-| MasterPolish | ×1.3 at 250 Hz | low-end buildup |
+| Component | File | Purpose |
+|-----------|------|--------|
+| **ResonanceDetector** | `Source/DSP/ResonanceDetector.h` | Log-frequency peak detection with ranked suggestions |
+| **IntentMode** | `Source/DSP/IntentMode.h` | Instrument-specific frequency weighting profiles |
+| **FrequencyExplainer** | `Source/DSP/FrequencyExplainer.h` | Semantic frequency→label mapping for UX |
 
-Semantic labels from `FrequencyExplainer.h` map frequency ranges to strings
-("mud", "harshness", "sibilance", "air") enabling explain-on-hover UX.
+All three are:
+- **Header-only**: Zero link-time dependencies
+- **Allocation-free on hot path**: All arrays are fixed-size `std::array`
+- **Thread-safe**: Atomic publish via `memory_order_release/acquire`
+- **Deterministic**: Same input always produces same output (no ML inference)
+
+### 5.2 ResonanceDetector Algorithm
+
+The detector runs at UI timer rate (~30 Hz) on spectrum data from `SpectrumFIFO`:
+
+**Step 1 — Log-Frequency Resampling:**
+```cpp
+// 2048 linear FFT bins → 96 log-spaced bins (1/8-octave resolution)
+// Geometric spacing: f[i+1] = f[i] × step, where step = (fMax/fMin)^(1/96)
+for (int i = 0; i < kLogBins; ++i) {
+    // Take max magnitude within each log bin (preserves peaks)
+    float maxDb = -120.0f;
+    for (int k = logBinStart[i]; k < logBinEnd[i]; ++k)
+        maxDb = std::max(maxDb, magnitudes[k]);
+    logSpectrum[i] = maxDb;
+}
+```
+
+**Step 2 — Baseline Estimation:**
+```cpp
+// 1-octave running average (±4 bins = ±0.5 octaves)
+constexpr int halfOctaveBins = 4;
+for (int i = 0; i < kLogBins; ++i) {
+    float sum = 0.0f;
+    int lo = std::max(0, i - halfOctaveBins);
+    int hi = std::min(kLogBins - 1, i + halfOctaveBins);
+    for (int k = lo; k <= hi; ++k) sum += logSpectrum[k];
+    baseline[i] = sum / (float)(hi - lo + 1);
+}
+```
+
+**Step 3 — Peak Detection:**
+```cpp
+// Flag peaks: deviation ≥ 3 dB AND local maximum in ±3-bin neighbourhood
+for (int i = 1; i < kLogBins - 1; ++i) {
+    float dev = logSpectrum[i] - baseline[i];
+    if (dev < 3.0f) continue;
+    bool isLocalMax = true;
+    for (int k = i - 3; k <= i + 3; ++k) {
+        if (k != i && logSpectrum[k] - baseline[k] > dev)
+            isLocalMax = false;
+    }
+    if (isLocalMax) peaks.push_back({logBinCenterHz[i], dev, sharpness});
+}
+```
+
+**Step 4 — Intent-Weighted Scoring:**
+```cpp
+// Score = deviation × intentWeight(freq, mode)
+for (auto& peak : peaks) {
+    float w = intentWeightFor(intent, peak.freqHz);
+    peak.score = peak.deviation * w;
+}
+std::sort(peaks.begin(), peaks.end(), [](a, b) { return a.score > b.score; });
+```
+
+**Step 5 — Suggestion Generation:**
+```cpp
+// Top 4 peaks → suggestions with recommended EQ settings
+for (int i = 0; i < std::min(4, peakCount); ++i) {
+    suggestions[i] = {
+        .freqHz = peaks[i].freqHz,
+        .gainDb = -std::min(12.0f, peaks[i].deviation - 1.5f),  // Cut gain
+        .q = std::clamp(2.0f + 0.4f * peaks[i].sharpness, 2.0f, 8.0f),
+        .confidence = peaks[i].score / 12.0f,
+        .label = labelFor(peaks[i].freqHz)  // "mud", "harshness", etc.
+    };
+}
+```
+
+### 5.3 IntentMode — Behavioural Biasing
+
+Intent modes shift the detector's scoring curve toward instrument-specific
+problem zones **without forcing preset bands**. Each mode defines Gaussian
+bumps in log-frequency space:
+
+```cpp
+// Smooth Gaussian bump: gain × exp(-2 × (log2(hz/center) / octaves)²)
+inline float intentBump(float hz, float centerHz, float octaves, float peakGain) {
+    float logDelta = std::log2(hz / centerHz) / octaves;
+    return peakGain * std::exp(-2.0f * logDelta * logDelta);
+}
+```
+
+**Intent Weight Profiles:**
+
+| Mode | Bump 1 | Bump 2 | Rationale |
+|------|--------|--------|-----------|
+| **VocalClean** | +0.6 @ 300 Hz (0.6 oct) | +0.5 @ 3.2 kHz (0.7 oct) | Mud + harshness zones |
+| **DrumPunch** | +0.5 @ 300 Hz (0.6 oct) | +0.4 @ 7.5 kHz (0.7 oct) | Boxiness + ring zones |
+| **GuitarSpace** | +0.5 @ 250 Hz (0.6 oct) | +0.5 @ 2.5 kHz (0.8 oct) | Mud + honk zones |
+| **MasterPolish** | +0.3 @ 250 Hz (0.8 oct) | +0.2 @ 12 kHz (0.8 oct) | Low-end + air ring |
+| **None** | Flat 1.0 | — | No biasing |
+
+Weights are multiplicative and clamped to [0.5, 2.5] to prevent extreme biasing.
+
+### 5.4 FrequencyExplainer — Semantic Labels
+
+Maps frequency ranges to human-readable labels for the explain-on-hover UX:
+
+```cpp
+const char* frequencyRangeLabel(float hz) {
+    if (hz <   30) return "sub-bass";
+    if (hz <   80) return "sub / rumble";
+    if (hz <  150) return "low-end weight";
+    if (hz <  250) return "low thump";
+    if (hz <  500) return "mud / low-mid";
+    if (hz <  800) return "body / boxiness";
+    if (hz < 1200) return "lower-mid fullness";
+    if (hz < 2000) return "upper-mid nasal";
+    if (hz < 3000) return "honk / definition";
+    if (hz < 5000) return "presence";
+    if (hz < 7000) return "bite / harshness";
+    if (hz < 10000) return "sibilance";
+    if (hz < 14000) return "brilliance / air";
+    return "ultra air";
+}
+
+const char* frequencyActionDescription(float hz, bool isCut) {
+    if (hz <  80) return isCut ? "Removing sub rumble" : "Adding sub weight";
+    if (hz < 200) return isCut ? "Trimming low-end buildup" : "Adding low-end body";
+    if (hz < 400) return isCut ? "Cutting mud" : "Adding warmth";
+    // ... etc
+}
+```
+
+### 5.5 UI Integration
+
+**Suggestion Overlay:** Glowing amber ring markers rendered at each suggestion
+node with confidence-scaled opacity (0.3 → 1.0 based on score/12).
+
+**One-Click Apply:** Clicking a suggestion node writes to the next disabled band
+via APVTS (undo-able). If all 8 bands are occupied, a tooltip informs the user.
+
+**Explain-on-Hover:** `mouseMove` queries `frequencyActionDescription()` and
+displays contextual strings like "Cutting mud (320 Hz)" or "Adding air (12 kHz)".
+
+**Pre-Ring Warning:** Amber banner when `DrumPunch + LinearPhase` are active
+simultaneously, warning that FIR pre-ringing smears drum transients.
+
+### 5.6 Novelty Claims
+
+No other free open-source 8-band EQ currently combines:
+1. **Intent-aware resonance detection** (instrument-specific frequency biasing)
+2. **Log-frequency baseline normalization** (robust to spectral tilt)
+3. **Explain-on-hover semantic UX** (actionable frequency descriptions)
+4. **One-click suggestion apply** (direct APVTS integration, undo-able)
+5. **Allocation-free, deterministic execution** (no ML, no heap, no latency)
+
+The closest commercial equivalents (iZotope Neutron, FabFilter Pro-Q 4 EQ Match)
+use proprietary ML models or FFT-based matching — neither provides real-time
+intent-biased suggestions with semantic explainability.
 
 ### 5.1 Detector Evaluation on Synthetic Signals
 
@@ -565,14 +713,27 @@ both renderers read the same parameter values.
 
 ## 9. Future Work (v2.4.0+)
 
+### 9.1 DSP Enhancements
 - **Explicit SIMD vectorisation**: group 8 bands into `juce::dsp::SIMDRegister<float>`,
   processing 4 bands per SSE instruction or 8 via AVX2.
-- **Cross-instance masking negotiation**: via ARC-Core local IPC spine, multiple
-  plugin instances communicate energy peaks and negotiate inverse dynamic notches.
 - **Spectral dynamics mode**: per-bin FFT threshold clamping (Soothe2 territory)
   using the existing overlap-add Match EQ infrastructure.
+- **Zero-Lag auto-switch**: automatic transition between linear-phase (precision)
+  and minimum-phase (real-time) based on transient detection.
+
+### 9.2 Smart EQ Evolution
+- **Continuous slope suggestions**: extend `ResonanceDetector` to recommend
+  shelf slopes and HP/LP cutoffs, not just Bell cuts.
+- **EQ Sketch mode**: draw a target curve, system generates band parameters
+  via least-squares fitting to the drawn shape.
+- **Cross-instance resonance sharing**: via ARC-Core local IPC spine, multiple
+  plugin instances communicate detected resonances to avoid duplicate cuts.
+
+### 9.3 Platform Expansion
 - **Dolby Atmos 9.1.6**: expand `isBusesLayoutSupported` for discrete immersive
   channel arrays with spatial zone linking.
+- **CLAP format**: add CLAP plugin target alongside VST3/AU.
+- **Apple Silicon native SIMD**: ARM Neon intrinsics for M1/M2/M3 chips.
 
 ---
 
