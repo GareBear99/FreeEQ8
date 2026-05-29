@@ -1,0 +1,39 @@
+name: Compile LaTeX Paper
+
+on:
+  push:
+    paths:
+      - 'paper/dafx_submit/**'
+  workflow_dispatch:
+
+jobs:
+  build-latex:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Compile LaTeX document
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: DAFx26_STANDALONE.tex
+          working_directory: paper/dafx_submit
+
+      - name: Upload PDF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DAFx26_FreeEQ8_Paper
+          path: paper/dafx_submit/DAFx26_STANDALONE.pdf
+
+      - name: Copy PDF for GitHub Pages
+        run: |
+          mkdir -p docs/pdf
+          cp paper/dafx_submit/DAFx26_STANDALONE.pdf docs/pdf/DAFx26_FreeEQ8_SUBMIT.pdf
+
+      - name: Commit PDF
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add docs/pdf/DAFx26_FreeEQ8_SUBMIT.pdf
+          git diff --staged --quiet || git commit -m "📄 Update compiled DAFx26 paper PDF [skip ci]"
+          git push
