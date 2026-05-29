@@ -124,8 +124,8 @@ FreeEQ8 is evolving from a free open-source parametric EQ into a smart, explaina
 
 **We're tracking our first 1,200 users!**
 
-[![Create Account](https://img.shields.io/badge/🔑_Create_Account-22c55e?style=for-the-badge)](https://garebear99.github.io/TizWildinEntertainmentHUB/account)
-[![View Docs](https://img.shields.io/badge/📚_User_Docs-6c7bbd?style=for-the-badge)](https://garebear99.github.io/TizWildinEntertainmentHUB/docs)
+[![Create Account](https://img.shields.io/badge/🔑_Create_Account-22c55e?style=for-the-badge)](https://garebear99.github.io/TizWildinEntertainmentHUB/pages/account.html)
+[![View Docs](https://img.shields.io/badge/📚_User_Docs-6c7bbd?style=for-the-badge)](https://garebear99.github.io/TizWildinEntertainmentHUB/pages/docs.html)
 
 </div>
 
@@ -136,8 +136,8 @@ The [TizWildin Hub](https://garebear99.github.io/TizWildinEntertainmentHUB/) now
 - 🎁 Exclusive early access to new plugins
 
 **Get in early:**
-- [Create your account →](https://garebear99.github.io/TizWildinEntertainmentHUB/account)
-- [Browse user docs →](https://garebear99.github.io/TizWildinEntertainmentHUB/docs)
+- [Create your account →](https://garebear99.github.io/TizWildinEntertainmentHUB/pages/account.html)
+- [Browse user docs →](https://garebear99.github.io/TizWildinEntertainmentHUB/pages/docs.html)
 
 ## Listed, submitted, and under public testing review
 
