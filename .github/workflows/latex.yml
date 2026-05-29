@@ -6,6 +6,9 @@ on:
       - 'paper/dafx_submit/**'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-latex:
     runs-on: ubuntu-latest
