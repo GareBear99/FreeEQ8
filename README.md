@@ -622,7 +622,7 @@ FreeEQ8/
 - [x] NaturalPhaseEngine (256-tap, 128-sample latency)
 - [x] pluginval CI (strictness-level 10)
 
-### v2.2.5 (Current Release)
+### v2.2.5
 - [x] Transistor saturation `invD*d` no-op bug fixed in shipped code
 - [x] MatchEQ hot-path `pow()` eliminated — `correctionGain[]` precompute
 - [x] SvfTest.cpp correctness suite (11 assertions, all passing)
@@ -634,8 +634,9 @@ FreeEQ8/
 - [x] Version alignment (CMakeLists.txt + Config.h both 2.3.0)
 - [x] Get Pro button for FreeEQ8 (opens ProEQ8 checkout)
 - [x] Full codebase audit completed
-- [x] Build verified (AU, VST3, Standalone)
-- [x] CI/CD release workflow verified
+- [x] Smart EQ layer documentation expanded in PAPER.md
+- [x] CI/CD fixes (Linux webkit2gtk-4.1, Windows MSVC lambda capture, macOS retry)
+- [x] Build verified (AU, VST3, Standalone) on all platforms
 
 ### v2.4.0 (Planned) — ProEQ8 Launch
 - [ ] SVF wired into EQBand via `#if PROEQ8`
