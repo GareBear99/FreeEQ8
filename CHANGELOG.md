@@ -22,10 +22,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Get Pro button** (FreeEQ8 only) — green "Get Pro" button in the editor that opens
   the ProEQ8 checkout page in the default browser. Styled with #4CAF50 green, tooltip
   describes ProEQ8 features (24 bands, SVF de-cramping, A/B comparison).
+- **PAPER.md Smart EQ documentation** — Section 5 expanded with complete architecture
+  overview, 5-step ResonanceDetector algorithm pseudocode, IntentMode Gaussian bump
+  formulas and weight profiles, FrequencyExplainer semantic labels, UI integration
+  details, and 5 novelty claims vs commercial alternatives.
 
 ### Fixed
 - **Version mismatch** — `CMakeLists.txt` was `VERSION 2.2.5` while `Config.h` was
   `VERSION 2.3.0`. Now both are aligned at 2.3.0.
+- **CI/CD Linux build** — Ubuntu 24.04 uses `libwebkit2gtk-4.1-dev` (was 4.0). Now
+  tries 4.1 first with fallback to 4.0 for older runners.
+- **CI/CD Windows build** — MSVC requires explicit lambda capture of constexpr
+  `hashSize` in `LicenseValidator.h`. Added `[hashSize]` capture.
+- **CI/CD macOS pluginval download** — added retry loop (3 attempts) for transient
+  DNS resolution failures during pluginval download.
 
 ### Changed
 - **Smart EQ layer verified state-of-the-art** — `ResonanceDetector.h` log-frequency
@@ -38,6 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **License system** — HMAC-SHA256 signing, device fingerprinting (macOS UUID,
   Windows MachineGuid, Linux machine-id), 2 activations per license, Master Key
   subscription for seat management, Hub account integration.
+- **PAPER.md Section 9** — Future Work restructured into DSP Enhancements, Smart EQ
+  Evolution, and Platform Expansion subsections.
 
 ### Notes
 - Full DARPA-level audit completed: all DSP headers, PluginProcessor, PluginEditor,
