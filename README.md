@@ -80,70 +80,67 @@ FabFilter Pro-Q alternative for $0–$20
 
 
 </div>
-
-<details>
-<summary><strong>Current Status</strong></summary>
-
-- **FreeEQ8:** free/open-source 8-band EQ
-- **Formats:** VST3 / AU / Standalone
-- **Platforms:** macOS available now; Windows/Linux build support documented
-- **Tested in:** Ableton Live 10+, REAPER, Logic Pro, FL Studio, Bitwig
-- **Featured by:** [Rekkerd.org](https://rekkerd.org/free-freeeq8-parametric-eq-effect-plugin-by-gary-doman/) and [AudioApp.cn](https://www.audioapp.cn/thread-237167-1-1.html)
-- **Verified listings:** [OpenAudio](https://github.com/webprofusion/OpenAudio), [awesome-music-production](https://github.com/ad-si/awesome-music-production#plugins), [Awesome Audio Dev List](https://github.com/GareBear99/awesome-audio-plugins-dev#equalizers)
-- **International pickup:** AudioApp.cn Chinese/English community article, screenshot-verified, linking to the official GitHub repo
-
-FreeEQ8 is evolving from a free open-source parametric EQ into a smart, explainable mix-assist EQ — combining traditional EQ control, match EQ workflows, and deterministic analysis tools without locking producers behind a $199 plugin.
-
-</details>
-
-## Press / Coverage
-
-- Rekkerd.org — "FREE: FreeEQ8 parametric EQ effect plugin by Gary Doman"  
-  https://rekkerd.org/free-freeeq8-parametric-eq-effect-plugin-by-gary-doman/
-- AudioApp.cn — "Bonus: Gary Doman launches FreeEQ8 free and open source parametric equalizer effects plugin" / "福利：Gary Doman 推出 FreeEQ8 免费开源的参量均衡器效果插件"  
-  https://www.audioapp.cn/thread-237167-1-1.html  
-  Screenshot-verified Chinese/English audio-community pickup: names Gary Doman, FreeEQ8, the feature set, ProEQ8, and links to the official GitHub repo.
-- Midifan.com — Major Chinese audio technology media coverage  
-  https://www.midifan.com/modulenews-detailview-59241.htm  
-  Names Gary Doman, FreeEQ8, full feature set, ProEQ8, and links to the official GitHub repo.
-
-## 📄 Publications & Papers
-
-| Title | Venue | Status |
-|-------|-------|--------|
-| [Real-Time State-Space Parameterization and Lock-Free Semantic Analysis in Digital Equalization](PAPER.md) | DAFx / AES target | 📝 Preprint |
-| [We Eliminated EQ Frequency Cramping Without Oversampling — DAFx26 Paper](https://dev.to/tizwildin/we-eliminated-eq-frequency-cramping-without-oversampling-heres-how-dafx26-paper-4f7l) | dev.to | ✅ Published |
-| [FreeEQ8 Technical Architecture](https://dev.to/tizwildin/real-time-state-space-parameterization-and-lock-free-semantic-analysis-in-digital-equalization-38jn) | dev.to | ✅ Published |
-| [DAFx26 Demo Paper (PDF)](https://garebear99.github.io/FreeEQ8/pdf/DAFx26_FreeEQ8.pdf) | GitHub Pages | 📄 Available |
-
-**Academic submission target:** DAFx26 Demo Track (MIT, September 2026) — ✅ Submitted May 29, 2026 (Submission #109).
-
-## 🎁 TizWildin Hub — Account Creation & User Tracking
-
 <div align="center">
 
-**We're tracking our first 1,200 users!**
+### 🔊 Trademark Sound
 
-[![Create Account](https://img.shields.io/badge/🔑_Create_Account-22c55e?style=for-the-badge)](https://garebear99.github.io/TizWildinEntertainmentHUB/pages/account.html)
-[![View Docs](https://img.shields.io/badge/📚_User_Docs-6c7bbd?style=for-the-badge)](https://garebear99.github.io/TizWildinEntertainmentHUB/pages/docs.html)
+<audio controls src="https://raw.githubusercontent.com/GareBear99/FreeEQ8/main/docs/audio/BaisMaed.mp3">
+  Your browser does not support the audio element.
+</audio>
+
+**BaisMaed** — [play / download](docs/audio/BaisMaed.mp3)
 
 </div>
 
-The [TizWildin Hub](https://garebear99.github.io/TizWildinEntertainmentHUB/) now supports **account creation** and **user documentation tracking**. We're capping early access at **1,200 users** — once we hit **1,000 registered users**, we'll start running giveaways:
+<details>
+<summary><strong>📊 Current Status</strong></summary>
 
-- 🎹 Free ProEQ8 license keys
-- 🎧 Sample packs & preset bundles
-- 🎁 Exclusive early access to new plugins
+| | |
+|---|---|
+| **Product** | FreeEQ8 — free/open-source 8-band parametric EQ |
+| **Formats** | VST3 · AU · Standalone |
+| **Platforms** | macOS (universal) · Windows · Linux |
+| **Version** | v2.3.0 (stable) |
+| **License** | GPL-3.0 |
 
-**Get in early:**
-- [Create your account →](https://garebear99.github.io/TizWildinEntertainmentHUB/pages/account.html)
-- [Browse user docs →](https://garebear99.github.io/TizWildinEntertainmentHUB/pages/docs.html)
+**Tested in:** Ableton Live 10+, REAPER, Logic Pro, FL Studio, Bitwig
 
-## Listed, submitted, and under public testing review
+**Featured by:** [Rekkerd.org](https://rekkerd.org/free-freeeq8-parametric-eq-effect-plugin-by-gary-doman/) · [AudioApp.cn](https://www.audioapp.cn/thread-237167-1-1.html) · [Midifan.com](https://www.midifan.com/modulenews-detailview-59241.htm)
 
-FreeEQ8 now has third-party English and Chinese audio-community coverage from [Rekkerd.org](https://rekkerd.org/free-freeeq8-parametric-eq-effect-plugin-by-gary-doman/) and [AudioApp.cn](https://www.audioapp.cn/thread-237167-1-1.html), plus verified open audio/software listings including [OpenAudio](https://github.com/webprofusion/OpenAudio), [awesome-music-production](https://github.com/ad-si/awesome-music-production#plugins), and the [Awesome Audio Dev List](https://github.com/GareBear99/awesome-audio-plugins-dev#equalizers). A live tracker for accepted listings, open PRs, and editorial submissions is maintained in [docs/FEATURED_ON.md](docs/FEATURED_ON.md) and [docs/SUBMISSIONS_2026.md](docs/SUBMISSIONS_2026.md). The most conservative cross-check is in [docs/outreach/CROSSCHECKED_SUBMISSION_STATUS_2026-05-21.md](docs/outreach/CROSSCHECKED_SUBMISSION_STATUS_2026-05-21.md).
+**Listed on:** [OpenAudio](https://github.com/webprofusion/OpenAudio) · [awesome-music-production](https://github.com/ad-si/awesome-music-production#plugins) · [Awesome Audio Dev List](https://github.com/GareBear99/awesome-audio-plugins-dev#equalizers)
 
-FreeEQ8 is also requesting targeted technical testing feedback from relevant JUCE, plugin-validation, DAW, and DSP review routes. Public feedback status is tracked in [docs/testing/PUBLIC_FEEDBACK_CHANNELS_2026.md](docs/testing/PUBLIC_FEEDBACK_CHANNELS_2026.md). Cross-check note: Tracktion/pluginval and JUCE are relevant technical routes; Chowdhury-DSP resulted in an optional paid expert-review offer; DISTRHO/DPF and iPlug2 were confirmed off-target for the current JUCE-based FreeEQ8 project.
+</details>
+
+## 📰 Press & Coverage
+
+| Outlet | Article |
+|--------|--------|
+| **Rekkerd.org** | [FREE: FreeEQ8 parametric EQ effect plugin by Gary Doman](https://rekkerd.org/free-freeeq8-parametric-eq-effect-plugin-by-gary-doman/) |
+| **AudioApp.cn** | [福利：Gary Doman 推出 FreeEQ8 免费开源参量均衡器](https://www.audioapp.cn/thread-237167-1-1.html) |
+| **Midifan.com** | [FreeEQ8 免费开源参量均衡器](https://www.midifan.com/modulenews-detailview-59241.htm) |
+
+## 📄 Publications
+
+| Title | Venue | Status |
+|-------|-------|--------|
+| [Real-Time State-Space Parameterization in Digital EQ](PAPER.md) | DAFx / AES | 📝 Preprint |
+| [DAFx26 Demo Paper (PDF)](https://garebear99.github.io/FreeEQ8/pdf/DAFx26_FreeEQ8.pdf) | GitHub Pages | 📄 Available |
+| [dev.to: EQ Frequency Cramping](https://dev.to/tizwildin/we-eliminated-eq-frequency-cramping-without-oversampling-heres-how-dafx26-paper-4f7l) | dev.to | ✅ Published |
+
+🏫 **DAFx26 Demo Track** (MIT, September 2026) — Submitted May 29, 2026 (#109)
+
+## 🎁 TizWildin Hub
+
+<div align="center">
+
+[![Create Account](https://img.shields.io/badge/🔑_Create_Account-22c55e?style=for-the-badge)](https://garebear99.github.io/TizWildinEntertainmentHUB/pages/account.html)
+[![View Docs](https://img.shields.io/badge/📚_Docs-6c7bbd?style=for-the-badge)](https://garebear99.github.io/TizWildinEntertainmentHUB/pages/docs.html)
+
+</div>
+
+Tracking our first **1,200 users** — at 1,000 we'll run giveaways (ProEQ8 keys, sample packs, early access).
+
+**Full submission tracker:** [docs/FEATURED_ON.md](docs/FEATURED_ON.md) · [docs/SUBMISSIONS_2026.md](docs/SUBMISSIONS_2026.md)
 
 ## FreeEQ8 in Ableton Live
 
