@@ -16,6 +16,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] — 2026-05-29
+
+### Added
+- **Get Pro button** (FreeEQ8 only) — green "Get Pro" button in the editor that opens
+  the ProEQ8 checkout page in the default browser. Styled with #4CAF50 green, tooltip
+  describes ProEQ8 features (24 bands, SVF de-cramping, A/B comparison).
+
+### Fixed
+- **Version mismatch** — `CMakeLists.txt` was `VERSION 2.2.5` while `Config.h` was
+  `VERSION 2.3.0`. Now both are aligned at 2.3.0.
+
+### Changed
+- **Smart EQ layer verified state-of-the-art** — `ResonanceDetector.h` log-frequency
+  peak detection with intent-based weighting, `IntentMode.h` Gaussian bumps for
+  Vocal/Drum/Guitar/Master profiles, `FrequencyExplainer.h` semantic labeling.
+- **LinearPhaseEngine** — triple-buffer swap-chain, 4096-tap FIR, Hann window,
+  overlap-add FFT convolution verified.
+- **MatchEQ** — reference capture → analysis → correction pipeline with ±24dB
+  clamped correction, pre-computed linear gains (no hot-path pow()).
+- **License system** — HMAC-SHA256 signing, device fingerprinting (macOS UUID,
+  Windows MachineGuid, Linux machine-id), 2 activations per license, Master Key
+  subscription for seat management, Hub account integration.
+
+### Notes
+- Full DARPA-level audit completed: all DSP headers, PluginProcessor, PluginEditor,
+  PresetManager, LicenseValidator, UpdateChecker, server code, CI/CD workflows,
+  and test files verified.
+- Build verified: FreeEQ8 and ProEQ8 compile successfully (AU, VST3, Standalone)
+  on macOS with universal binary (arm64 + x86_64).
+- CI/CD workflow triggers on v* tags, runs pluginval at strictness 10, produces
+  DMG (macOS), tar.gz (Linux), and ZIP (Windows).
+
 ## [2.2.4] — 2026-05-24
 
 ### Added

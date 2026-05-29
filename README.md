@@ -630,7 +630,14 @@ FreeEQ8/
 - [x] Version consistency across all docs (no fake v2.4/v2.5/v3.0 refs)
 - [x] PAPER.md section numbering fixed (§6 Benchmarks, §8 Compact View, §9 Future Work)
 
-### v2.3.0 (Planned) — ProEQ8 Launch
+### v2.3.0 (Current Release) — Stable Release
+- [x] Version alignment (CMakeLists.txt + Config.h both 2.3.0)
+- [x] Get Pro button for FreeEQ8 (opens ProEQ8 checkout)
+- [x] Full codebase audit completed
+- [x] Build verified (AU, VST3, Standalone)
+- [x] CI/CD release workflow verified
+
+### v2.4.0 (Planned) — ProEQ8 Launch
 - [ ] SVF wired into EQBand via `#if PROEQ8`
 - [ ] 24-band layout
 - [ ] Zero-Lag auto-switch between linear-phase and minimum-phase modes
