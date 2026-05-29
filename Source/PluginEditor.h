@@ -76,6 +76,10 @@ private:
     // License activation
     juce::TextButton licenseBtn { "Activate" };
     void showActivationDialog();
+#else
+    // FreeEQ8: "Get Pro" button launches browser to checkout
+    juce::TextButton getProBtn { "Get Pro" };
+    void launchProCheckout();
 #endif
 
     // ── Update checker ───────────────────────────────────────────

@@ -229,6 +229,13 @@ FreeEQ8AudioProcessorEditor::FreeEQ8AudioProcessorEditor(FreeEQ8AudioProcessor& 
         auto& validator = proc.licenseValidator;
         std::thread([&validator] { validator.reverifyWithServer(); }).detach();
     }
+#else
+    // FreeEQ8: "Get Pro" button
+    getProBtn.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF4CAF50));
+    getProBtn.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    getProBtn.setTooltip("Upgrade to ProEQ8 — 24 bands, SVF de-cramping, A/B comparison");
+    getProBtn.onClick = [this] { launchProCheckout(); };
+    addAndMakeVisible(getProBtn);
 #endif
 
     // ── Update checker ──
@@ -589,6 +596,9 @@ void FreeEQ8AudioProcessorEditor::resized()
     copyABBtn.setBounds(sx + halfW + 4, sy, halfW, 18);
     sy += 22;
     licenseBtn.setBounds(sx, sy, sw, 18);
+#else
+    // FreeEQ8: Get Pro button
+    getProBtn.setBounds(sx, sy, sw, 18);
 #endif
 
     // Level meter
@@ -792,5 +802,14 @@ void FreeEQ8AudioProcessorEditor::toggleAB()
     copyABBtn.setButtonText(proc.isSlotA ? "A\xe2\x86\x92" "B" : "B\xe2\x86\x92" "A");
     rebindBandControls(selectedBand);
     repaint();
+}
+#else
+// FreeEQ8: Launch browser to ProEQ8 checkout
+void FreeEQ8AudioProcessorEditor::launchProCheckout()
+{
+    // Open the ProEQ8 checkout page in the user's default browser.
+    // The server endpoint creates a Stripe checkout session.
+    juce::URL checkoutUrl("https://garebear99.github.io/FreeEQ8/proeq8-checkout.html");
+    checkoutUrl.launchInDefaultBrowser();
 }
 #endif
