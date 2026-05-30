@@ -25,7 +25,7 @@ Independent Researcher\\
 \maketitle
 
 \begin{abstract}
-We present FreeEQ8/ProEQ8, an open-source parametric equalizer using the Simper State Variable Filter (SVF) topology for modulation-stable Dynamic EQ. Both SVF and RBJ use BLT with identical prewarping and produce identical steady-state responses; SVF is chosen for lower automation noise, better coefficient interpolation, and improved SNR near DC. The architecture features lock-free SPSC triple-buffering for real-time safety, a variable-cadence coefficient engine reducing Dynamic EQ CPU cost by 75\%, and allocation-free semantic resonance detection. Measured performance: 0.62\% single-core CPU at 44.1\,kHz (161$\times$ headroom). Source code, benchmarks, and CI validation available under GPL-3.0 at \url{https://github.com/GareBear99/FreeEQ8}.
+We present FreeEQ8/ProEQ8, an open-source parametric equalizer using the Simper State Variable Filter (SVF) topology for modulation-stable Dynamic EQ. Both SVF and RBJ use BLT with identical prewarping and produce identical steady-state responses; SVF chosen for lower automation noise, better coefficient interpolation, improved SNR near DC. The architecture features lock-free SPSC triple-buffering for real-time safety, a variable-cadence coefficient engine reducing Dynamic EQ CPU cost by 75\%, and allocation-free semantic resonance detection. Measured performance: 0.62\% single-core CPU at 44.1\,kHz (161$\times$ headroom). Source code, benchmarks, and CI validation available under GPL-3.0 at \url{https://github.com/GareBear99/FreeEQ8}.
 \end{abstract}
 
 \section{Introduction}
@@ -103,7 +103,7 @@ All benchmarks from standalone C++ (no JUCE, no DAW). Platform: x86-64, g++ -O3.
 Concurrent stress tests (400\,ms, Intel i7-3720QM): 239M samples, \textbf{0 data tears}.
 
 \section{Conclusions}
-The Simper SVF topology eliminates high-frequency cramping without oversampling. Source code and CI validation (pluginval strictness-level-10) available at \url{https://github.com/GareBear99/FreeEQ8} under GPL-3.0.
+The SVF topology is used for modulation-stable Dynamic EQ. Source code and CI validation (pluginval strictness-level-10) available at \url{https://github.com/GareBear99/FreeEQ8} under GPL-3.0.
 
 \section*{Acknowledgments}
 The Simper SVF topology is due to Andrew Simper (Cytomic). The RBJ biquad coefficients are due to Robert Bristow-Johnson.

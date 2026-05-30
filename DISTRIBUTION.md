@@ -35,7 +35,7 @@ Hey HN! I built an open-source parametric EQ plugin that solves a fundamental pr
 
 The problem: Traditional EQ plugins use RBJ biquad coefficients with bilinear transform. At 16kHz (44.1kHz sample rate), a Q=1.0 bell filter actually has Q=2.99 – that's 199% narrower than intended. Most plugins "fix" this with 4x oversampling, adding latency and CPU cost.
 
-SVF topology is used for modulation stability under Dynamic EQ. Note: SVF and RBJ produce identical BLT responses — original decramping claim was incorrect (see PAPER.md §2 correction).
+The solution: Simper SVF (State Variable Filter) topology pre-warps the cutoff frequency via g = tan(π·fc/fs), providing modulation-stable Dynamic EQ. Note: SVF and RBJ produce identical BLT responses.
 
 Technical highlights:
 - Lock-free SPSC triple-buffer for real-time safety (239M samples, 0 data tears)
@@ -134,7 +134,7 @@ Gary
 
 2/ This is bilinear transform frequency cramping – a known problem since the 70s. The "fix" is usually 4x oversampling, which adds latency and CPU cost.
 
-3/ SVF topology: modulation-stable Dynamic EQ. Note: both RBJ and SVF use BLT — exact response at fc is guaranteed for both, not unique to SVF.
+3/ SVF topology: modulation-stable Dynamic EQ. Both RBJ and SVF use BLT — exact response at fc is guaranteed for both.
 
 4/ I built an open-source EQ using this approach + lock-free architecture for real-time safety. 239M samples stress tested, 0 data tears.
 

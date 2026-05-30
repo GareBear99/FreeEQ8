@@ -160,7 +160,7 @@ static void test_hf_gain_accuracy()
     bq.set(SvfBiquad::Type::Bell, 44100.0, 16000.0, 1.0, 6.0);
     float magDb = measureMagnitudeDb(bq, 44100.0, 16000.0, 128);
     CHECK(std::abs(magDb - 6.0f) < 0.5f,
-          "Bell +6dB at 16kHz/44.1kHz: BLT guarantees exact gain at fc for both RBJ and SVF");
+          "Bell +6dB at 16kHz: BLT guarantees exact gain at fc for both RBJ and SVF");
 }
 
 // ── Main ───────────────────────────────────────────────────────────────

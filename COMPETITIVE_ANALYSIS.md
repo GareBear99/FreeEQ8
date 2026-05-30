@@ -84,9 +84,9 @@ to characterize filter topology cramping.
 
 | Topology | Magnitude at 16 kHz | Error vs +6 dB |
 |----------|---------------------|----------------|
-| RBJ @ 44.1 kHz | +6.000 dB | 0.000 dB (BLT guarantees exact at fc) |
+| RBJ @ 44.1 kHz | +6.000 dB | 0.000 dB error at fc |
 | SVF @ 44.1 kHz | +6.00 dB | 0.00 dB (exact) |
-| RBJ @ 4× OS | +5.993 dB | −0.007 dB |
+| RBJ @ 4× OS | +5.993 dB | −0.007 dB error at fc |
 
 The SVF achieves exact gain at the center frequency without oversampling due
 to the pre-warped cutoff: `g = tan(π·fc/fs)`.
@@ -144,7 +144,7 @@ Total bytes required for filter state and coefficients:
 ### Not Apples-to-Apples
 
 Different plugins have different feature sets that affect CPU cost:
-- **FabFilter Pro-Q 3**: Decramped response (Orfanidis-style) + dynamic EQ + spectrum analyzer
+- **FabFilter Pro-Q 3**: Proprietary de-cramping + dynamic EQ + spectrum analyzer
 - **Soothe2**: ML-based resonance detection (not a traditional EQ)
 - **TDR Nova**: 4-band dynamic EQ with sidechain options
 - **FreeEQ8**: 8-band EQ with saturation and linear phase modes

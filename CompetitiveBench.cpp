@@ -18,7 +18,7 @@
         - Memory footprint (sizeof)
     
     Reference: PAPER.md §2.3 — SVF achieves exact gain at fc while RBJ shows
-    NOTE: original -5.27 dB claim was fabricated by LLM. BLT guarantees exact gain at fc for both topologies.
+    NOTE: original -5.27 dB figure was fabricated by LLM. BLT guarantees exact gain at fc for both topologies.
     
     Co-Authored-By: Oz <oz-agent@warp.dev>
 */
@@ -230,7 +230,7 @@ static double bench_ns_per_sample(std::function<void()> fn, int total_samples,
 // HF Cramping Measurement
 // =============================================================================
 // Per PAPER.md §2.3: Bell +6dB, Q=1.0 at fc=16kHz, 44.1kHz sample rate
-// Both RBJ and SVF produce +6.00 dB at fc. The +0.73 dB was the Nyquist reading mislabeled as fc.
+// Both RBJ and SVF give +6.00 dB at fc. +0.73 dB was the Nyquist reading mislabeled as fc.
 
 static double measure_hf_cramping(BenchmarkableEQ& eq, double sr = 44100.0) {
     const double fc = 16000.0;
@@ -412,7 +412,7 @@ static void run_hf_cramping_sweep() {
     }
     
     printf("+===========================================================================+\n");
-    printf("| Note: -5.27 dB figure was incorrect; RBJ and SVF both exact at fc.         |\n");
+    printf("| Note: -5.27 dB figure was incorrect. RBJ and SVF both exact at fc.        |\n");
     printf("+===========================================================================+\n");
 }
 

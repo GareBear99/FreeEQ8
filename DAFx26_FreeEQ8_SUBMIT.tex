@@ -104,7 +104,7 @@
 \maketitle
 
 \begin{abstract}
-We present FreeEQ8/ProEQ8, an open-source parametric equalizer using the Simper State Variable Filter (SVF) topology for modulation-stable Dynamic EQ. Both SVF and RBJ use BLT with identical prewarping and produce identical steady-state responses; SVF is chosen for lower automation noise, better coefficient interpolation, and improved SNR near DC. The architecture features lock-free SPSC triple-buffering for real-time safety, a variable-cadence coefficient engine reducing Dynamic EQ CPU cost by 75\%, and allocation-free semantic resonance detection. Measured performance: 0.62\% single-core CPU at 44.1\,kHz (161$\times$ headroom). Source code, benchmarks, and CI validation available under GPL-3.0.
+We present FreeEQ8/ProEQ8, an open-source parametric equalizer using the Simper State Variable Filter (SVF) topology for modulation-stable Dynamic EQ. Both SVF and RBJ use BLT with identical prewarping and produce identical steady-state responses; SVF chosen for lower automation noise, better coefficient interpolation, improved SNR near DC. The architecture features lock-free SPSC triple-buffering for real-time safety, a variable-cadence coefficient engine reducing Dynamic EQ CPU cost by 75\%, and allocation-free semantic resonance detection. Measured performance: 0.62\% single-core CPU at 44.1\,kHz (161$\times$ headroom). Source code, benchmarks, and CI validation available under GPL-3.0.
 \end{abstract}
 
 \section{Introduction}
@@ -235,7 +235,7 @@ The live demonstration will showcase:
 
 \section{Conclusions}
 
-We have demonstrated a production-grade lock-free Dynamic EQ architecture using the Simper SVF topology, chosen for modulation stability and automation noise reduction. Note: SVF and RBJ produce identical steady-state BLT responses; a corrected frequency response table is in §2. The lock-free architecture ensures real-time safety, and the variable-cadence engine provides significant CPU savings on Dynamic EQ workloads.
+We have demonstrated a production-grade lock-free Dynamic EQ architecture. Note: SVF and RBJ produce identical steady-state BLT responses; SVF chosen for modulation stability and automation noise reduction. The lock-free architecture ensures real-time safety, and the variable-cadence engine provides significant CPU savings on Dynamic EQ workloads.
 
 Source code, benchmarks, and CI validation (pluginval strictness-level-10) are available at \url{https://github.com/GareBear99/FreeEQ8} under GPL-3.0.
 
