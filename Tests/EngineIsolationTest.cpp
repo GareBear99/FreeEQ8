@@ -6,7 +6,7 @@
     2. Both produce correct output simultaneously on the same input
     3. Reset on one doesn't affect the other
     4. Config flag correctly selects engine (kIsProVersion simulation)
-    5. Both engines produce different output at HF (proving SVF de-cramps)
+    5. Both engines produce identical steady-state output at all frequencies
 
     Build & run (no JUCE):
         g++ -std=c++17 -O2 Tests/EngineIsolationTest.cpp -o EngineIsolationTest -I.

@@ -11,18 +11,19 @@
 //             https://cytomic.com/files/dsp/SvfLinearTrapOptimised2.pdf
 //
 // Why SVF over RBJ (introduced in v2.2.2):
-//   RBJ biquads cramp near Nyquist. At 44.1 kHz, a Bell filter at 16 kHz with
-//   Q=1.0 has an effective Q of ~3.14 — 214% narrower than the user set.
-//   The SVF uses g = tan(pi*fc/sr) which pre-warps the cutoff exactly, so
-//   the filter response matches the nominal parameters at any frequency up to
-//   Nyquist. Oversampling is no longer needed for accurate HF response.
+//   CORRECTION (May 2026, after JUCE forum + r/DSP community review):
+//   Both SVF and RBJ use the bilinear transform (BLT) with identical prewarping.
+//   Both produce the same steady-state frequency response — cramping is a BLT
+//   property, not a topology property. Verified by BiquadVsSvfComparison.cpp:
+//   RBJ and SVF are identical to 0.0000 dB at every frequency including 16 kHz.
 //
-//   Q distortion (Bell, Q=1.0, 44.1 kHz):
-//     1 kHz:  +0.5%  — inaudible
-//     4 kHz:  +8.1%  — subtle
-//     8 kHz:  +33.7% — noticeable
-//     12 kHz: +85.9% — significant
-//     16 kHz: +214%  — severe (SVF: exactly 0%)
+//   Real SVF advantages (per SkoomaDentist, r/DSP May 2026):
+//   1. Better SNR when fc is near DC (kick/bass EQ at low frequencies)
+//   2. Reduces coefficient-change noise during parameter automation
+//   3. More stable coefficient interpolation for per-sample Dynamic EQ updates
+//
+//   Q convention: Simper Bell uses kA=1/(Q*A), A=sqrt(G), so effective
+//   bandwidth = Q*sqrt(G) — matches RBJ's stated personal convention.
 //
 // Additional benefits:
 //   - Stable under audio-rate parameter modulation (no feedback blow-up)
@@ -63,7 +64,7 @@ struct SvfBiquad
         freqHz = std::max(1.0,  std::min(freqHz, sampleRate * 0.499));
         Q      = std::max(0.01, std::min(Q,      100.0));
 
-        // Core SVF coefficient (pre-warped cutoff — de-cramped by design)
+        // Core SVF coefficient: g = tan(pi*fc/fs) — BLT prewarping, same as RBJ
         const double g  = std::tan(kPi * freqHz / sampleRate);
         const double k  = 1.0 / Q;
 

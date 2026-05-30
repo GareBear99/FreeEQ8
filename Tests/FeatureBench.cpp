@@ -1,5 +1,5 @@
 /*
-    FeatureBench.cpp — DARPA-level per-feature benchmark suite for FreeEQ8.
+    FeatureBench.cpp — per-feature benchmark suite for FreeEQ8.
 
     Every feature claim in the README is stress-tested and timed here.
     Numbers are reproducible: seed-deterministic signal, wall-clock medians
@@ -858,7 +858,7 @@ static void bench_svf_single_band()
                 out[i] = bq.processL(noise[i]);
         };
         double ns = bench_ns_per_sample(fn, N);
-        record(feat, "Simper SVF 2-integrator, 64-bit, de-cramped BZT", ns, "single channel");
+        record(feat, "Simper SVF 2-integrator, 64-bit, BLT (same prewarping as RBJ)", ns, "single channel");
     }
 }
 

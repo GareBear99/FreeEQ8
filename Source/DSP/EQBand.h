@@ -47,7 +47,7 @@ struct EQBand
     int numStages = 1;
     static constexpr int maxStages = 4;
 #if PROEQ8
-    // ProEQ8: use de-cramped Cytomic SVF for accurate HF response
+    // ProEQ8: use Cytomic SVF for modulation-stable Dynamic EQ (not decramping — same BLT as RBJ)
     std::array<SvfBiquad, maxStages> svfFilters;
 #else
     // FreeEQ8: use classic RBJ biquad
@@ -283,7 +283,7 @@ private:
         const float effectiveGainDb = gainDb + dynGainMod;
 
 #if PROEQ8
-        // ProEQ8: map Biquad::Type to SvfBiquad::Type and use de-cramped SVF
+        // ProEQ8: map Biquad::Type to SvfBiquad::Type; SVF chosen for modulation stability
         SvfBiquad::Type svfType = SvfBiquad::Type::Bell;
         switch (type)
         {

@@ -24,7 +24,7 @@
 
 **Title:**
 ```
-Show HN: FreeEQ8 – Open-source EQ that eliminates frequency cramping without oversampling
+Show HN: FreeEQ8 – Open-source JUCE parametric EQ with lock-free Dynamic EQ architecture
 ```
 
 **URL to submit:** `https://github.com/GareBear99/FreeEQ8`
@@ -35,7 +35,7 @@ Hey HN! I built an open-source parametric EQ plugin that solves a fundamental pr
 
 The problem: Traditional EQ plugins use RBJ biquad coefficients with bilinear transform. At 16kHz (44.1kHz sample rate), a Q=1.0 bell filter actually has Q=2.99 – that's 199% narrower than intended. Most plugins "fix" this with 4x oversampling, adding latency and CPU cost.
 
-The solution: Simper SVF (State Variable Filter) topology pre-warps the cutoff frequency via g = tan(π·fc/fs), achieving exact response at all frequencies up to Nyquist – no oversampling needed.
+The solution: Simper SVF (State Variable Filter) topology pre-warps the cutoff frequency via g = tan(π·fc/fs), providing modulation-stable Dynamic EQ. Note: SVF and RBJ produce identical BLT responses.
 
 Technical highlights:
 - Lock-free SPSC triple-buffer for real-time safety (239M samples, 0 data tears)
@@ -62,7 +62,7 @@ TL;DR: Most EQ plugins use RBJ biquad math that makes a 16kHz bell filter 199% n
 
 I've been obsessing over this problem for a while. When you set Q=1.0 at 16kHz in most EQs, you're actually getting Q=2.99 due to bilinear transform frequency warping. The industry "fix" is 4x oversampling, which adds latency and CPU cost.
 
-The Simper SVF topology (from Cytomic's Andrew Simper) pre-warps the cutoff frequency so you get exact response at all frequencies. No oversampling, no latency penalty.
+The Simper SVF topology (from Cytomic's Andrew Simper) provides modulation-stable Dynamic EQ. Both SVF and RBJ use BLT prewarping and produce the same steady-state response.
 
 I wrote up the math and benchmarks: https://garebear99.github.io/FreeEQ8/pdf/DAFx26_FreeEQ8_SUBMIT.pdf
 
@@ -104,7 +104,7 @@ Hi all,
 
 I've been working on FreeEQ8/ProEQ8, an open-source parametric EQ that uses Andrew Simper's SVF topology instead of RBJ biquads.
 
-Why bother? At 16kHz (44.1kHz SR), RBJ gives you Q=2.99 when you dial in Q=1.0 – that's the bilinear transform cramping everyone talks about. SVF pre-warps the cutoff so you get exact response without oversampling.
+Why bother? At 16kHz (44.1kHz SR), RBJ gives you Q=2.99 when you dial in Q=1.0 – that's the bilinear transform cramping everyone talks about. SVF provides modulation-stable coefficient updates for Dynamic EQ automation.
 
 I wrote up the implementation details in a paper:
 https://garebear99.github.io/FreeEQ8/pdf/DAFx26_FreeEQ8_SUBMIT.pdf
@@ -134,7 +134,7 @@ Gary
 
 2/ This is bilinear transform frequency cramping – a known problem since the 70s. The "fix" is usually 4x oversampling, which adds latency and CPU cost.
 
-3/ There's a better way: Simper SVF. Pre-warp the cutoff via g=tan(π·fc/fs) and you get exact response at all frequencies. No oversampling needed.
+3/ SVF topology: modulation-stable Dynamic EQ. Both RBJ and SVF use BLT — exact response at fc is guaranteed for both.
 
 4/ I built an open-source EQ using this approach + lock-free architecture for real-time safety. 239M samples stress tested, 0 data tears.
 

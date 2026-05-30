@@ -233,7 +233,7 @@ FreeEQ8AudioProcessorEditor::FreeEQ8AudioProcessorEditor(FreeEQ8AudioProcessor& 
     // FreeEQ8: "Get Pro" button
     getProBtn.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF4CAF50));
     getProBtn.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
-    getProBtn.setTooltip("Upgrade to ProEQ8 — 24 bands, SVF de-cramping, A/B comparison");
+    getProBtn.setTooltip("Upgrade to ProEQ8 — 24 bands, modulation-stable SVF, A/B comparison");
     getProBtn.onClick = [this] { launchProCheckout(); };
     addAndMakeVisible(getProBtn);
 #endif

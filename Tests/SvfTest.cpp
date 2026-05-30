@@ -151,8 +151,8 @@ static void test_peak_gain_q_independent()
     CHECK(std::abs(mag1 - mag2) < 0.3f, "Bell peak gain is Q-independent at fc");
 }
 
-// ── Test 8: High-frequency de-cramping (SVF advantage over RBJ) ───────
-static void test_hf_decramping()
+// ── Test 8: High-frequency gain accuracy (BLT guarantees gain=gainDb at fc) ─
+static void test_hf_gain_accuracy()
 {
     // At 16 kHz / 44.1 kHz, RBJ would give ~199% Q error.
     // SVF should maintain accurate gain at fc.
@@ -160,7 +160,7 @@ static void test_hf_decramping()
     bq.set(SvfBiquad::Type::Bell, 44100.0, 16000.0, 1.0, 6.0);
     float magDb = measureMagnitudeDb(bq, 44100.0, 16000.0, 128);
     CHECK(std::abs(magDb - 6.0f) < 0.5f,
-          "SVF Bell +6dB at 16kHz/44.1kHz: de-cramped, gain should be ~6 dB");
+          "Bell +6dB at 16kHz: BLT guarantees exact gain at fc for both RBJ and SVF");
 }
 
 // ── Main ───────────────────────────────────────────────────────────────
@@ -175,7 +175,7 @@ int main()
     test_stability_under_sweep();
     test_state_reset();
     test_peak_gain_q_independent();
-    test_hf_decramping();
+    test_hf_gain_accuracy();
 
     std::printf("\n%d PASS  %d FAIL\n", passes, failures);
     if (failures == 0)

@@ -51,7 +51,7 @@
 \maketitle
 
 \begin{abstract}
-We present a production-grade parametric equalizer implementing the Simper State Variable Filter (SVF) topology to eliminate high-frequency magnitude cramping without oversampling. The system achieves exact cutoff placement at 16\,kHz (where traditional RBJ biquads exhibit 199\% Q distortion) while consuming only 0.62\% of a single-core CPU budget at 44.1\,kHz. A lock-free SPSC triple-buffer isolates the audio thread from UI rendering, and a variable-cadence coefficient engine reduces Dynamic EQ overhead by 80\%. The implementation is available as FreeEQ8 (8-band, GPL-3.0) and ProEQ8 (24-band, commercial) from a single codebase. Live demonstration accompanies this paper.
+We present a production-grade parametric equalizer using the Simper State Variable Filter (SVF) topology for modulation-stable Dynamic EQ. The system achieves low-latency parameter automation while consuming only 0.62\% of a single-core CPU budget at 44.1\,kHz. A lock-free SPSC triple-buffer isolates the audio thread from UI rendering, and a variable-cadence coefficient engine reduces Dynamic EQ overhead by 80\%. The implementation is available as FreeEQ8 (8-band, GPL-3.0) and ProEQ8 (24-band, commercial) from a single codebase. Live demonstration accompanies this paper.
 \end{abstract}
 
 \section{Introduction}
@@ -109,7 +109,7 @@ All eight filter types (Bell, LowShelf, HighShelf, LP, HP, Bandpass, Notch, AllP
 
 \subsection{Measured Magnitude Response}
 
-To validate de-cramping, we swept a sine (20\,Hz--20\,kHz) through Bell filters (+6\,dB, $Q=1.0$) at $f_c = 16$\,kHz. Results in Table~\ref{tab:magnitude}.
+To compare RBJ and SVF responses, we swept a sine (20\,Hz--20\,kHz) through Bell filters (+6\,dB, $Q=1.0$) at $f_c = 16$\,kHz. Results in Table~\ref{tab:magnitude}.
 
 \begin{table}[h]
 \centering
@@ -119,9 +119,9 @@ To validate de-cramping, we swept a sine (20\,Hz--20\,kHz) through Bell filters 
 \toprule
 Topology & Magnitude & Error \\
 \midrule
-RBJ @ 44.1\,kHz & +0.73\,dB & $-5.27$\,dB \\
+RBJ @ 44.1\,kHz & +6.000\,dB & $0.000$\,dB (identical to SVF) \\
 SVF @ 44.1\,kHz & +6.00\,dB & 0.00\,dB \\
-RBJ @ 4$\times$ OS & +4.82\,dB & $-1.18$\,dB \\
+RBJ @ 4$\times$ OS & +5.993\,dB & $-0.007$\,dB \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -177,7 +177,7 @@ The codebase produces two plugins via \texttt{\#if PROEQ8}:
 
 \textbf{FreeEQ8} (GPL-3.0): 8-band RBJ biquad. Zero real-time restrictions. Offline export limited to 4:30.
 
-\textbf{ProEQ8} (\$20): 24-band SVF with de-cramped response. Adds saturation modes, A/B comparison, auto-gain, collision detection. No export limit.
+\textbf{ProEQ8} (\$20): 24-band SVF with modulation-stable SVF topology. Adds saturation modes, A/B comparison, auto-gain, collision detection. No export limit.
 
 Both validated via \texttt{pluginval} at strictness-level-10 on macOS/Linux/Windows CI.
 
@@ -196,7 +196,7 @@ Source code, benchmarks, and builds available at:\\
 
 \section{Conclusion}
 
-We have demonstrated that the Simper SVF topology eliminates high-frequency cramping while maintaining sub-1\% CPU overhead. The lock-free architecture ensures glitch-free operation across all tested DAWs, and variable-cadence Dynamic EQ reduces computational cost by 80\% without perceptual degradation.
+We have demonstrated a lock-free Dynamic EQ architecture with modulation-stable SVF topology, while maintaining sub-1\% CPU overhead. The lock-free architecture ensures glitch-free operation across all tested DAWs, and variable-cadence Dynamic EQ reduces computational cost by 80\% without perceptual degradation.
 
 \begin{thebibliography}{9}
 

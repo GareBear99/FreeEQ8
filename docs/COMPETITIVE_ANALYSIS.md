@@ -84,9 +84,9 @@ to characterize filter topology cramping.
 
 | Topology | Magnitude at 16 kHz | Error vs +6 dB |
 |----------|---------------------|----------------|
-| RBJ @ 44.1 kHz | +0.73 dB | −5.27 dB (cramped) |
+| RBJ @ 44.1 kHz | +6.000 dB | 0.000 dB error at fc |
 | SVF @ 44.1 kHz | +6.00 dB | 0.00 dB (exact) |
-| RBJ @ 4× OS | +4.82 dB | −1.18 dB (improved) |
+| RBJ @ 4× OS | +5.993 dB | −0.007 dB error at fc |
 
 The SVF achieves exact gain at the center frequency without oversampling due
 to the pre-warped cutoff: `g = tan(π·fc/fs)`.

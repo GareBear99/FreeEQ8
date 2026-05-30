@@ -19,9 +19,9 @@ We took a third path: **the Simper State Variable Filter (SVF)**.
 
 | Topology | Magnitude at 16 kHz | Error |
 |----------|---------------------|-------|
-| RBJ @ 44.1 kHz | +0.73 dB | −5.27 dB (cramped) |
+| RBJ @ 44.1 kHz | +6.000 dB | 0.000 dB (identical to SVF) |
 | **SVF @ 44.1 kHz** | **+6.00 dB** | **0.00 dB (exact)** |
-| RBJ @ 4× Oversampling | +4.82 dB | −1.18 dB |
+| RBJ @ 4× Oversampling | +5.993 dB | −0.007 dB |
 
 The SVF achieves **exact gain at the center frequency** — no oversampling, no proprietary tricks.
 
@@ -42,7 +42,7 @@ We're not trading accuracy for CPU. Running 8-band stereo EQ at 44.1 kHz:
 - **SVF path**: 72.7 ns/sample → **0.62% CPU** → 161× headroom
 - **RBJ path**: 41.0 ns/sample → 0.36% CPU → 277× headroom
 
-The overhead is 1.73× — worth it for de-cramped high frequencies.
+Note: SVF and RBJ produce identical BLT responses. SVF chosen for modulation stability.
 
 ## Lock-Free Real-Time Architecture
 
@@ -66,7 +66,7 @@ We've written up the full architecture for **DAFx26** (29th International Confer
 📄 **[Download the PDF](https://garebear99.github.io/FreeEQ8/pdf/DAFx26_FreeEQ8.pdf)**
 
 The paper covers:
-- Simper SVF topology with exact de-cramping math
+- Simper SVF topology for modulation-stable Dynamic EQ
 - Lock-free SPSC triple-buffer implementation
 - Variable-cadence coefficient engine
 - Benchmarks on modern and decade-old hardware
@@ -80,7 +80,7 @@ The paper covers:
 - macOS / Windows / Linux
 
 **ProEQ8** (24-band, $20):
-- SVF topology with de-cramped response
+- SVF topology for modulation-stable parameter automation
 - Saturation modes, A/B, auto-gain
 - No export limits
 

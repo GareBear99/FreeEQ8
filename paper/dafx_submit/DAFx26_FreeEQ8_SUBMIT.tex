@@ -104,7 +104,7 @@
 \maketitle
 
 \begin{abstract}
-We present FreeEQ8/ProEQ8, an open-source parametric equalizer implementing the Simper State Variable Filter (SVF) topology to eliminate high-frequency magnitude cramping without oversampling. Traditional RBJ biquad implementations exhibit 199\% Q distortion at 16\,kHz (44.1\,kHz sample rate); our SVF achieves exact response at all frequencies up to Nyquist. The architecture features lock-free SPSC triple-buffering for real-time safety, a variable-cadence coefficient engine reducing Dynamic EQ CPU cost by 75\%, and allocation-free semantic resonance detection. Measured performance: 0.62\% single-core CPU at 44.1\,kHz (161$\times$ headroom). Source code, benchmarks, and CI validation available under GPL-3.0.
+We present FreeEQ8/ProEQ8, an open-source parametric equalizer using the Simper State Variable Filter (SVF) topology for modulation-stable Dynamic EQ. Both SVF and RBJ use BLT with identical prewarping and produce identical steady-state responses; SVF chosen for lower automation noise, better coefficient interpolation, improved SNR near DC. The architecture features lock-free SPSC triple-buffering for real-time safety, a variable-cadence coefficient engine reducing Dynamic EQ CPU cost by 75\%, and allocation-free semantic resonance detection. Measured performance: 0.62\% single-core CPU at 44.1\,kHz (161$\times$ headroom). Source code, benchmarks, and CI validation available under GPL-3.0.
 \end{abstract}
 
 \section{Introduction}
@@ -120,7 +120,7 @@ The codebase produces two plugins from a single source tree:
 
 \textbf{FreeEQ8} (Free, GPL-3.0): 8-band parametric EQ using RBJ TDF-II biquads. Zero audio restrictions during real-time playback.
 
-\textbf{ProEQ8} (\$20): 24-band parametric EQ using Simper SVF with de-cramped HF response. Adds 4 saturation modes, A/B comparison, and collision detection.
+\textbf{ProEQ8} (\$20): 24-band parametric EQ using Simper SVF with modulation-stable SVF topology. Adds 4 saturation modes, A/B comparison, and collision detection.
 
 \section{Filter Topology}
 \label{sec:topology}
@@ -167,9 +167,9 @@ Per-sample processing uses the optimized bounded form with two integrator states
     \toprule
     Topology & Magnitude at $f_c$ & Error \\
     \midrule
-    RBJ @ 44.1\,kHz & +0.73\,dB & $-5.27$\,dB \\
+    RBJ @ 44.1\,kHz & +6.000\,dB & $0.000$\,dB (identical to SVF) \\
     SVF @ 44.1\,kHz & +6.00\,dB & 0.00\,dB \\
-    RBJ @ 4$\times$ OS & +4.82\,dB & $-1.18$\,dB \\
+    RBJ @ 4$\times$ OS & +5.993\,dB & $-0.007$\,dB \\
     \bottomrule
   \end{tabular}
   \label{tab:svfvsrbj}
@@ -235,7 +235,7 @@ The live demonstration will showcase:
 
 \section{Conclusions}
 
-We have demonstrated that the Simper SVF topology eliminates high-frequency cramping in parametric EQ without oversampling, achieving exact magnitude response at all frequencies. The lock-free architecture ensures real-time safety, and the variable-cadence engine provides significant CPU savings on Dynamic EQ workloads.
+We have demonstrated a production-grade lock-free Dynamic EQ architecture. Note: SVF and RBJ produce identical steady-state BLT responses; SVF chosen for modulation stability and automation noise reduction. The lock-free architecture ensures real-time safety, and the variable-cadence engine provides significant CPU savings on Dynamic EQ workloads.
 
 Source code, benchmarks, and CI validation (pluginval strictness-level-10) are available at \url{https://github.com/GareBear99/FreeEQ8} under GPL-3.0.
 
