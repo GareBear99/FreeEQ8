@@ -11,25 +11,28 @@
 //             https://cytomic.com/files/dsp/SvfLinearTrapOptimised2.pdf
 //
 // Why SVF over RBJ (introduced in v2.2.2):
+//   CORRECTION (May 2026, after JUCE forum + r/DSP review):
 //   Both SVF and RBJ use the bilinear transform (BLT) with identical prewarping.
-//   Both produce the same steady-state frequency response — RBJ and SVF are
-//   NOT differentiated by cramping. Cramping is a property of the BLT itself,
-//   not of filter topology. Verified by ResponsePlotTest.cpp: RBJ and SVF
-//   produce identical magnitude at every frequency to 4 decimal places.
+//   Both produce the same steady-state frequency response. Cramping is a BLT
+//   property, not a topology property. Verified by BiquadVsSvfComparison.cpp:
+//   RBJ and SVF produce identical magnitude at every frequency to 4 decimal
+//   places, including 16 kHz.
 //
-//   The real advantages of the SVF topology (per SkoomaDentist, r/DSP 2026):
-//   1. Better SNR when fc is near DC (e.g. kick drum / bass EQ at low freqs)
+//   The real advantages of SVF (per SkoomaDentist, r/DSP May 2026):
+//   1. Better SNR when fc is near DC (e.g. kick/bass EQ at low frequencies)
 //   2. Reduces coefficient-change noise during parameter automation
-//   3. More stable coefficient interpolation between adjacent parameter values
-//      — critical for per-sample Dynamic EQ coefficient updates
+//   3. More stable coefficient interpolation — critical for per-sample
+//      Dynamic EQ coefficient updates
 //
-//   These make SVF the correct choice for the Dynamic EQ path where coefficients
-//   update every sample. For static EQ, RBJ and SVF are equivalent.
+//   Q convention note: Simper's Bell uses kA = 1/(Q*A) where A = sqrt(G),
+//   so the effective bandwidth is Q*A = Q*sqrt(G). This matches RBJ's own
+//   stated personal convention for boost/cut symmetry.
 //
-//   Note on Q convention: Simper's Bell uses kA = 1/(Q*A) where A = sqrt(G),
-//   making the effective bandwidth Q*A = Q*sqrt(G). This matches RBJ's own
-//   stated personal convention (multiply Q by sqrt(G) for boost/cut symmetry).
-//   Other SVF types (LP, HP, BP) use unscaled k = 1/Q.
+// Additional benefits:
+//   - Stable under audio-rate parameter modulation (no feedback blow-up)
+//   - All filter types share one 2-integrator core
+//   - Parallelisable: v1 and v2 can be computed from v0 directly
+//   - Symmetric state update: ic1eq = 2*v1 - ic1eq (no division)
 //
 // Usage (matches Biquad API):
 //   SvfBiquad bq;
@@ -64,7 +67,7 @@ struct SvfBiquad
         freqHz = std::max(1.0,  std::min(freqHz, sampleRate * 0.499));
         Q      = std::max(0.01, std::min(Q,      100.0));
 
-        // Core SVF coefficient (BLT prewarping: g = tan(pi*fc/fs) = tan(w0/2))
+        // Core SVF coefficient: g = tan(pi*fc/fs) = BLT prewarping (same as RBJ)
         const double g  = std::tan(kPi * freqHz / sampleRate);
         const double k  = 1.0 / Q;
 

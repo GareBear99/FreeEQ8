@@ -133,7 +133,7 @@ bool shouldMuteDemo(double sampleRate, int numSamples)
 - Simper SVF via trapezoidal integration (`SvfBiquad.h`)
 - Bell uses `kA = k/A` for both denominator and m1 mix — critical detail
 - 11-assertion correctness suite in `Tests/SvfTest.cpp`: unity, peak gain,
-  LP/HP -3dB, stability sweep, state reset, Q-independence, HF de-cramping
+  LP/HP -3dB, stability sweep, state reset, Q-independence, HF gain accuracy
 - All 11 pass on i7-3720QM (Ivy Bridge, SSE4.2, no AVX2)
 
 ### 2.9 MatchEQ Hot-Path (fixed in v2.2.5)

@@ -125,7 +125,7 @@ FabFilter Pro-Q alternative for $0–$20
 |-------|-------|--------|
 | [Real-Time State-Space Parameterization in Digital EQ](PAPER.md) | DAFx / AES | 📝 Preprint |
 | [DAFx26 Demo Paper (PDF)](https://garebear99.github.io/FreeEQ8/pdf/DAFx26_FreeEQ8.pdf) | GitHub Pages | 📄 Available |
-| [dev.to: EQ Frequency Cramping](https://dev.to/tizwildin/we-eliminated-eq-frequency-cramping-without-oversampling-heres-how-dafx26-paper-4f7l) | dev.to | ✅ Published |
+| [dev.to: FreeEQ8 Architecture (cramping claims corrected)](https://dev.to/tizwildin/we-eliminated-eq-frequency-cramping-without-oversampling-heres-how-dafx26-paper-4f7l) | dev.to | ✅ Published |
 
 🏫 **DAFx26 Demo Track** (MIT, September 2026) — Submitted May 29, 2026 (#109)
 
@@ -283,7 +283,7 @@ Full evidence and numbers:
 ### DSP Specifications
 - Stereo processing (or Mid/Side)
 - Sample rates: 44.1 kHz to 192 kHz+
-- Dual filter topology: RBJ TDF-II biquad (FreeEQ8) + Simper SVF via trapezoidal integration (ProEQ8) — de-cramped HF response
+- Dual filter topology: RBJ TDF-II biquad (FreeEQ8) + Simper SVF via trapezoidal integration (ProEQ8) — modulation-stable Dynamic EQ
 - Double-precision (64-bit) internal arithmetic, float I/O
 - Zero latency in minimum-phase mode; linear phase adds 2048 samples
 - 0.62% single-core CPU budget at 44.1 kHz (SVF 8-band stereo, 161× headroom)
@@ -603,7 +603,7 @@ FreeEQ8/
 - [x] Transistor saturation gain bug fixed (ProEQ8)
 - [x] Dynamic EQ zero-lag coefficient update when `dynEnabled`
 - [x] MatchEQ `correctionGain[]` precompute (3× throughput improvement)
-- [x] Simper SVF engine (`SvfBiquad.h`) — de-cramped HF, trapezoidal integration
+- [x] Simper SVF engine (`SvfBiquad.h`) — modulation-stable SVF, trapezoidal integration
 
 ### v2.2.3–2.2.4
 - [x] Variable-cadence Dynamic EQ (75% CPU savings on sustained signals)
