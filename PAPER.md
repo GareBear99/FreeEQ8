@@ -774,6 +774,14 @@ both renderers read the same parameter values.
   processing 4 bands per SSE instruction or 8 via AVX2.
 - **Spectral dynamics mode**: per-bin FFT threshold clamping (Soothe2 territory)
   using the existing overlap-add Match EQ infrastructure.
+- **Non-stationary spectral analysis for Match EQ**: the current Match EQ
+  analysis assumes constant-frequency sinusoids within each FFT frame. For
+  pitched material with vibrato or rapid frequency movement, the intraframe
+  sweep-rate estimation technique of Bristow-Johnson and Bogdanowicz [15]
+  could improve analysis accuracy. Their method fits a quadratic to the log
+  spectrum to extract instantaneous frequency sweep rate and amplitude ramp
+  rate per spectral peak — directly applicable to the existing overlap-add
+  FFT infrastructure in `NaturalPhaseEngine`.
 - **Zero-Lag auto-switch**: automatic transition between linear-phase (precision)
   and minimum-phase (real-time) based on transient detection.
 - **Embedded/fixed-point port**: for future hardware pedal or microcontroller
@@ -1269,3 +1277,8 @@ This work is released under GPL-3.0.
 [14] R. Bristow-Johnson, answer to "Best implementation of a real-time,
     fixed-point IIR filter with constant coefficients," DSP Stack Exchange.
     https://dsp.stackexchange.com/questions/21792/best-implementation-of-a-real-time-fixed-point-iir-filter-with-constant-coeffic/21811#21811
+
+[15] R. Bristow-Johnson and K. Bogdanowicz, "Intraframe Time-Scaling of
+    Nonstationary Sinusoids Within the Phase Vocoder," in Proc. IEEE Workshop
+    on Applications of Signal Processing to Audio and Acoustics (WASPAA),
+    New Paltz, NY, Oct. 2001, pp. W2001-1–W2001-4.
