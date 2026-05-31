@@ -1,0 +1,63 @@
+From 74fd65e8d98d00fcbb30398ae6bd8a06b321e752 Mon Sep 17 00:00:00 2001
+From: Gary Doman <neovectr.inc@gmail.com>
+Date: Sun, 31 May 2026 06:50:24 +0000
+Subject: [PATCH] =?UTF-8?q?fix:=20add=20inline=20citations=20for=20refs=20?=
+ =?UTF-8?q?[2][3][4][5]=20=E2=80=94=20were=20defined=20but=20uncited?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+[2] Pirkle cited in §1.1 plugin architecture discussion
+[3] Reiss & McPherson cited in §5 Smart EQ evaluation context
+[4] Renn-Giles & Rowland cited in §3.1 SPSC triple-buffer
+[5] JUCE Oversampling cited in §3.3 oversampler pool
+
+All 20 references are now cited at least once in the text.
+---
+ PAPER.md | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/PAPER.md b/PAPER.md
+index 8ddce3f..24c5735 100644
+--- a/PAPER.md
++++ b/PAPER.md
+@@ -49,7 +49,7 @@ AllPass) emerge from a single two-integrator core, simplifying maintenance.
+ ### 1.1 Product Architecture
+ 
+ The codebase produces two plugins from a single source tree via compile-time
+-configuration (`#if PROEQ8`):
++configuration (`#if PROEQ8`) — a pattern described in Pirkle [2]:
+ 
+ **FreeEQ8 (Free, GPL-3.0):** 8-band parametric EQ using the RBJ TDF-II biquad
+ topology (§2.1). Zero audio restrictions during real-time playback. Offline
+@@ -234,7 +234,7 @@ in §9.1.
+ ### 3.1 SPSC Triple-Buffer (SpectrumFIFO)
+ 
+ Three buffer slots indexed by `{writeSlot, midSlot, readSlot}` (a permutation
+-of {0, 1, 2}). Audio thread writes into `writeSlot`; when a frame is complete,
++of {0, 1, 2}), following the real-time safety principles of Renn-Giles & Rowland [4]. Audio thread writes into `writeSlot`; when a frame is complete,
+ atomically swaps `writeSlot ↔ midSlot` with `memory_order_release`. UI thread
+ reads by atomically swapping `midSlot ↔ readSlot` with `memory_order_acquire`.
+ No mutex, no lock, no blocking on either thread.
+@@ -250,7 +250,7 @@ with a single acquire load—never blocks.
+ 
+ ### 3.3 Allocation-Free Hot Path
+ 
+-All oversamplers (1×/2×/4×/8× via JUCE polyphase IIR) are pre-constructed in
++All oversamplers (1×/2×/4×/8× via JUCE polyphase IIR [5]) are pre-constructed in
+ `prepareToPlay()` into `std::array<std::unique_ptr<Oversampling<float>>, 3>`.
+ Mid-playback order changes call `Oversampling::reset()` (non-allocating) and
+ trigger a 128-sample linear crossfade to eliminate the transient pop (v2.2.3).
+@@ -342,7 +342,8 @@ the first sample of any transient immediately restores per-sample accuracy.
+ ## 5. Smart EQ Layer — Allocation-Free Semantic Analysis
+ 
+ Traditional "smart EQ" products apply machine-learning inference models (Soothe2,
+-iZotope Neutron) — opaque, CPU-heavy, non-deterministic. We introduce a fully
++iZotope Neutron) — opaque, CPU-heavy, non-deterministic. For a survey of audio
++effect evaluation methodology see Reiss & McPherson [3]. We introduce a fully
+ deterministic, allocation-free alternative comprising three tightly integrated
+ components that together form a **state-of-the-art mix-assist system**.
+ 
+-- 
+2.43.0
+
