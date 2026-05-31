@@ -124,6 +124,7 @@ FabFilter Pro-Q alternative for $0–$20
 | Title | Venue | Status |
 |-------|-------|--------|
 | [Real-Time State-Space Parameterization in Digital EQ](PAPER.md) | DAFx / AES | 📝 Preprint |
+| [dev.to: FreeEQ8 Architecture (cramping claims corrected)](https://dev.to/tizwildin/we-eliminated-eq-frequency-cramping-without-oversampling-heres-how-dafx26-paper-4f7l) | dev.to | ✅ Published |
 
 🏫 **DAFx26 Demo Track** (MIT, September 2026) — Submitted May 29, 2026 (#109)
 
