@@ -49,7 +49,7 @@ AllPass) emerge from a single two-integrator core, simplifying maintenance.
 ### 1.1 Product Architecture
 
 The codebase produces two plugins from a single source tree via compile-time
-configuration (`#if PROEQ8`):
+configuration (`#if PROEQ8`) — a pattern described in Pirkle [2]:
 
 **FreeEQ8 (Free, GPL-3.0):** 8-band parametric EQ using the RBJ TDF-II biquad
 topology (§2.1). Zero audio restrictions during real-time playback. Offline
@@ -1319,3 +1319,39 @@ This work is released under GPL-3.0.
 [20] U. Zölzer (Ed.), "DAFX: Digital Audio Effects," 2nd ed., Wiley, 2011.
     (Standard DSP reference for filter structures, oversampling, and audio effect
     implementation methodology cited across §2, §3, §4.)
+---
+
+## Further Reading
+
+The following works informed the broader FreeEQ8 ecosystem and are recommended
+for readers interested in related DSP topics, though they do not directly support
+claims made in this paper:
+
+**Robert Bristow-Johnson — additional published work**
+- "Performance of Low-Order Polynomial Interpolators in the Presence of
+  Oversampled Input," AES preprint — relevant to oversampling interpolation
+  quality in future embedded ports.
+- "Effect of DAC Deglitching on Frequency Response" — measurement methodology
+  for audio hardware characterization.
+- "Comments on A Digital Approach to Time-Delay Spectrometry" — audio
+  measurement systems context.
+
+**Julius O. Smith III — digital filter theory**
+- "Introduction to Digital Filters with Audio Applications," W3K Publishing /
+  CCRMA online. https://ccrma.stanford.edu/~jos/filters/
+  Comprehensive treatment of the bilinear transform, IIR filter design, and
+  direct-form topologies. Foundational reading for §2.1–§2.4.
+- "Audio Signal Processing in MATLAB." https://ccrma.stanford.edu/~jos/sasp/
+  Complements the Zölzer DAFX reference [20] for implementation methodology.
+
+**Knud Bank Christiansen**
+- Parametric EQ design work on decramped response near Nyquist. RBJ describes
+  this as a more complete treatment than Orfanidis (1997), resolving the slope
+  discontinuity at Nyquist. Full citation pending; reference [17] will be
+  updated when confirmed.
+
+**Vadim Zavalishin**
+- "The Art of VA Filter Design," 2nd ed. — already cited as [18]. The full
+  book (freely available) covers nonlinear extensions, implicit solvers, and
+  topology-preserving discretization beyond what is cited in §2.2.
+
