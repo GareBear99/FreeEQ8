@@ -85,7 +85,7 @@ FabFilter Pro-Q alternative for $0–$20
 ### 🔊 Trademark Sound
 
 <audio controls src="https://raw.githubusercontent.com/GareBear99/FreeEQ8/main/docs/audio/BaisMaed.mp3">
-  Your browser does not support the audio element.
+  
 </audio>
 
 **BaisMaed** — [play / download](docs/audio/BaisMaed.mp3)
