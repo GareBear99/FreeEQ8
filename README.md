@@ -93,7 +93,7 @@ FabFilter Pro-Q alternative for $0–$20
 ### 💫 Thanks to our supporters
 
 <a href="https://github.com/GareBear99/FreeEQ8/stargazers">
-  <img src="http://reporoster.com/stars/dark/GareBear99/ARC-Neuron-LLMBuilder" alt="Stargazers" />
+  <img src="http://reporoster.com/stars/dark/GareBear99/FreeEQ8" alt="Stargazers" />
 </a>
 
 </div>
