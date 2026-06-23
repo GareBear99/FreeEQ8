@@ -109,19 +109,19 @@ Collab sound with - [YUME/GR!EF](https://soundcloud.com/lucidyume/tombstone?in=t
 The ProEQ8 upgrade fundamentally changes the plugin's standing by unlocking the 24-band engine.
 24-Band Architecture: The Pro version switches to a SIMD-vectorized State Variable Filter (SvfBandArray.h with AVX2/SSE2/Neon), matching the band count of FabFilter Pro-Q 4 and ZL Equalizer 2. 
 
-Unique Feature Set: It is the only EQ under $50 combining:
+**Unique Feature Set:** 
 
-24 Bands (Dynamic & Static)
-Linear Phase mode
-Per-Band Saturation (Tube, Tape, Transistor, Tanh)
-Match EQ, Band Linking, and Collision Detection
+It is the only EQ under $50 combining:
 
-Value: At $20, it offers a feature set that rivals plugins costing $199, making it the best budget all-in-one mixing tool (EQ + Saturation + Dynamics). 
+- 24 Bands (Dynamic & Static)
+- Linear Phase mode
+- Per-Band Saturation (Tube, Tape, Transistor, Tanh)
+- Match EQ, Band Linking, and Collision Detection
 
-**Final Verdict (June 2026)**
+*Value:** 
 
-Free Version: Not the best.  The 8-band limit and export cap make ZL Equalizer 2 the superior choice for zero-cost professional work.
-Pro Version ($20): The Best Value.  By unlocking the 24-band SVF engine, it becomes the most capable "all-in-one" mixing tool for under $50. It is the best choice for producers who want to replace both their main EQ and a saturation plugin with a single $20 purchase. 
+At $20, it offers a feature set that rivals plugins costing $199, making it the best budget all-in-one mixing tool (EQ + Saturation + Dynamics). 
+
 
 
 ### 💫 Thanks to our supporters
@@ -129,6 +129,11 @@ Pro Version ($20): The Best Value.  By unlocking the 24-band SVF engine, it beco
 <a href="https://github.com/GareBear99/FreeEQ8/stargazers">
   <img src="http://reporoster.com/stars/dark/GareBear99/FreeEQ8" alt="Stargazers" />
 </a>
+
+**Final Verdict (June 2026)*
+
+Free Version: Not the best.  The 8-band limit and export cap make ZL Equalizer 2 the superior choice for zero-cost professional work.
+Pro Version ($20): The Best Value.  By unlocking the 24-band SVF engine, it becomes the most capable "all-in-one" mixing tool for under $50. It is the best choice for producers who want to replace both their main EQ and a saturation plugin with a single $20 purchase. 
 
 </div>
 
