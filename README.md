@@ -104,6 +104,22 @@ COMING SOON!!!
 Collab sound with - [YUME/GR!EF](https://soundcloud.com/lucidyume/tombstone?in=tizwildin/sets/tombstone)
 
 
+
+
+
+### 💫 Thanks to our supporters
+
+<a href="https://github.com/GareBear99/FreeEQ8/stargazers">
+  <img src="http://reporoster.com/stars/dark/GareBear99/FreeEQ8" alt="Stargazers" />
+</a>
+
+**Final Verdict (June 2026)*
+
+Free Version: Not the best.  The 8-band limit and export cap make ZL Equalizer 2 the superior choice for zero-cost professional work.
+Pro Version ($20): The Best Value.  By unlocking the 24-band SVF engine, it becomes the most capable "all-in-one" mixing tool for under $50. It is the best choice for producers who want to replace both their main EQ and a saturation plugin with a single $20 purchase. 
+
+</div>
+
 **Is ProEQ8 ($20) the Best Value? Yes.**
 
 The ProEQ8 upgrade fundamentally changes the plugin's standing by unlocking the 24-band engine.
@@ -122,20 +138,6 @@ It is the only EQ under $50 combining:
 
 At $20, it offers a feature set that rivals plugins costing $199, making it the best budget all-in-one mixing tool (EQ + Saturation + Dynamics). 
 
-
-
-### 💫 Thanks to our supporters
-
-<a href="https://github.com/GareBear99/FreeEQ8/stargazers">
-  <img src="http://reporoster.com/stars/dark/GareBear99/FreeEQ8" alt="Stargazers" />
-</a>
-
-**Final Verdict (June 2026)*
-
-Free Version: Not the best.  The 8-band limit and export cap make ZL Equalizer 2 the superior choice for zero-cost professional work.
-Pro Version ($20): The Best Value.  By unlocking the 24-band SVF engine, it becomes the most capable "all-in-one" mixing tool for under $50. It is the best choice for producers who want to replace both their main EQ and a saturation plugin with a single $20 purchase. 
-
-</div>
 
 <details>
 <summary><strong>📊 Current Status</strong></summary>
