@@ -93,6 +93,8 @@ Collab sound with - [YUME/GR!EF](https://soundcloud.com/lucidyume/tombstone?in=t
 
 When factoring in the Pro version (ProEQ8), the answer shifts: FreeEQ8 is no longer the "best" for professional, unrestricted workflows, but the $20 upgrade makes the combined package arguably the best value EQ under $50, though it still trails paid industry standards in band count. 
 
+COMING SOON!!!
+
 
 ### 💫 Thanks to our supporters
 
