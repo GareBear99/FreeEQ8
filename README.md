@@ -113,7 +113,7 @@ Collab sound with - [YUME/GR!EF](https://soundcloud.com/lucidyume/tombstone?in=t
   <img src="http://reporoster.com/stars/dark/GareBear99/FreeEQ8" alt="Stargazers" />
 </a>
 
-**Final Verdict (June 2026)*
+*Final Verdict (June 2026)*
 
 Free Version: Not the best.  The 8-band limit and export cap make ZL Equalizer 2 the superior choice for zero-cost professional work.
 Pro Version ($20): The Best Value.  By unlocking the 24-band SVF engine, it becomes the most capable "all-in-one" mixing tool for under $50. It is the best choice for producers who want to replace both their main EQ and a saturation plugin with a single $20 purchase. 
