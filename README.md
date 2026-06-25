@@ -117,7 +117,7 @@ Collab sound with - [YUME/GR!EF](https://soundcloud.com/lucidyume/tombstone?in=t
 
 Free Version: Not the best.  The 8-band limit and export cap make ZL Equalizer 2 the superior choice for zero-cost professional work.
 Pro Version ($20): The Best Value.  By unlocking the 24-band SVF engine, it becomes the most capable "all-in-one" mixing tool for under $50. It is the best choice for producers who want to replace both their main EQ and a saturation plugin with a single $20 purchase. 
-The Next engine wille support a new form of quantum processing that will make it the 'Best' and that is why I put these here..
+The Next engine will support a new form of quantum processing that will make it the 'Best' and that is why I put these here..
 
 </div>
 
