@@ -86,7 +86,7 @@ FabFilter Pro-Q alternative for $0–$20
 
 *Is FreeEQ8/ProEQ8 the "Best"?*
 
-Yes, it is the best value EQ under $50, and arguably the best all-in-one creative EQ for budget-conscious producers. However, it is not the absolute best for pure surgical precision or workflow speed compared to industry standards "Best"
+Yes, it is the best value EQ under $50, and arguably the best all-in-one creative EQ for budget-conscious producers. However, it is not the absolute best for pure surgical precision or workflow speed compared to industry standards "Best", Yet...
 
 When factoring in the Pro version (ProEQ8 24Bands), the answer of quality shifts: FreeEQ8 is no longer the "best" for professional, unrestricted workflows, but the $20 upgrade makes the combined package arguably the best value EQ under $50, though it still trails paid industry standards in band count. 
 
