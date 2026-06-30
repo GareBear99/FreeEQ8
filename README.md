@@ -160,7 +160,7 @@ At $20, it offers a feature set that rivals plugins costing $199, making it the 
 THE FREEEQ8 MANIFESTO: A NEW STANDARD FOR AUDIO DSP
 =====================================================
 
-For decades, the audio software industry has been trapped in a loop of diminishing returns. Companies repackage the same foundational digital signal processing, wrap it in a sleek user interface, and market it as a groundbreaking revolution. It is the same math, dressed up nice enough to capture a following—a cycle that has largely dominated the industry standard since the release of Serum.
+For decades, the audio software industry has been trapped in a loop of diminishing returns. Companies repackage the same foundational digital signal processing, wrap it in a sleek user interface, and market it as a groundbreaking revolution. It is the same math, dressed up nice enough to capture a following - a cycle that has largely dominated the industry standard since the release of Serum.
 
 FreeEQ8 breaks that cycle.
 
